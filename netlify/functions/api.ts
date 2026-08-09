@@ -23,9 +23,13 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
 
 export async function handler(event: NetlifyEvent): Promise<NetlifyResponse> {
   const { server } = await app();
+  const functionPrefix = "/.netlify/functions/api";
+  const requestPath = event.path.startsWith(functionPrefix)
+    ? event.path.slice(functionPrefix.length) || "/"
+    : event.path;
   const response = await server.inject({
     method: event.httpMethod,
-    url: event.path + (event.rawQuery ? `?${event.rawQuery}` : ""),
+    url: requestPath + (event.rawQuery ? `?${event.rawQuery}` : ""),
     headers: event.headers,
     payload: event.body ?? undefined,
   });
