@@ -12,11 +12,11 @@ export interface DatabaseClient {
 }
 
 export function createDatabaseClient(
-  connectionString = process.env.DATABASE_URL,
+  connectionString = process.env.DATABASE_URL ?? process.env.NETLIFY_DB_URL,
   overrides: Omit<PoolConfig, "connectionString"> = {},
 ): DatabaseClient {
   if (!connectionString) {
-    throw new Error("DATABASE_URL is required");
+    throw new Error("DATABASE_URL or NETLIFY_DB_URL is required");
   }
 
   const pool = new Pool({

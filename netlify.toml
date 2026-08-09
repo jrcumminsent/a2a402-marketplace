@@ -1,5 +1,7 @@
 [build]
-  command = "pnpm build"
+  # Drizzle records applied migrations, so this is safe to repeat on deploy.
+  # Netlify Database gives preview deploys isolated database branches.
+  command = "pnpm db:migrate && pnpm build"
   publish = "public"
   functions = "netlify/functions"
 
