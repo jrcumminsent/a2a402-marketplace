@@ -1,3 +1,5 @@
+import { getConnectionString } from "@netlify/database";
+
 import { buildApp } from "../../apps/api/src/app.js";
 
 interface NetlifyEvent {
@@ -17,6 +19,11 @@ interface NetlifyResponse {
 let application: Promise<Awaited<ReturnType<typeof buildApp>>> | undefined;
 
 function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
+  // Netlify Database injects its connection through the official runtime
+  // binding. The application itself stays portable by consuming DATABASE_URL.
+  if (!process.env.DATABASE_URL && process.env.NETLIFY) {
+    process.env.DATABASE_URL = getConnectionString();
+  }
   application ??= buildApp();
   return application;
 }
