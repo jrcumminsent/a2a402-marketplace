@@ -91,8 +91,11 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   if (nodeEnv === "production" && !process.env.SIGNING_PRIVATE_KEY) {
     throw new Error("SIGNING_PRIVATE_KEY is required in production.");
   }
-  if (nodeEnv === "production" && !process.env.DATABASE_URL) {
-    throw new Error("DATABASE_URL is required in production.");
+  const databaseUrl = process.env.DATABASE_URL ?? process.env.NETLIFY_DB_URL;
+  if (nodeEnv === "production" && !databaseUrl) {
+    throw new Error(
+      "DATABASE_URL or NETLIFY_DB_URL is required in production.",
+    );
   }
   const webhookSecretEncryptionKey =
     process.env.WEBHOOK_SECRET_ENCRYPTION_KEY ??
@@ -191,7 +194,9 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     nodeEnv,
     paymentsMode,
     enableMainnet: false,
-    databaseUrl: process.env.DATABASE_URL || null,
+    // Netlify Database securely injects NETLIFY_DB_URL at function runtime.
+    // DATABASE_URL remains supported for local development and external Postgres.
+    databaseUrl: databaseUrl ?? null,
     redisUrl: process.env.REDIS_URL || null,
     artifactStorageMode,
     artifactStoragePath:
