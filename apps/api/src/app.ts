@@ -60,6 +60,7 @@ import {
 } from "./base-sepolia.js";
 import { MarketplaceRuntime } from "./runtime.js";
 import { installContractValidation } from "./contract-validation.js";
+import { sendAgentSignupEmail } from "./signup-notifications.js";
 
 type ObjectBody = Record<string, unknown>;
 
@@ -559,6 +560,17 @@ export async function buildApp(
           : [],
         registration_signature: String(body.registration_signature ?? ""),
       });
+      await sendAgentSignupEmail(config.agentSignupEmail, {
+        protocol: "a2a402-poe",
+        agentId: agent.agent_id,
+        identity: agent.public_key,
+        createdAt: agent.created_at,
+      }).catch((error: unknown) => {
+        request.log.warn(
+          { error: error instanceof Error ? error.message : "email_delivery_failed" },
+          "Agent signup notification could not be delivered.",
+        );
+      });
       reply.status(201);
       return agent;
     },
@@ -612,6 +624,17 @@ export async function buildApp(
         },
         (body) => engine.registerAgent(body as unknown as AgentRegistration),
       );
+      await sendAgentSignupEmail(config.agentSignupEmail, {
+        protocol: "a2a402",
+        agentId: agent.id,
+        identity: agent.walletAddress,
+        createdAt: agent.createdAt,
+      }).catch((error: unknown) => {
+        request.log.warn(
+          { error: error instanceof Error ? error.message : "email_delivery_failed" },
+          "Agent signup notification could not be delivered.",
+        );
+      });
       reply.status(201);
       return agent;
     },
