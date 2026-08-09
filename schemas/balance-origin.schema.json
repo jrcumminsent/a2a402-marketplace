@@ -1,0 +1,23 @@
+{
+  "$id": "https://a2a402.market/schemas/balance-origin",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 BalanceOrigin",
+  "type": "object",
+  "properties": {
+    "availableMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "reservedMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    }
+  },
+  "required": [
+    "availableMinor",
+    "reservedMinor"
+  ],
+  "additionalProperties": false
+}

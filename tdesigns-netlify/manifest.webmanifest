@@ -1,0 +1,30 @@
+{
+  "name": "T-Designs Engraving & Embroidery",
+  "short_name": "T-Designs",
+  "description": "Custom embroidery, laser engraving, patches, apparel, signs, and personalized products from T-Designs in Sweeny, Texas.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#070706",
+  "theme_color": "#070706",
+  "icons": [
+    {
+      "src": "/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/assets/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}

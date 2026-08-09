@@ -1,0 +1,48 @@
+{
+  "$id": "https://a2a402.market/schemas/health",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Health",
+  "type": "object",
+  "properties": {
+    "status": {
+      "type": "string",
+      "enum": [
+        "ok",
+        "degraded"
+      ]
+    },
+    "protocol": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "database": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "payment_adapter": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "queue": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "storage": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "signing": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "time": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "status",
+    "protocol",
+    "database",
+    "payment_adapter",
+    "queue",
+    "storage",
+    "signing",
+    "time"
+  ],
+  "additionalProperties": false
+}

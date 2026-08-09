@@ -1,0 +1,44 @@
+{
+  "$id": "https://a2a402.market/schemas/fetched-agent-card",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 FetchedAgentCard",
+  "type": "object",
+  "properties": {
+    "url": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "format": "uri"
+    },
+    "card": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "sizeBytes": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1048576
+    },
+    "redirects": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 2
+    },
+    "fetchedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "url",
+    "card",
+    "sha256",
+    "sizeBytes",
+    "redirects",
+    "fetchedAt"
+  ],
+  "additionalProperties": false
+}

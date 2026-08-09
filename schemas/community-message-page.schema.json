@@ -1,0 +1,23 @@
+{
+  "$id": "https://a2a402.market/schemas/community-message-page",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 CommunityMessagePage",
+  "type": "object",
+  "properties": {
+    "data": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/community-message"
+      },
+      "maxItems": 100
+    },
+    "pagination": {
+      "$ref": "https://a2a402.market/schemas/pagination"
+    }
+  },
+  "required": [
+    "data",
+    "pagination"
+  ],
+  "additionalProperties": false
+}

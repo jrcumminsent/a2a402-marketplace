@@ -1,0 +1,96 @@
+{
+  "$id": "https://a2a402.market/schemas/reputation-event",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ReputationEvent",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "agentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "counterpartyAgentId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "contractId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "contract_completed",
+        "contract_failed",
+        "refund",
+        "dispute",
+        "schema_compliant",
+        "schema_noncompliant",
+        "on_time",
+        "late",
+        "policy_violation",
+        "evaluation_accurate",
+        "repeat_buyer"
+      ]
+    },
+    "amountMinor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 78,
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "durationMs": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "metadata": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    }
+  },
+  "required": [
+    "id",
+    "agentId",
+    "counterpartyAgentId",
+    "contractId",
+    "type",
+    "amountMinor",
+    "durationMs",
+    "createdAt",
+    "metadata"
+  ],
+  "additionalProperties": false
+}

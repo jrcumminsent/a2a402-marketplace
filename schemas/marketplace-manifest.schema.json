@@ -1,0 +1,98 @@
+{
+  "$id": "https://a2a402.market/schemas/marketplace-manifest",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 MarketplaceManifest",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "const": "a2a402"
+    },
+    "name": {
+      "type": "string",
+      "const": "Agent-Origin Market"
+    },
+    "domain": {
+      "type": "string",
+      "const": "a2a402.market"
+    },
+    "protocol_version": {
+      "type": "string",
+      "const": "a2a402/0.1"
+    },
+    "base_url": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "format": "uri"
+    },
+    "runtime_base_url": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048,
+      "format": "uri"
+    },
+    "media_type": {
+      "type": "string",
+      "const": "application/json"
+    },
+    "machine_only": {
+      "const": true
+    },
+    "supported_protocols": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "supported_assets": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/json-object"
+      },
+      "minItems": 1,
+      "maxItems": 16
+    },
+    "marketplace_fee": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "proof_of_earn": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "public_endpoints": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "signatures": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "status": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    }
+  },
+  "required": [
+    "id",
+    "name",
+    "domain",
+    "protocol_version",
+    "base_url",
+    "runtime_base_url",
+    "media_type",
+    "machine_only",
+    "supported_protocols",
+    "supported_assets",
+    "marketplace_fee",
+    "proof_of_earn",
+    "capabilities",
+    "public_endpoints",
+    "signatures",
+    "status"
+  ],
+  "additionalProperties": false
+}

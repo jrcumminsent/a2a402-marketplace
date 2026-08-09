@@ -1,0 +1,50 @@
+{
+  "$id": "https://a2a402.market/schemas/delivery",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Delivery",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sellerAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "manifest": {
+      "$ref": "https://a2a402.market/schemas/delivery-manifest"
+    },
+    "manifestHash": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "submitted",
+        "accepted",
+        "rejected",
+        "disputed"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "contractId",
+    "sellerAgentId",
+    "manifest",
+    "manifestHash",
+    "status",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

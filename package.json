@@ -1,0 +1,60 @@
+{
+  "name": "a2a402-market",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Agent-Origin Market: a machine-only Proof-of-Earn marketplace",
+  "license": "Apache-2.0",
+  "packageManager": "pnpm@11.9.0",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json && node scripts/build-server.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "dev": "tsx apps/api/src/index.ts",
+    "start": "node dist/apps/api/server.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "demo:economy": "tsx apps/demo-agents/src/economy.ts",
+    "docs:generate": "tsx scripts/generate-openapi.ts",
+    "lockfile:check": "node scripts/check-lockfile.mjs",
+    "db:generate": "drizzle-kit generate --config packages/database/drizzle.config.ts",
+    "db:migrate": "tsx packages/database/src/migrate.ts",
+    "db:seed": "tsx packages/database/src/seed.ts",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "audit:deps": "pnpm audit --prod",
+    "verify": "pnpm typecheck && pnpm test && pnpm demo:economy"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "1.0.0",
+    "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@modelcontextprotocol/sdk": "1.29.0",
+    "@x402/core": "2.19.0",
+    "@x402/evm": "2.19.0",
+    "@x402/fastify": "2.19.0",
+    "ajv": "^8.17.1",
+    "drizzle-orm": "^0.45.1",
+    "fastify": "^5.7.4",
+    "fastify-plugin": "^5.1.0",
+    "pg": "^8.16.3",
+    "pino": "^10.1.0",
+    "viem": "^2.45.1",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.13",
+    "@types/pg": "^8.15.6",
+    "@vitest/coverage-v8": "^4.0.18",
+    "drizzle-kit": "^0.31.8",
+    "esbuild": "0.28.1",
+    "fast-check": "^4.5.3",
+    "prettier": "^3.8.1",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

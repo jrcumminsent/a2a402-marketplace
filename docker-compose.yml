@@ -1,0 +1,163 @@
+name: a2a402-market
+
+x-app-image: &app-image
+  image: a2a402-market:${A2A402_IMAGE_TAG:-local}
+  build:
+    context: .
+    target: runtime
+    args:
+      VERSION: ${A2A402_IMAGE_VERSION:-0.1.0}
+      REVISION: ${A2A402_IMAGE_REVISION:-unknown}
+
+x-app-environment: &app-environment
+  NODE_ENV: ${NODE_ENV:-development}
+  HOST: 0.0.0.0
+  PORT: 3000
+  APP_BASE_URL: ${COMPOSE_APP_BASE_URL:-http://localhost:3000}
+  PUBLIC_MARKET_URL: ${COMPOSE_PUBLIC_MARKET_URL:-http://localhost:3000}
+  DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://a2a402:a2a402_local_only@postgres:5432/a2a402}
+  REDIS_URL: ${COMPOSE_REDIS_URL:-redis://redis:6379}
+  JWT_SECRET: ${JWT_SECRET:-development-only-change-me-at-least-32-bytes}
+  SIGNING_PRIVATE_KEY: ${SIGNING_PRIVATE_KEY:-}
+  SIGNING_KEY_ID: ${SIGNING_KEY_ID:-}
+  ADMIN_EMERGENCY_KEY: ${ADMIN_EMERGENCY_KEY:-}
+  PAYMENTS_MODE: ${PAYMENTS_MODE:-mock}
+  ALLOW_SIMULATION_MODE: ${ALLOW_SIMULATION_MODE:-false}
+  ENABLE_MAINNET: "false"
+  X402_FACILITATOR_URL: ${X402_FACILITATOR_URL:-https://x402.org/facilitator}
+  X402_NETWORK: ${X402_NETWORK:-eip155:84532}
+  X402_ASSET: ${X402_ASSET:-0x036CbD53842c5426634e7929541eC2318f3dCF7e}
+  BASE_SEPOLIA_RPC_URL: ${BASE_SEPOLIA_RPC_URL:-}
+  PLATFORM_SETTLEMENT_ADDRESS: ${PLATFORM_SETTLEMENT_ADDRESS:-}
+  PLATFORM_FEE_BPS: ${PLATFORM_FEE_BPS:-500}
+  EXTERNAL_EARNING_ISSUER_ALLOWLIST: ${EXTERNAL_EARNING_ISSUER_ALLOWLIST:-}
+  ARTIFACT_STORAGE_MODE: local
+  ARTIFACT_STORAGE_PATH: /app/data/artifacts
+  MAX_JOB_AMOUNT_MINOR: ${MAX_JOB_AMOUNT_MINOR:-100000000}
+  MAX_AGENT_DAILY_SPEND_MINOR: ${MAX_AGENT_DAILY_SPEND_MINOR:-250000000}
+  MAX_ARTIFACT_BYTES: ${MAX_ARTIFACT_BYTES:-10000000}
+  COMMUNITY_MESSAGES_PER_MINUTE: ${COMMUNITY_MESSAGES_PER_MINUTE:-30}
+  AUTH_NONCE_TTL_SECONDS: ${AUTH_NONCE_TTL_SECONDS:-300}
+  AUTH_TOKEN_TTL_SECONDS: ${AUTH_TOKEN_TTL_SECONDS:-900}
+  BACKGROUND_WORKERS_ENABLED: "false"
+  WORKER_INTERVAL_MS: ${WORKER_INTERVAL_MS:-5000}
+  WEBHOOK_SECRET_ENCRYPTION_KEY: ${WEBHOOK_SECRET_ENCRYPTION_KEY:-}
+  LOG_LEVEL: ${LOG_LEVEL:-info}
+
+x-app-hardening: &app-hardening
+  init: true
+  read_only: true
+  tmpfs:
+    - /tmp:rw,noexec,nosuid,size=64m
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+  pids_limit: 256
+  stop_grace_period: 30s
+  logging:
+    driver: json-file
+    options:
+      max-size: 10m
+      max-file: "3"
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-a2a402}
+      POSTGRES_USER: ${POSTGRES_USER:-a2a402}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-a2a402_local_only}
+    ports:
+      - "${POSTGRES_BIND_ADDRESS:-127.0.0.1}:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - a2a402-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-a2a402} -d ${POSTGRES_DB:-a2a402}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  redis:
+    image: redis:7.4-alpine
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "${REDIS_BIND_ADDRESS:-127.0.0.1}:${REDIS_PORT:-6379}:6379"
+    volumes:
+      - a2a402-redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+    restart: unless-stopped
+
+  migrate:
+    <<: [*app-image, *app-hardening]
+    command: ["node", "dist/packages/database/src/migrate.js"]
+    environment:
+      DATABASE_URL: ${COMPOSE_DATABASE_URL:-postgresql://a2a402:a2a402_local_only@postgres:5432/a2a402}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
+
+  api:
+    <<: [*app-image, *app-hardening]
+    environment: *app-environment
+    ports:
+      - "${API_BIND_ADDRESS:-127.0.0.1}:${API_PORT:-3000}:3000"
+    volumes:
+      - a2a402-artifacts:/app/data/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "node",
+          "-e",
+          "fetch('http://127.0.0.1:3000/health').then((response) => { if (!response.ok) process.exit(1) }).catch(() => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 3s
+      retries: 6
+      start_period: 20s
+    restart: unless-stopped
+
+  worker:
+    <<: [*app-image, *app-hardening]
+    profiles: ["workers"]
+    command: ["node", "dist/apps/api/worker.js"]
+    environment:
+      <<: *app-environment
+      BACKGROUND_WORKERS_ENABLED: "true"
+    volumes:
+      - a2a402-artifacts:/app/data/artifacts
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  a2a402-postgres:
+  a2a402-redis:
+  a2a402-artifacts:

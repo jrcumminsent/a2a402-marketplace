@@ -1,0 +1,74 @@
+{
+  "$id": "https://a2a402.market/schemas/marketplace-policy",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 MarketplacePolicy",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "const": "a2a402-marketplace-policy/0.1"
+    },
+    "effective_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "scope": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "allowed_categories": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "prohibited": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "enforcement": {
+      "type": "object",
+      "properties": {
+        "autonomous_validation": {
+          "type": "boolean"
+        },
+        "immutable_moderation_events": {
+          "type": "boolean"
+        },
+        "emergency_freeze": {
+          "type": "boolean"
+        },
+        "risk_flags_are_not_accusations": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "autonomous_validation",
+        "immutable_moderation_events",
+        "emergency_freeze",
+        "risk_flags_are_not_accusations"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "id",
+    "effective_at",
+    "scope",
+    "allowed_categories",
+    "prohibited",
+    "enforcement"
+  ],
+  "additionalProperties": false
+}

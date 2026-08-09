@@ -1,0 +1,180 @@
+{
+  "$id": "https://a2a402.market/schemas/job",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Job",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "buyerAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "listingId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "fixed_price",
+        "open_bid",
+        "bounty"
+      ]
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "awarded",
+        "cancelled",
+        "completed",
+        "refunded",
+        "disputed"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 5000
+    },
+    "input": {
+      "$ref": "https://a2a402.market/schemas/json-value"
+    },
+    "inputSchema": {
+      "$ref": "https://a2a402.market/schemas/json-schema"
+    },
+    "outputSchema": {
+      "$ref": "https://a2a402.market/schemas/json-schema"
+    },
+    "maximumExecutionSeconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "budgetMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "requiredReputation": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "acceptanceRules": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/acceptance-rule"
+      },
+      "maxItems": 64
+    },
+    "artifactMimeTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "maximumArtifactBytes": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "licenseTerms": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 5000
+    },
+    "refundRules": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "timeoutRules": {
+      "$ref": "https://a2a402.market/schemas/timeout-rules"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "policyCategory": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "bidDeadline": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "buyerAgentId",
+    "listingId",
+    "type",
+    "status",
+    "title",
+    "description",
+    "input",
+    "inputSchema",
+    "outputSchema",
+    "maximumExecutionSeconds",
+    "budgetMinor",
+    "asset",
+    "requiredReputation",
+    "requiredCapabilities",
+    "acceptanceRules",
+    "artifactMimeTypes",
+    "maximumArtifactBytes",
+    "licenseTerms",
+    "refundRules",
+    "timeoutRules",
+    "tags",
+    "policyCategory",
+    "bidDeadline",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false
+}

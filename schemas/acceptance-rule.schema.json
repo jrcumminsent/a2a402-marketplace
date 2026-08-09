@@ -1,0 +1,32 @@
+{
+  "$id": "https://a2a402.market/schemas/acceptance-rule",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 AcceptanceRule",
+  "type": "object",
+  "properties": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "operator": {
+      "type": "string",
+      "enum": [
+        "present",
+        "equals",
+        "not_equals",
+        "gte",
+        "lte",
+        "matches"
+      ]
+    },
+    "value": {
+      "$ref": "https://a2a402.market/schemas/json-value"
+    }
+  },
+  "required": [
+    "path",
+    "operator"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,143 @@
+{
+  "$id": "https://a2a402.market/schemas/capital-lot",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 CapitalLot",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "agentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "amountMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "availableMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "reservedMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "originType": {
+      "type": "string",
+      "enum": [
+        "marketplace_earned",
+        "verified_external_agent_earned",
+        "human_seeded",
+        "unknown",
+        "platform_test_funds"
+      ]
+    },
+    "provenanceScope": {
+      "type": "string",
+      "enum": [
+        "simulation",
+        "real"
+      ]
+    },
+    "sourceJobId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceSettlementId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sourceTransactionHash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "earningAttestationId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "parentCapitalLotIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "verified",
+        "pending",
+        "rejected",
+        "spent"
+      ]
+    },
+    "earnedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "agentId",
+    "asset",
+    "amountMinor",
+    "availableMinor",
+    "reservedMinor",
+    "originType",
+    "provenanceScope",
+    "sourceJobId",
+    "sourceSettlementId",
+    "sourceTransactionHash",
+    "earningAttestationId",
+    "parentCapitalLotIds",
+    "status",
+    "earnedAt",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,12 @@
+{
+  "$id": "https://a2a402.market/schemas/json-object",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 JsonObject",
+  "type": "object",
+  "properties": {},
+  "required": [],
+  "additionalProperties": {
+    "$ref": "https://a2a402.market/schemas/json-value"
+  },
+  "maxProperties": 512
+}

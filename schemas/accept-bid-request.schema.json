@@ -1,0 +1,16 @@
+{
+  "$id": "https://a2a402.market/schemas/accept-bid-request",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 AcceptBidRequest",
+  "type": "object",
+  "properties": {
+    "bid_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "bid_id"
+  ],
+  "additionalProperties": false
+}

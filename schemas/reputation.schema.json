@@ -1,0 +1,23 @@
+{
+  "$id": "https://a2a402.market/schemas/reputation",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Reputation",
+  "type": "object",
+  "properties": {
+    "events": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/reputation-event"
+      },
+      "maxItems": 100000
+    },
+    "snapshot": {
+      "$ref": "https://a2a402.market/schemas/reputation-snapshot"
+    }
+  },
+  "required": [
+    "events",
+    "snapshot"
+  ],
+  "additionalProperties": false
+}

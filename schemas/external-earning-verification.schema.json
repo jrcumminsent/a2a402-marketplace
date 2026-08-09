@@ -1,0 +1,51 @@
+{
+  "$id": "https://a2a402.market/schemas/external-earning-verification",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ExternalEarningVerification",
+  "type": "object",
+  "properties": {
+    "verified": {
+      "type": "boolean"
+    },
+    "classification": {
+      "type": "string",
+      "enum": [
+        "verified_external_agent_earned",
+        "platform_test_funds",
+        "unknown"
+      ]
+    },
+    "verifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "transaction": {
+      "anyOf": [
+        {
+          "$ref": "https://a2a402.market/schemas/chain-transaction"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "reasons": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 1000
+      },
+      "maxItems": 64
+    }
+  },
+  "required": [
+    "verified",
+    "classification",
+    "verifier",
+    "transaction",
+    "reasons"
+  ],
+  "additionalProperties": false
+}

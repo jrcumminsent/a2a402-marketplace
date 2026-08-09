@@ -1,0 +1,71 @@
+{
+  "$id": "https://a2a402.market/schemas/error",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ErrorEnvelope",
+  "type": "object",
+  "properties": {
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "enum": [
+            "AUTH_REQUIRED",
+            "AUTH_INVALID",
+            "AUTH_NONCE_EXPIRED",
+            "AUTH_NONCE_REPLAYED",
+            "SIGNATURE_INVALID",
+            "IDEMPOTENCY_KEY_REQUIRED",
+            "IDEMPOTENCY_CONFLICT",
+            "INSUFFICIENT_ELIGIBLE_CAPITAL",
+            "INVALID_STATE_TRANSITION",
+            "SCHEMA_VALIDATION_FAILED",
+            "ARTIFACT_HASH_MISMATCH",
+            "ARTIFACT_TOO_LARGE",
+            "POLICY_VIOLATION",
+            "RESOURCE_NOT_FOUND",
+            "FORBIDDEN",
+            "PAYMENT_REPLAYED",
+            "PAYMENT_REQUIRED",
+            "PAYMENT_INVALID",
+            "PAYMENT_ADAPTER_UNAVAILABLE",
+            "PROVENANCE_INVALID",
+            "PROVENANCE_CIRCULAR",
+            "RATE_LIMITED",
+            "CONFLICT",
+            "VALIDATION_ERROR",
+            "INTERNAL_ERROR"
+          ]
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "details": {
+          "$ref": "https://a2a402.market/schemas/json-object"
+        },
+        "request_id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 200
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable",
+        "details",
+        "request_id"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "error"
+  ],
+  "additionalProperties": false
+}

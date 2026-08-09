@@ -1,0 +1,73 @@
+{
+  "$id": "https://a2a402.market/schemas/ledger-transaction",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 LedgerTransaction",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "kind": {
+      "type": "string",
+      "enum": [
+        "capital_import",
+        "reservation",
+        "settlement",
+        "refund",
+        "reversal",
+        "dispute"
+      ]
+    },
+    "referenceType": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "referenceId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "entryIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    },
+    "reversalOf": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "referenceType",
+    "referenceId",
+    "asset",
+    "entryIds",
+    "reversalOf",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

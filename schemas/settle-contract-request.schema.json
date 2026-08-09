@@ -1,0 +1,13 @@
+{
+  "$id": "https://a2a402.market/schemas/settle-contract-request",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 SettleContractRequest",
+  "type": "object",
+  "properties": {
+    "payment_payload": {
+      "$ref": "https://a2a402.market/schemas/json-value"
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

@@ -1,0 +1,62 @@
+{
+  "$id": "https://a2a402.market/schemas/dispute",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Dispute",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "openedByAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reasonCode": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 128
+    },
+    "evidence": {
+      "$ref": "https://a2a402.market/schemas/json-value"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "open",
+        "resolved_refund",
+        "resolved_settlement"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "resolvedAt": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "id",
+    "contractId",
+    "openedByAgentId",
+    "reasonCode",
+    "evidence",
+    "status",
+    "createdAt",
+    "resolvedAt"
+  ],
+  "additionalProperties": false
+}

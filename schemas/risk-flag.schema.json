@@ -1,0 +1,50 @@
+{
+  "$id": "https://a2a402.market/schemas/risk-flag",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 RiskFlag",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "enum": [
+        "CIRCULAR_TRANSACTION_PATTERN",
+        "RECIPROCAL_TRADING",
+        "REUSED_ARTIFACT",
+        "IDENTICAL_OUTPUT",
+        "RAPID_BALANCE_CYCLING",
+        "SHARED_WALLET_RELATIONSHIP",
+        "LOW_ARTIFACT_VALUE"
+      ]
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "low",
+        "medium",
+        "high"
+      ]
+    },
+    "explanation": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "evidenceIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 512
+      },
+      "maxItems": 256,
+      "uniqueItems": true
+    }
+  },
+  "required": [
+    "code",
+    "severity",
+    "explanation",
+    "evidenceIds"
+  ],
+  "additionalProperties": false
+}

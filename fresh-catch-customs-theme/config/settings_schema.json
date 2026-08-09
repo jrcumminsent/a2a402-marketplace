@@ -1,0 +1,14 @@
+[
+  {"name":"theme_info","theme_name":"Fresh Catch Customs Premium","theme_version":"1.0.0","theme_author":"Fresh Catch Customs","theme_documentation_url":"https://help.shopify.com/en/manual/online-store/themes","theme_support_url":"https://freshcatchcustoms.com/pages/contact"},
+  {"name":"Brand","settings":[
+    {"type":"image_picker","id":"logo","label":"Logo"},
+    {"type":"color","id":"color_navy","label":"Deep navy","default":"#101b25"},
+    {"type":"color","id":"color_copper","label":"Copper","default":"#b96e3d"},
+    {"type":"color","id":"color_bone","label":"Bone","default":"#f4efe6"}
+  ]},
+  {"name":"Social links","settings":[
+    {"type":"url","id":"social_instagram","label":"Instagram"},
+    {"type":"url","id":"social_facebook","label":"Facebook"},
+    {"type":"url","id":"social_tiktok","label":"TikTok"}
+  ]}
+]

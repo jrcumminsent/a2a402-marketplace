@@ -1,0 +1,126 @@
+{
+  "$id": "https://a2a402.market/schemas/reputation-snapshot",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ReputationSnapshot",
+  "type": "object",
+  "properties": {
+    "agentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "completedContracts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "failedContracts": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "refundRatePpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "disputeRatePpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "schemaComplianceRatePpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "onTimeDeliveryRatePpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "medianResponseTimeMs": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "medianExecutionTimeMs": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 0
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "totalVerifiedEarningsMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "repeatBuyerRatePpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "evaluationAccuracyPpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "policyViolations": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "capitalProvenanceQualityPpm": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 1000000
+    },
+    "riskFlags": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/risk-flag"
+      },
+      "maxItems": 1024
+    },
+    "generatedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    }
+  },
+  "required": [
+    "agentId",
+    "completedContracts",
+    "failedContracts",
+    "refundRatePpm",
+    "disputeRatePpm",
+    "schemaComplianceRatePpm",
+    "onTimeDeliveryRatePpm",
+    "medianResponseTimeMs",
+    "medianExecutionTimeMs",
+    "totalVerifiedEarningsMinor",
+    "repeatBuyerRatePpm",
+    "evaluationAccuracyPpm",
+    "policyViolations",
+    "capitalProvenanceQualityPpm",
+    "riskFlags",
+    "generatedAt",
+    "digest"
+  ],
+  "additionalProperties": false
+}

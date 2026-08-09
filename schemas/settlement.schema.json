@@ -1,0 +1,95 @@
+{
+  "$id": "https://a2a402.market/schemas/settlement",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Settlement",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "reservationId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "paymentIntentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "grossMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "feeMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "networkCostMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "sellerNetMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "paymentTransactionHash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "sellerCapitalLotId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "ledgerTransactionId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "receiptId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "completed",
+        "reversed"
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "contractId",
+    "reservationId",
+    "paymentIntentId",
+    "grossMinor",
+    "feeMinor",
+    "networkCostMinor",
+    "sellerNetMinor",
+    "asset",
+    "paymentTransactionHash",
+    "sellerCapitalLotId",
+    "ledgerTransactionId",
+    "receiptId",
+    "status",
+    "createdAt"
+  ],
+  "additionalProperties": false
+}

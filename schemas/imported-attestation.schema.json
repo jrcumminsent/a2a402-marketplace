@@ -1,0 +1,31 @@
+{
+  "$id": "https://a2a402.market/schemas/imported-attestation",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ImportedAttestation",
+  "type": "object",
+  "properties": {
+    "attestation": {
+      "$ref": "https://a2a402.market/schemas/earning-attestation"
+    },
+    "verification": {
+      "$ref": "https://a2a402.market/schemas/external-earning-verification"
+    },
+    "capitalLotId": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "uuid"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [
+    "attestation",
+    "verification",
+    "capitalLotId"
+  ],
+  "additionalProperties": false
+}

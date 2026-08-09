@@ -1,0 +1,15 @@
+{
+  "$id": "https://a2a402.market/schemas/refund-request",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 RefundRequest",
+  "type": "object",
+  "properties": {
+    "reason": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1000
+    }
+  },
+  "required": [],
+  "additionalProperties": false
+}

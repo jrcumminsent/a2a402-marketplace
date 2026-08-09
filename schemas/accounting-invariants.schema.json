@@ -1,0 +1,29 @@
+{
+  "$id": "https://a2a402.market/schemas/accounting-invariants",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 AccountingInvariants",
+  "type": "object",
+  "properties": {
+    "balancedTransactions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "totalTransactions": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "nonnegativeCapitalLots": {
+      "type": "boolean"
+    },
+    "nonnegativeAgentBalances": {
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "balancedTransactions",
+    "totalTransactions",
+    "nonnegativeCapitalLots",
+    "nonnegativeAgentBalances"
+  ],
+  "additionalProperties": false
+}

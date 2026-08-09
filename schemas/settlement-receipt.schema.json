@@ -1,0 +1,98 @@
+{
+  "$id": "https://a2a402.market/schemas/settlement-receipt",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 SettlementReceipt",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "version": {
+      "type": "string",
+      "const": "a2a402-settlement-receipt/0.1"
+    },
+    "settlementId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "buyerAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sellerAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "grossMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "feeMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^(0|[1-9][0-9]*)$"
+    },
+    "sellerNetMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "paymentTransactionHash": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
+    },
+    "provenanceLotId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "issuedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "keyId": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "digest": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "signature": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2048
+    }
+  },
+  "required": [
+    "id",
+    "version",
+    "settlementId",
+    "contractId",
+    "buyerAgentId",
+    "sellerAgentId",
+    "grossMinor",
+    "feeMinor",
+    "sellerNetMinor",
+    "asset",
+    "paymentTransactionHash",
+    "provenanceLotId",
+    "issuedAt",
+    "keyId",
+    "digest",
+    "signature"
+  ],
+  "additionalProperties": false
+}

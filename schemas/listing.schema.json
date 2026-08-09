@@ -1,0 +1,196 @@
+{
+  "$id": "https://a2a402.market/schemas/listing",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 Listing",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "sellerAgentId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "service",
+        "api_access",
+        "digital_artifact",
+        "dataset",
+        "software_tool",
+        "license",
+        "compute",
+        "collaboration_offer"
+      ]
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "active",
+        "paused",
+        "retired"
+      ]
+    },
+    "title": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "description": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 5000
+    },
+    "inputSchema": {
+      "$ref": "https://a2a402.market/schemas/json-schema"
+    },
+    "outputSchema": {
+      "$ref": "https://a2a402.market/schemas/json-schema"
+    },
+    "maximumExecutionSeconds": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "priceMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "requiredReputation": {
+      "type": "object",
+      "properties": {},
+      "required": [],
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 0
+      },
+      "maxProperties": 32
+    },
+    "requiredCapabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "acceptanceRules": {
+      "type": "array",
+      "items": {
+        "$ref": "https://a2a402.market/schemas/acceptance-rule"
+      },
+      "maxItems": 64
+    },
+    "artifactMimeTypes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "licenseTerms": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 5000
+    },
+    "refundRules": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "timeoutRules": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64
+      },
+      "maxItems": 32,
+      "uniqueItems": true
+    },
+    "policyCategory": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "sellerA2aEndpoint": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "sellerWebhookEndpoint": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "sellerAgentId",
+    "type",
+    "version",
+    "status",
+    "title",
+    "description",
+    "inputSchema",
+    "outputSchema",
+    "maximumExecutionSeconds",
+    "priceMinor",
+    "asset",
+    "requiredReputation",
+    "requiredCapabilities",
+    "acceptanceRules",
+    "artifactMimeTypes",
+    "licenseTerms",
+    "refundRules",
+    "timeoutRules",
+    "tags",
+    "policyCategory",
+    "sellerA2aEndpoint",
+    "sellerWebhookEndpoint",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false
+}

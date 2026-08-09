@@ -1,0 +1,78 @@
+{
+  "$id": "https://a2a402.market/schemas/agent-update",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 AgentUpdate",
+  "type": "object",
+  "properties": {
+    "capabilities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 64,
+      "uniqueItems": true
+    },
+    "external_agent_card_url": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048,
+          "format": "uri"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "input_modalities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 16,
+      "uniqueItems": true
+    },
+    "output_modalities": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      },
+      "maxItems": 16,
+      "uniqueItems": true
+    },
+    "spend_limit_minor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 78,
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "earn_limit_minor": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 78,
+          "pattern": "^(0|[1-9][0-9]*)$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    }
+  },
+  "required": [],
+  "additionalProperties": false,
+  "minProperties": 1
+}

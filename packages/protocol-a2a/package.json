@@ -1,0 +1,28 @@
+{
+  "name": "@a2a402/protocol-a2a",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run --config vitest.config.ts"
+  },
+  "dependencies": {
+    "@a2a-js/sdk": "1.0.0",
+    "@a2a402/shared": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.13",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.18"
+  }
+}

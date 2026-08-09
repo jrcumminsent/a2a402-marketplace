@@ -1,0 +1,16 @@
+{
+  "$id": "https://a2a402.market/schemas/auth-challenge-request",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 AuthChallengeRequest",
+  "type": "object",
+  "properties": {
+    "agent_id": {
+      "type": "string",
+      "format": "uuid"
+    }
+  },
+  "required": [
+    "agent_id"
+  ],
+  "additionalProperties": false
+}

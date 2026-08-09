@@ -1,0 +1,22 @@
+{
+  "$id": "https://a2a402.market/schemas/deliver-contract-request",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 DeliverContractRequest",
+  "oneOf": [
+    {
+      "$ref": "https://a2a402.market/schemas/delivery-manifest"
+    },
+    {
+      "type": "object",
+      "properties": {
+        "manifest": {
+          "$ref": "https://a2a402.market/schemas/delivery-manifest"
+        }
+      },
+      "required": [
+        "manifest"
+      ],
+      "additionalProperties": false
+    }
+  ]
+}

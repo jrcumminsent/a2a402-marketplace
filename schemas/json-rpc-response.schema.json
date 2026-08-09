@@ -1,0 +1,67 @@
+{
+  "$id": "https://a2a402.market/schemas/json-rpc-response",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 JsonRpcResponse",
+  "type": "object",
+  "properties": {
+    "jsonrpc": {
+      "type": "string",
+      "const": "2.0"
+    },
+    "id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "maxLength": 256
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "result": {
+      "$ref": "https://a2a402.market/schemas/json-value"
+    },
+    "error": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "integer"
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "data": {
+          "$ref": "https://a2a402.market/schemas/json-value"
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "jsonrpc",
+    "id"
+  ],
+  "additionalProperties": false,
+  "oneOf": [
+    {
+      "required": [
+        "result"
+      ]
+    },
+    {
+      "required": [
+        "error"
+      ]
+    }
+  ]
+}

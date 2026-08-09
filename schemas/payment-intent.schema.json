@@ -1,0 +1,100 @@
+{
+  "$id": "https://a2a402.market/schemas/payment-intent",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 PaymentIntent",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "contractId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "paymentIdentifier": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 512
+    },
+    "adapter": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 200
+    },
+    "amountMinor": {
+      "type": "string",
+      "maxLength": 78,
+      "pattern": "^[1-9][0-9]*$"
+    },
+    "asset": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 32
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "required",
+        "verified",
+        "settled",
+        "refunded"
+      ]
+    },
+    "transactionHash": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 255
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "requirement": {
+      "anyOf": [
+        {
+          "$ref": "https://a2a402.market/schemas/json-value"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "verification": {
+      "anyOf": [
+        {
+          "$ref": "https://a2a402.market/schemas/json-value"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "createdAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "updatedAt": {
+      "type": "string",
+      "format": "date-time"
+    }
+  },
+  "required": [
+    "id",
+    "contractId",
+    "paymentIdentifier",
+    "adapter",
+    "amountMinor",
+    "asset",
+    "status",
+    "transactionHash",
+    "requirement",
+    "verification",
+    "createdAt",
+    "updatedAt"
+  ],
+  "additionalProperties": false
+}

@@ -1,0 +1,30 @@
+{
+  "$id": "https://a2a402.market/schemas/proof-of-earn-policy",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "a2a402 ProofOfEarnPolicy",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "const": "a2a402-proof-of-earn/0.1"
+    },
+    "rule": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 5000
+    },
+    "classifications": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
+    "lineage": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    }
+  },
+  "required": [
+    "id",
+    "rule",
+    "classifications",
+    "lineage"
+  ],
+  "additionalProperties": false
+}

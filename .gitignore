@@ -1,0 +1,41 @@
+# Dependencies and generated output
+node_modules/
+dist/
+coverage/
+.pnpm-store/
+.deps/
+.verify-deps/
+.cache/
+_tmp_*
+
+# Runtime state
+data/
+backups/
+*.dump
+*.sql.gz
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+docker-compose.override.yml
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Editors and operating systems
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Tool caches
+.eslintcache
+.turbo/

@@ -1,0 +1,1673 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>T-Designs Inventory Manager</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --black: #050505;
+      --panel: #111111;
+      --panel-2: #181818;
+      --line: #333333;
+      --muted: #aaa79f;
+      --paper: #f7f3e8;
+      --gold: #f7b928;
+      --gold-2: #ffd56a;
+      --red: #ff6a62;
+      --green: #65d69e;
+      --blue: #7db8ff;
+      --shadow: 0 18px 60px rgba(0, 0, 0, .42);
+      --radius: 18px;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      min-width: 320px;
+      background: var(--black);
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      color: var(--paper);
+      background:
+        radial-gradient(circle at 85% -10%, rgba(247, 185, 40, .16), transparent 32rem),
+        linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px),
+        var(--black);
+      background-size: auto, 36px 36px, 36px 36px, auto;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    button,
+    input,
+    select {
+      font: inherit;
+    }
+
+    button,
+    select {
+      cursor: pointer;
+    }
+
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible {
+      outline: 3px solid rgba(247, 185, 40, .42);
+      outline-offset: 2px;
+    }
+
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      overflow: hidden;
+      clip: rect(0, 0, 0, 0);
+      white-space: nowrap;
+      border: 0;
+    }
+
+    .shell {
+      width: min(1480px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 30px 0 72px;
+    }
+
+    .masthead {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 28px;
+      padding: 26px 0 28px;
+    }
+
+    .brand-lockup {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .mark {
+      display: grid;
+      width: 58px;
+      height: 58px;
+      place-items: center;
+      border: 2px solid var(--gold);
+      color: var(--gold);
+      background: #090909;
+      box-shadow: inset 0 0 0 4px #090909, inset 0 0 0 5px rgba(247, 185, 40, .28);
+      font-size: 24px;
+      font-weight: 950;
+      letter-spacing: -.08em;
+      transform: skew(-5deg);
+    }
+
+    .brand-lockup p,
+    .brand-lockup h1 {
+      margin: 0;
+    }
+
+    .brand-lockup p {
+      margin-bottom: 3px;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 850;
+      letter-spacing: .2em;
+      text-transform: uppercase;
+    }
+
+    .brand-lockup h1 {
+      font-size: clamp(25px, 4vw, 42px);
+      line-height: .98;
+      letter-spacing: -.045em;
+      text-transform: uppercase;
+    }
+
+    .local-badge {
+      display: flex;
+      max-width: 440px;
+      gap: 11px;
+      align-items: flex-start;
+      padding: 12px 15px;
+      border: 1px solid rgba(247, 185, 40, .48);
+      border-radius: 12px;
+      color: #ded8cb;
+      background: rgba(247, 185, 40, .075);
+      font-size: 13px;
+      line-height: 1.45;
+    }
+
+    .local-badge strong {
+      display: block;
+      color: var(--gold-2);
+    }
+
+    .local-dot {
+      width: 9px;
+      height: 9px;
+      margin-top: 5px;
+      flex: 0 0 auto;
+      border-radius: 50%;
+      background: var(--gold);
+      box-shadow: 0 0 0 5px rgba(247, 185, 40, .12);
+    }
+
+    .hero {
+      overflow: hidden;
+      position: relative;
+      padding: clamp(28px, 5vw, 54px);
+      border: 1px solid var(--line);
+      border-radius: 24px;
+      background:
+        linear-gradient(105deg, rgba(5, 5, 5, .97) 0%, rgba(5, 5, 5, .89) 58%, rgba(247, 185, 40, .12) 100%),
+        var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .hero::after {
+      content: "T";
+      position: absolute;
+      right: -18px;
+      bottom: -94px;
+      color: rgba(255, 255, 255, .035);
+      font-size: 340px;
+      font-weight: 1000;
+      line-height: 1;
+      transform: skew(-7deg);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      margin: 0 0 12px;
+      color: var(--gold);
+      font-size: 12px;
+      font-weight: 900;
+      letter-spacing: .22em;
+      text-transform: uppercase;
+    }
+
+    .hero h2 {
+      position: relative;
+      z-index: 1;
+      max-width: 820px;
+      margin: 0;
+      font-size: clamp(36px, 7vw, 76px);
+      line-height: .94;
+      letter-spacing: -.055em;
+      text-transform: uppercase;
+    }
+
+    .hero-copy {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 20px 0 0;
+      color: #c5c0b6;
+      font-size: clamp(15px, 2vw, 18px);
+      line-height: 1.62;
+    }
+
+    .workflow {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 26px;
+      padding: 0;
+      list-style: none;
+      counter-reset: flow;
+    }
+
+    .workflow li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 9px 11px;
+      border: 1px solid #393939;
+      border-radius: 999px;
+      color: #d9d5cb;
+      background: rgba(255, 255, 255, .035);
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .workflow li::before {
+      counter-increment: flow;
+      content: counter(flow);
+      display: grid;
+      width: 22px;
+      height: 22px;
+      place-items: center;
+      border-radius: 50%;
+      color: #090909;
+      background: var(--gold);
+      font-size: 11px;
+      font-weight: 950;
+    }
+
+    .toolbar {
+      position: sticky;
+      z-index: 20;
+      top: 12px;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin-top: 22px;
+      padding: 14px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: rgba(13, 13, 13, .94);
+      box-shadow: 0 12px 35px rgba(0, 0, 0, .35);
+      backdrop-filter: blur(14px);
+    }
+
+    .button {
+      min-height: 42px;
+      padding: 0 15px;
+      border: 1px solid #414141;
+      border-radius: 10px;
+      color: var(--paper);
+      background: #1a1a1a;
+      font-weight: 820;
+      transition: transform .16s ease, border-color .16s ease, background .16s ease;
+    }
+
+    .button:hover {
+      border-color: #666;
+      background: #222;
+      transform: translateY(-1px);
+    }
+
+    .button.primary {
+      border-color: var(--gold);
+      color: #0a0a0a;
+      background: var(--gold);
+    }
+
+    .button.primary:hover {
+      background: var(--gold-2);
+    }
+
+    .button.ghost {
+      background: transparent;
+    }
+
+    .button.danger {
+      border-color: rgba(255, 106, 98, .45);
+      color: #ffaaa5;
+      background: rgba(255, 106, 98, .08);
+    }
+
+    .button.small {
+      min-height: 34px;
+      padding: 0 11px;
+      font-size: 12px;
+    }
+
+    .toolbar-spacer {
+      flex: 1 1 12px;
+    }
+
+    .save-state {
+      min-width: 112px;
+      color: var(--muted);
+      font-size: 12px;
+      font-weight: 760;
+      text-align: right;
+    }
+
+    .save-state.is-dirty {
+      color: var(--gold-2);
+    }
+
+    .dashboard {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    .stat {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: var(--panel);
+    }
+
+    .stat-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--muted);
+      font-size: 11px;
+      font-weight: 850;
+      letter-spacing: .14em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      font-size: 27px;
+      line-height: 1;
+    }
+
+    .stat.invalid strong {
+      color: var(--red);
+    }
+
+    .workspace {
+      overflow: hidden;
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+    }
+
+    .filterbar {
+      display: grid;
+      grid-template-columns: minmax(220px, 1fr) minmax(160px, 230px) minmax(150px, 210px) auto;
+      gap: 10px;
+      padding: 16px;
+      border-bottom: 1px solid var(--line);
+      background: #0d0d0d;
+    }
+
+    .field-control {
+      width: 100%;
+      min-height: 43px;
+      padding: 0 13px;
+      border: 1px solid #424242;
+      border-radius: 10px;
+      color: var(--paper);
+      background: #181818;
+    }
+
+    .field-control::placeholder {
+      color: #77736d;
+    }
+
+    .filter-count {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      min-width: 106px;
+      color: var(--muted);
+      font-size: 13px;
+      font-weight: 750;
+    }
+
+    .dropzone {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 74px;
+      margin: 16px;
+      padding: 16px;
+      border: 1px dashed #4e4e4e;
+      border-radius: 12px;
+      color: #bdb8ad;
+      background: #0c0c0c;
+      font-size: 13px;
+      text-align: center;
+      transition: border-color .16s ease, background .16s ease;
+    }
+
+    .dropzone strong {
+      color: var(--gold-2);
+    }
+
+    .dropzone.is-over {
+      border-color: var(--gold);
+      background: rgba(247, 185, 40, .08);
+    }
+
+    .table-wrap {
+      overflow: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 1320px;
+    }
+
+    th,
+    td {
+      padding: 14px 13px;
+      border-bottom: 1px solid #2a2a2a;
+      text-align: left;
+      vertical-align: middle;
+    }
+
+    th {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      color: #8e8b83;
+      background: #151515;
+      font-size: 10px;
+      font-weight: 900;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+    }
+
+    td {
+      color: #d8d4ca;
+      font-size: 13px;
+    }
+
+    tbody tr:hover {
+      background: rgba(255, 255, 255, .025);
+    }
+
+    tbody tr.is-invalid {
+      background: rgba(255, 106, 98, .035);
+    }
+
+    .row-title {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .row-index {
+      display: grid;
+      width: 28px;
+      height: 28px;
+      flex: 0 0 auto;
+      place-items: center;
+      border: 1px solid #3d3d3d;
+      border-radius: 8px;
+      color: #9d9991;
+      background: #101010;
+      font-size: 10px;
+      font-weight: 850;
+    }
+
+    .row-title strong {
+      display: block;
+      max-width: 180px;
+      overflow: hidden;
+      color: var(--paper);
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .row-id {
+      display: block;
+      margin-top: 2px;
+      color: #85827c;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 5px 8px;
+      border: 1px solid #454545;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 820;
+      white-space: nowrap;
+    }
+
+    .badge::before {
+      content: "";
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: currentColor;
+    }
+
+    .badge.in-stock {
+      border-color: rgba(101, 214, 158, .34);
+      color: var(--green);
+      background: rgba(101, 214, 158, .07);
+    }
+
+    .badge.limited {
+      border-color: rgba(247, 185, 40, .4);
+      color: var(--gold-2);
+      background: rgba(247, 185, 40, .07);
+    }
+
+    .badge.special-order {
+      border-color: rgba(125, 184, 255, .36);
+      color: var(--blue);
+      background: rgba(125, 184, 255, .07);
+    }
+
+    .badge.bad {
+      border-color: rgba(255, 106, 98, .4);
+      color: #ff9d97;
+      background: rgba(255, 106, 98, .07);
+    }
+
+    .image-path {
+      display: block;
+      max-width: 190px;
+      overflow: hidden;
+      color: #aaa69e;
+      font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+      font-size: 11px;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .actions {
+      display: flex;
+      gap: 7px;
+      justify-content: flex-end;
+    }
+
+    .issue-note {
+      margin-top: 5px;
+      color: #ff9d97;
+      font-size: 11px;
+    }
+
+    .empty {
+      padding: 72px 24px;
+      text-align: center;
+    }
+
+    .empty[hidden] {
+      display: none;
+    }
+
+    .empty-icon {
+      display: grid;
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 18px;
+      place-items: center;
+      border: 1px solid #424242;
+      border-radius: 50%;
+      color: var(--gold);
+      background: #0b0b0b;
+      font-size: 28px;
+      font-weight: 900;
+    }
+
+    .empty h3 {
+      margin: 0;
+      font-size: 24px;
+      letter-spacing: -.025em;
+    }
+
+    .empty p {
+      max-width: 560px;
+      margin: 10px auto 20px;
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    dialog {
+      width: min(720px, calc(100% - 28px));
+      max-height: calc(100vh - 32px);
+      padding: 0;
+      overflow: auto;
+      border: 1px solid #454545;
+      border-radius: 20px;
+      color: var(--paper);
+      background: #111;
+      box-shadow: 0 35px 120px #000;
+    }
+
+    dialog::backdrop {
+      background: rgba(0, 0, 0, .78);
+      backdrop-filter: blur(6px);
+    }
+
+    .dialog-head {
+      position: sticky;
+      top: 0;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 24px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(17, 17, 17, .96);
+      backdrop-filter: blur(10px);
+    }
+
+    .dialog-head h2,
+    .dialog-head p {
+      margin: 0;
+    }
+
+    .dialog-head h2 {
+      font-size: 27px;
+      letter-spacing: -.03em;
+    }
+
+    .dialog-head p {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .icon-button {
+      width: 38px;
+      height: 38px;
+      border: 1px solid #414141;
+      border-radius: 10px;
+      color: var(--paper);
+      background: #191919;
+      font-size: 20px;
+    }
+
+    .edit-form {
+      padding: 24px;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 18px 14px;
+    }
+
+    .form-field {
+      display: block;
+    }
+
+    .form-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .form-field > span:first-child {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 7px;
+      color: #d7d2c7;
+      font-size: 12px;
+      font-weight: 820;
+    }
+
+    .required-mark {
+      color: var(--gold);
+    }
+
+    .form-field small {
+      color: #817e77;
+      font-weight: 600;
+    }
+
+    .form-field input,
+    .form-field select {
+      width: 100%;
+      min-height: 46px;
+      padding: 0 12px;
+      border: 1px solid #464646;
+      border-radius: 10px;
+      color: var(--paper);
+      background: #191919;
+    }
+
+    .form-field input[aria-invalid="true"],
+    .form-field select[aria-invalid="true"] {
+      border-color: var(--red);
+      box-shadow: 0 0 0 3px rgba(255, 106, 98, .09);
+    }
+
+    .field-error {
+      display: block;
+      min-height: 16px;
+      margin-top: 5px;
+      color: #ffaaa5;
+      font-size: 11px;
+    }
+
+    .form-note {
+      margin: 20px 0 0;
+      padding: 12px 14px;
+      border-left: 3px solid var(--gold);
+      color: #aaa69d;
+      background: rgba(247, 185, 40, .055);
+      font-size: 12px;
+      line-height: 1.55;
+    }
+
+    .dialog-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 9px;
+      margin-top: 22px;
+      padding-top: 18px;
+      border-top: 1px solid #2d2d2d;
+    }
+
+    .toast-stack {
+      position: fixed;
+      z-index: 100;
+      right: 20px;
+      bottom: 20px;
+      display: grid;
+      width: min(390px, calc(100% - 40px));
+      gap: 9px;
+      pointer-events: none;
+    }
+
+    .toast {
+      padding: 13px 15px;
+      border: 1px solid #444;
+      border-radius: 11px;
+      color: var(--paper);
+      background: #171717;
+      box-shadow: 0 12px 42px #000;
+      font-size: 13px;
+      line-height: 1.45;
+      animation: toast-in .2s ease both;
+    }
+
+    .toast.success {
+      border-color: rgba(101, 214, 158, .45);
+    }
+
+    .toast.error {
+      border-color: rgba(255, 106, 98, .55);
+    }
+
+    @keyframes toast-in {
+      from {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+    }
+
+    @media (max-width: 900px) {
+      .masthead {
+        display: grid;
+      }
+
+      .local-badge {
+        max-width: none;
+      }
+
+      .dashboard {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .filterbar {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .filterbar .search {
+        grid-column: 1 / -1;
+      }
+
+      .filter-count {
+        justify-content: flex-start;
+      }
+    }
+
+    @media (max-width: 620px) {
+      .shell {
+        width: min(100% - 18px, 1480px);
+        padding-top: 12px;
+      }
+
+      .brand-lockup {
+        align-items: flex-start;
+      }
+
+      .mark {
+        width: 48px;
+        height: 48px;
+      }
+
+      .hero {
+        padding: 28px 20px;
+        border-radius: 18px;
+      }
+
+      .toolbar {
+        position: static;
+      }
+
+      .toolbar .button {
+        flex: 1 1 145px;
+      }
+
+      .toolbar-spacer {
+        display: none;
+      }
+
+      .save-state {
+        width: 100%;
+        text-align: left;
+      }
+
+      .filterbar,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .filterbar .search,
+      .form-field.full {
+        grid-column: auto;
+      }
+
+      .dashboard {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .stat {
+        padding: 14px;
+      }
+
+      .dialog-head,
+      .edit-form {
+        padding: 18px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div class="brand-lockup">
+        <div class="mark" aria-hidden="true">TD</div>
+        <div>
+          <p>T-Designs · Sweeny, Texas</p>
+          <h1>Inventory manager</h1>
+        </div>
+      </div>
+      <div class="local-badge">
+        <span class="local-dot" aria-hidden="true"></span>
+        <span><strong>Local-only owner tool</strong>This page has no login and sends nothing anywhere. Saving a draft stays in this browser. Exporting creates a file, but it does not update or publish the website.</span>
+      </div>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <p class="eyebrow">Public inventory, prepared safely</p>
+      <h2 id="page-title">Edit the stock list without editing code.</h2>
+      <p class="hero-copy">Open the website’s <strong>inventory.csv</strong>, manage one row per hat and color, attach real Square Payment Links when an item can be purchased, then export a clean replacement file. The public site changes only after the exported file is placed in <strong>tdesigns-netlify/assets/</strong> and that site is deployed again.</p>
+      <ol class="workflow" aria-label="Inventory publishing workflow">
+        <li>Open inventory.csv</li>
+        <li>Add or update real stock</li>
+        <li>Export inventory.csv</li>
+        <li>Replace and redeploy</li>
+      </ol>
+    </section>
+
+    <div class="toolbar" aria-label="Inventory actions">
+      <button class="button" type="button" id="openCsvButton">Open inventory.csv</button>
+      <input type="file" id="csvInput" accept=".csv,text/csv" hidden>
+      <button class="button ghost" type="button" id="loadDraftButton">Load browser draft</button>
+      <button class="button ghost" type="button" id="saveDraftButton">Save browser draft</button>
+      <span class="toolbar-spacer"></span>
+      <span class="save-state" id="saveState">No unsaved changes</span>
+      <button class="button" type="button" id="addRowButton">+ Add hat</button>
+      <button class="button primary" type="button" id="exportButton">Export inventory.csv</button>
+    </div>
+
+    <section class="dashboard" aria-label="Inventory summary">
+      <div class="stat">
+        <span class="stat-label">Total rows</span>
+        <strong id="totalStat">0</strong>
+      </div>
+      <div class="stat">
+        <span class="stat-label">In stock</span>
+        <strong id="stockStat">0</strong>
+      </div>
+      <div class="stat">
+        <span class="stat-label">Brands listed</span>
+        <strong id="brandStat">0</strong>
+      </div>
+      <div class="stat invalid">
+        <span class="stat-label">Rows to fix</span>
+        <strong id="invalidStat">0</strong>
+      </div>
+    </section>
+
+    <section class="workspace" aria-label="Hat inventory">
+      <div class="filterbar">
+        <label class="search">
+          <span hidden>Search inventory</span>
+          <input class="field-control" type="search" id="searchInput" placeholder="Search ID, model, color, profile, image, or Square link">
+        </label>
+        <label>
+          <span hidden>Filter by brand</span>
+          <select class="field-control" id="brandFilter">
+            <option value="">All brands</option>
+          </select>
+        </label>
+        <label>
+          <span hidden>Filter by status</span>
+          <select class="field-control" id="statusFilter">
+            <option value="">All statuses</option>
+          </select>
+        </label>
+        <div class="filter-count" id="filterCount" aria-live="polite">0 rows shown</div>
+      </div>
+
+      <div class="dropzone" id="dropzone">
+        <span aria-hidden="true">⇩</span>
+        <span>Drop <strong>inventory.csv</strong> here, or use “Open inventory.csv” above.</span>
+      </div>
+
+      <div class="table-wrap" id="tableWrap" hidden>
+        <table>
+          <thead>
+            <tr>
+              <th>Hat</th>
+              <th>Brand</th>
+              <th>Color</th>
+              <th>Profile</th>
+              <th>Status</th>
+              <th>Quantity label</th>
+              <th>Image</th>
+              <th>Price</th>
+              <th>Square checkout</th>
+              <th><span class="sr-only">Actions</span></th>
+            </tr>
+          </thead>
+          <tbody id="inventoryBody"></tbody>
+        </table>
+      </div>
+
+      <div class="empty" id="emptyState">
+        <div class="empty-icon" aria-hidden="true">+</div>
+        <h3>No inventory rows loaded.</h3>
+        <p>Open the current CSV to edit it, or add the first real hat. The empty website file is intentional until T-Designs has confirmed on-hand stock.</p>
+        <button class="button primary" type="button" id="emptyAddButton">Add first hat</button>
+      </div>
+    </section>
+  </main>
+
+  <dialog id="itemDialog">
+    <div class="dialog-head">
+      <div>
+        <h2 id="dialogTitle">Add hat</h2>
+        <p>One row should represent one brand, model, and color combination.</p>
+      </div>
+      <button class="icon-button" type="button" id="closeDialogButton" aria-label="Close">×</button>
+    </div>
+    <form class="edit-form" id="itemForm" novalidate>
+      <div class="form-grid">
+        <label class="form-field">
+          <span>Inventory ID <b class="required-mark">*</b></span>
+          <input name="id" autocomplete="off" placeholder="td-001" required>
+          <span class="field-error" data-error-for="id"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Brand <b class="required-mark">*</b></span>
+          <select name="brand" required>
+            <option value="">Choose a brand</option>
+          </select>
+          <span class="field-error" data-error-for="brand"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Model <b class="required-mark">*</b></span>
+          <input name="model" autocomplete="off" placeholder="Enter the exact model or style number" required>
+          <span class="field-error" data-error-for="model"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Color <b class="required-mark">*</b></span>
+          <input name="color" autocomplete="off" placeholder="Black / Charcoal" required>
+          <span class="field-error" data-error-for="color"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Profile <b class="required-mark">*</b></span>
+          <input name="profile" autocomplete="off" placeholder="Trucker, low profile, rope cap…" required>
+          <span class="field-error" data-error-for="profile"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Status <b class="required-mark">*</b></span>
+          <select name="status" required>
+            <option value="">Choose a status</option>
+          </select>
+          <span class="field-error" data-error-for="status"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Quantity label <small>optional</small></span>
+          <input name="quantity_label" autocomplete="off" placeholder="12 ready now">
+          <span class="field-error" data-error-for="quantity_label"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Image path <small>optional</small></span>
+          <input name="image" autocomplete="off" placeholder="assets/hats/td-001.jpg">
+          <span class="field-error" data-error-for="image"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Price in cents <small>optional</small></span>
+          <input name="price_minor_units" type="number" min="0" step="1" inputmode="numeric" autocomplete="off" placeholder="3200">
+          <span class="field-error" data-error-for="price_minor_units"></span>
+        </label>
+
+        <label class="form-field">
+          <span>Currency <small>optional</small></span>
+          <input name="currency" maxlength="3" autocomplete="off" placeholder="USD">
+          <span class="field-error" data-error-for="currency"></span>
+        </label>
+
+        <label class="form-field full">
+          <span>Square Payment Link <small>optional</small></span>
+          <input name="square_url" type="url" inputmode="url" autocomplete="off" placeholder="https://square.link/u/...">
+          <span class="field-error" data-error-for="square_url"></span>
+        </label>
+      </div>
+
+      <p class="form-note"><strong>Publishing tip:</strong> leave the image blank to use the generated hat illustration. Enter a price as whole cents (for example, <strong>3200</strong> for $32.00), use <strong>USD</strong>, and paste the active Square Payment Link for that exact item. Only in-stock or limited rows with a valid HTTPS link receive a buy button.</p>
+
+      <div class="dialog-actions">
+        <button class="button ghost" type="button" id="cancelButton">Cancel</button>
+        <button class="button primary" type="submit">Save row</button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    (() => {
+      "use strict";
+
+      const FIELDS = ["id", "brand", "model", "color", "profile", "status", "quantity_label", "image", "price_minor_units", "currency", "square_url"];
+      const REQUIRED_FIELDS = ["id", "brand", "model", "color", "profile", "status"];
+      const BRANDS = Object.freeze([
+        "Outdoor Cap",
+        "Otto",
+        "Cambridge",
+        "Richardson",
+        "Legacy",
+        "Zapped",
+        "Anyrope",
+        "Durability",
+        "New Era",
+        "Pacific Headwear",
+        "Nike"
+      ]);
+      const STATUSES = Object.freeze(["In stock", "Limited", "Special order"]);
+      const STORAGE_KEY = "tdesigns.inventory-manager.v1";
+
+      const state = {
+        rows: [],
+        editingIndex: -1,
+        dirty: false
+      };
+
+      const elements = {
+        openCsvButton: document.querySelector("#openCsvButton"),
+        csvInput: document.querySelector("#csvInput"),
+        loadDraftButton: document.querySelector("#loadDraftButton"),
+        saveDraftButton: document.querySelector("#saveDraftButton"),
+        addRowButton: document.querySelector("#addRowButton"),
+        exportButton: document.querySelector("#exportButton"),
+        saveState: document.querySelector("#saveState"),
+        totalStat: document.querySelector("#totalStat"),
+        stockStat: document.querySelector("#stockStat"),
+        brandStat: document.querySelector("#brandStat"),
+        invalidStat: document.querySelector("#invalidStat"),
+        searchInput: document.querySelector("#searchInput"),
+        brandFilter: document.querySelector("#brandFilter"),
+        statusFilter: document.querySelector("#statusFilter"),
+        filterCount: document.querySelector("#filterCount"),
+        dropzone: document.querySelector("#dropzone"),
+        tableWrap: document.querySelector("#tableWrap"),
+        inventoryBody: document.querySelector("#inventoryBody"),
+        emptyState: document.querySelector("#emptyState"),
+        emptyAddButton: document.querySelector("#emptyAddButton"),
+        itemDialog: document.querySelector("#itemDialog"),
+        dialogTitle: document.querySelector("#dialogTitle"),
+        closeDialogButton: document.querySelector("#closeDialogButton"),
+        cancelButton: document.querySelector("#cancelButton"),
+        itemForm: document.querySelector("#itemForm"),
+        toastStack: document.querySelector("#toastStack")
+      };
+
+      function appendOptions(select, values) {
+        values.forEach((value) => {
+          const option = document.createElement("option");
+          option.value = value;
+          option.textContent = value;
+          select.append(option);
+        });
+      }
+
+      appendOptions(elements.brandFilter, BRANDS);
+      appendOptions(elements.statusFilter, STATUSES);
+      appendOptions(elements.itemForm.elements.brand, BRANDS);
+      appendOptions(elements.itemForm.elements.status, STATUSES);
+
+      function normalizeRow(source = {}) {
+        const normalized = Object.fromEntries(FIELDS.map((field) => [field, String(source[field] ?? "").trim()]));
+        normalized.currency = normalized.currency.toUpperCase();
+        return normalized;
+      }
+
+      function duplicateId(id, excludedIndex = -1) {
+        const normalizedId = id.trim().toLowerCase();
+        if (!normalizedId) return false;
+        return state.rows.some((row, index) => index !== excludedIndex && row.id.trim().toLowerCase() === normalizedId);
+      }
+
+      function getRowIssues(row, rowIndex = -1) {
+        const issues = {};
+
+        REQUIRED_FIELDS.forEach((field) => {
+          if (!row[field].trim()) issues[field] = "Required.";
+        });
+
+        if (row.brand && !BRANDS.includes(row.brand)) {
+          issues.brand = "Choose one of the 11 supported brands.";
+        }
+
+        if (row.status && !STATUSES.includes(row.status)) {
+          issues.status = "Use In stock, Limited, or Special order.";
+        }
+
+        if (row.price_minor_units && (!/^\d+$/.test(row.price_minor_units) || Number(row.price_minor_units) < 0)) {
+          issues.price_minor_units = "Use a whole number of cents, such as 3200.";
+        }
+
+        if (row.price_minor_units && !row.currency) {
+          issues.currency = "Enter USD when a price is present.";
+        } else if (row.currency && !/^[A-Z]{3}$/.test(row.currency)) {
+          issues.currency = "Use a three-letter currency code such as USD.";
+        }
+
+        if (row.square_url) {
+          try {
+            const squareUrl = new URL(row.square_url);
+            const host = squareUrl.hostname.toLowerCase();
+            const squareHost = host === "square.link"
+              || host === "checkout.square.site"
+              || host.endsWith(".square.site");
+            if (squareUrl.protocol !== "https:" || !squareHost) {
+              issues.square_url = "Use an active square.link or square.site checkout URL.";
+            }
+          } catch {
+            issues.square_url = "Enter a complete Square Payment Link.";
+          }
+        }
+
+        if (row.id && duplicateId(row.id, rowIndex)) {
+          issues.id = "Inventory IDs must be unique.";
+        }
+
+        return issues;
+      }
+
+      function rowIsValid(row, index) {
+        return Object.keys(getRowIssues(row, index)).length === 0;
+      }
+
+      function setDirty(value) {
+        state.dirty = value;
+        elements.saveState.textContent = value ? "Unsaved local changes" : "No unsaved changes";
+        elements.saveState.classList.toggle("is-dirty", value);
+      }
+
+      function statusClass(status) {
+        return status.toLowerCase().replace(/\s+/g, "-");
+      }
+
+      function createCell(text) {
+        const cell = document.createElement("td");
+        cell.textContent = text || "—";
+        return cell;
+      }
+
+      function formattedPrice(row) {
+        if (!/^\d+$/.test(row.price_minor_units || "")) return "";
+        try {
+          return new Intl.NumberFormat("en-US", {
+            style: "currency",
+            currency: row.currency || "USD"
+          }).format(Number(row.price_minor_units) / 100);
+        } catch {
+          return `$${(Number(row.price_minor_units) / 100).toFixed(2)}`;
+        }
+      }
+
+      function createInventoryRow(row, index) {
+        const issues = getRowIssues(row, index);
+        const invalid = Object.keys(issues).length > 0;
+        const tableRow = document.createElement("tr");
+        tableRow.classList.toggle("is-invalid", invalid);
+
+        const titleCell = document.createElement("td");
+        const titleWrap = document.createElement("div");
+        titleWrap.className = "row-title";
+        const rowIndex = document.createElement("span");
+        rowIndex.className = "row-index";
+        rowIndex.textContent = String(index + 1);
+        const titleCopy = document.createElement("span");
+        const model = document.createElement("strong");
+        model.textContent = row.model || "Missing model";
+        const id = document.createElement("span");
+        id.className = "row-id";
+        id.textContent = row.id || "Missing ID";
+        titleCopy.append(model, id);
+        titleWrap.append(rowIndex, titleCopy);
+        titleCell.append(titleWrap);
+        if (invalid) {
+          const issueNote = document.createElement("div");
+          issueNote.className = "issue-note";
+          issueNote.textContent = Object.values(issues)[0];
+          titleCell.append(issueNote);
+        }
+        tableRow.append(titleCell);
+
+        tableRow.append(createCell(row.brand), createCell(row.color), createCell(row.profile));
+
+        const statusCell = document.createElement("td");
+        const status = document.createElement("span");
+        status.className = `badge ${STATUSES.includes(row.status) ? statusClass(row.status) : "bad"}`;
+        status.textContent = row.status || "Missing";
+        statusCell.append(status);
+        tableRow.append(statusCell);
+
+        tableRow.append(createCell(row.quantity_label));
+
+        const imageCell = document.createElement("td");
+        const imagePath = document.createElement("span");
+        imagePath.className = "image-path";
+        imagePath.title = row.image || "";
+        imagePath.textContent = row.image || "Generated illustration";
+        imageCell.append(imagePath);
+        tableRow.append(imageCell);
+
+        tableRow.append(createCell(formattedPrice(row)));
+
+        const squareCell = document.createElement("td");
+        const squarePath = document.createElement("span");
+        squarePath.className = "image-path";
+        squarePath.title = row.square_url || "";
+        squarePath.textContent = row.square_url ? "Payment link added" : "Quote only";
+        squareCell.append(squarePath);
+        tableRow.append(squareCell);
+
+        const actionCell = document.createElement("td");
+        const actions = document.createElement("div");
+        actions.className = "actions";
+        const editButton = document.createElement("button");
+        editButton.className = "button small";
+        editButton.type = "button";
+        editButton.textContent = "Edit";
+        editButton.addEventListener("click", () => openEditor(index));
+        const deleteButton = document.createElement("button");
+        deleteButton.className = "button small danger";
+        deleteButton.type = "button";
+        deleteButton.textContent = "Delete";
+        deleteButton.addEventListener("click", () => deleteRow(index));
+        actions.append(editButton, deleteButton);
+        actionCell.append(actions);
+        tableRow.append(actionCell);
+
+        return tableRow;
+      }
+
+      function filteredRows() {
+        const search = elements.searchInput.value.trim().toLowerCase();
+        const brand = elements.brandFilter.value;
+        const status = elements.statusFilter.value;
+
+        return state.rows
+          .map((row, index) => ({row, index}))
+          .filter(({row}) => {
+            const haystack = FIELDS.map((field) => row[field]).join(" ").toLowerCase();
+            return (!search || haystack.includes(search))
+              && (!brand || row.brand === brand)
+              && (!status || row.status === status);
+          });
+      }
+
+      function render() {
+        const matches = filteredRows();
+        const invalidCount = state.rows.filter((row, index) => !rowIsValid(row, index)).length;
+        const brandCount = new Set(state.rows.map((row) => row.brand).filter((brand) => BRANDS.includes(brand))).size;
+
+        elements.totalStat.textContent = String(state.rows.length);
+        elements.stockStat.textContent = String(state.rows.filter((row) => row.status === "In stock").length);
+        elements.brandStat.textContent = String(brandCount);
+        elements.invalidStat.textContent = String(invalidCount);
+        elements.filterCount.textContent = `${matches.length} ${matches.length === 1 ? "row" : "rows"} shown`;
+
+        elements.inventoryBody.replaceChildren(...matches.map(({row, index}) => createInventoryRow(row, index)));
+        elements.tableWrap.hidden = matches.length === 0;
+        elements.emptyState.hidden = matches.length !== 0;
+
+        const emptyTitle = elements.emptyState.querySelector("h3");
+        const emptyCopy = elements.emptyState.querySelector("p");
+        const emptyButton = elements.emptyState.querySelector("button");
+        const hasFilters = elements.searchInput.value || elements.brandFilter.value || elements.statusFilter.value;
+
+        if (state.rows.length && hasFilters) {
+          emptyTitle.textContent = "No rows match these filters.";
+          emptyCopy.textContent = "Try a broader search, change a filter, or clear all filters to see the full inventory.";
+          emptyButton.textContent = "Clear filters";
+          emptyButton.dataset.action = "clear";
+        } else {
+          emptyTitle.textContent = "No inventory rows loaded.";
+          emptyCopy.textContent = "Open the current CSV to edit it, or add the first real hat. The empty website file is intentional until T-Designs has confirmed on-hand stock.";
+          emptyButton.textContent = "Add first hat";
+          emptyButton.dataset.action = "add";
+        }
+      }
+
+      function showToast(message, type = "") {
+        const toast = document.createElement("div");
+        toast.className = `toast ${type}`.trim();
+        toast.textContent = message;
+        elements.toastStack.append(toast);
+        window.setTimeout(() => toast.remove(), 4600);
+      }
+
+      function clearFieldErrors() {
+        elements.itemForm.querySelectorAll("[aria-invalid]").forEach((field) => field.removeAttribute("aria-invalid"));
+        elements.itemForm.querySelectorAll(".field-error").forEach((node) => {
+          node.textContent = "";
+        });
+      }
+
+      function showFieldErrors(issues) {
+        clearFieldErrors();
+        Object.entries(issues).forEach(([field, message]) => {
+          const input = elements.itemForm.elements[field];
+          const error = elements.itemForm.querySelector(`[data-error-for="${field}"]`);
+          if (input) input.setAttribute("aria-invalid", "true");
+          if (error) error.textContent = message;
+        });
+        const firstInvalid = elements.itemForm.querySelector('[aria-invalid="true"]');
+        if (firstInvalid) firstInvalid.focus();
+      }
+
+      function openEditor(index = -1) {
+        state.editingIndex = index;
+        const row = index >= 0 ? state.rows[index] : normalizeRow({currency: "USD"});
+        elements.dialogTitle.textContent = index >= 0 ? "Edit hat" : "Add hat";
+        FIELDS.forEach((field) => {
+          elements.itemForm.elements[field].value = row[field];
+        });
+        clearFieldErrors();
+        elements.itemDialog.showModal();
+        window.setTimeout(() => elements.itemForm.elements.id.focus(), 0);
+      }
+
+      function closeEditor() {
+        elements.itemDialog.close();
+        state.editingIndex = -1;
+        clearFieldErrors();
+      }
+
+      function saveEditor(event) {
+        event.preventDefault();
+        const formData = new FormData(elements.itemForm);
+        const row = normalizeRow(Object.fromEntries(formData.entries()));
+        const issues = getRowIssues(row, state.editingIndex);
+
+        if (Object.keys(issues).length) {
+          showFieldErrors(issues);
+          showToast("Please fix the highlighted fields before saving.", "error");
+          return;
+        }
+
+        if (state.editingIndex >= 0) {
+          state.rows[state.editingIndex] = row;
+          showToast("Inventory row updated.", "success");
+        } else {
+          state.rows.push(row);
+          showToast("Inventory row added.", "success");
+        }
+
+        setDirty(true);
+        closeEditor();
+        render();
+      }
+
+      function deleteRow(index) {
+        const row = state.rows[index];
+        const label = [row.brand, row.model, row.color].filter(Boolean).join(" · ") || row.id || `row ${index + 1}`;
+        if (!window.confirm(`Delete ${label}? This only removes it from the current local working list.`)) return;
+        state.rows.splice(index, 1);
+        setDirty(true);
+        render();
+        showToast("Inventory row deleted.");
+      }
+
+      function parseCsv(text) {
+        const source = String(text).replace(/^\uFEFF/, "");
+        const records = [];
+        let record = [];
+        let field = "";
+        let quoted = false;
+
+        for (let index = 0; index < source.length; index += 1) {
+          const character = source[index];
+
+          if (quoted) {
+            if (character === '"') {
+              if (source[index + 1] === '"') {
+                field += '"';
+                index += 1;
+              } else {
+                quoted = false;
+              }
+            } else {
+              field += character;
+            }
+            continue;
+          }
+
+          if (character === '"') {
+            quoted = true;
+          } else if (character === ",") {
+            record.push(field);
+            field = "";
+          } else if (character === "\n") {
+            record.push(field.replace(/\r$/, ""));
+            records.push(record);
+            record = [];
+            field = "";
+          } else {
+            field += character;
+          }
+        }
+
+        if (quoted) throw new Error("The CSV has an unclosed quoted field.");
+        if (field.length || record.length) {
+          record.push(field.replace(/\r$/, ""));
+          records.push(record);
+        }
+
+        const meaningful = records.filter((row) => row.some((value) => value.trim() !== ""));
+        if (!meaningful.length) throw new Error("The CSV is empty.");
+
+        const headers = meaningful[0].map((header) => header.trim());
+        const missing = REQUIRED_FIELDS.filter((fieldName) => !headers.includes(fieldName));
+        if (missing.length) throw new Error(`Missing required CSV columns: ${missing.join(", ")}.`);
+
+        return meaningful.slice(1).map((values) => {
+          const sourceRow = {};
+          headers.forEach((header, index) => {
+            if (FIELDS.includes(header)) sourceRow[header] = values[index] ?? "";
+          });
+          return normalizeRow(sourceRow);
+        });
+      }
+
+      function csvEscape(value) {
+        const text = String(value ?? "").replace(/\r\n?/g, "\n");
+        return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+      }
+
+      function serializeCsv(rows) {
+        const lines = [
+          FIELDS.join(","),
+          ...rows.map((row) => FIELDS.map((field) => csvEscape(row[field])).join(","))
+        ];
+        return `${lines.join("\r\n")}\r\n`;
+      }
+
+      function loadRows(rows, sourceLabel) {
+        state.rows = rows;
+        elements.searchInput.value = "";
+        elements.brandFilter.value = "";
+        elements.statusFilter.value = "";
+        setDirty(false);
+        render();
+        const invalidCount = rows.filter((row, index) => !rowIsValid(row, index)).length;
+        if (invalidCount) {
+          showToast(`${sourceLabel} loaded with ${invalidCount} ${invalidCount === 1 ? "row" : "rows"} to fix before export.`, "error");
+        } else {
+          showToast(`${sourceLabel} loaded: ${rows.length} ${rows.length === 1 ? "row" : "rows"}.`, "success");
+        }
+      }
+
+      async function loadCsvFile(file) {
+        if (!file) return;
+        if (!file.name.toLowerCase().endsWith(".csv")) {
+          showToast("Choose a .csv file.", "error");
+          return;
+        }
+
+        try {
+          const text = await file.text();
+          const rows = parseCsv(text);
+          loadRows(rows, file.name);
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "Could not read that CSV.", "error");
+        } finally {
+          elements.csvInput.value = "";
+        }
+      }
+
+      function saveDraft() {
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify({
+            savedAt: new Date().toISOString(),
+            rows: state.rows
+          }));
+          setDirty(false);
+          showToast("Draft saved in this browser only. The public website was not updated.", "success");
+        } catch {
+          showToast("This browser could not save the local draft.", "error");
+        }
+      }
+
+      function loadDraft() {
+        try {
+          const stored = localStorage.getItem(STORAGE_KEY);
+          if (!stored) {
+            showToast("No browser draft has been saved on this device.", "error");
+            return;
+          }
+          const parsed = JSON.parse(stored);
+          if (!parsed || !Array.isArray(parsed.rows)) throw new Error("Draft format is invalid.");
+          loadRows(parsed.rows.map(normalizeRow), "Browser draft");
+        } catch (error) {
+          showToast(error instanceof Error ? error.message : "Could not load the browser draft.", "error");
+        }
+      }
+
+      function exportCsv() {
+        const invalidIndexes = state.rows
+          .map((row, index) => rowIsValid(row, index) ? -1 : index)
+          .filter((index) => index >= 0);
+
+        if (invalidIndexes.length) {
+          const first = invalidIndexes[0];
+          render();
+          openEditor(first);
+          showFieldErrors(getRowIssues(state.rows[first], first));
+          showToast(`Fix ${invalidIndexes.length} invalid ${invalidIndexes.length === 1 ? "row" : "rows"} before exporting.`, "error");
+          return;
+        }
+
+        const csv = serializeCsv(state.rows);
+        const blob = new Blob([csv], {type: "text/csv;charset=utf-8"});
+        const url = URL.createObjectURL(blob);
+        const anchor = document.createElement("a");
+        anchor.href = url;
+        anchor.download = "inventory.csv";
+        document.body.append(anchor);
+        anchor.click();
+        anchor.remove();
+        URL.revokeObjectURL(url);
+        setDirty(false);
+        showToast("inventory.csv exported. Replace the site copy and redeploy when you are ready.", "success");
+      }
+
+      elements.openCsvButton.addEventListener("click", () => elements.csvInput.click());
+      elements.csvInput.addEventListener("change", () => loadCsvFile(elements.csvInput.files[0]));
+      elements.loadDraftButton.addEventListener("click", loadDraft);
+      elements.saveDraftButton.addEventListener("click", saveDraft);
+      elements.addRowButton.addEventListener("click", () => openEditor());
+      elements.emptyAddButton.addEventListener("click", () => {
+        if (elements.emptyAddButton.dataset.action === "clear") {
+          elements.searchInput.value = "";
+          elements.brandFilter.value = "";
+          elements.statusFilter.value = "";
+          render();
+        } else {
+          openEditor();
+        }
+      });
+      elements.exportButton.addEventListener("click", exportCsv);
+      elements.closeDialogButton.addEventListener("click", closeEditor);
+      elements.cancelButton.addEventListener("click", closeEditor);
+      elements.itemForm.addEventListener("submit", saveEditor);
+      elements.itemDialog.addEventListener("cancel", (event) => {
+        event.preventDefault();
+        closeEditor();
+      });
+
+      [elements.searchInput, elements.brandFilter, elements.statusFilter].forEach((control) => {
+        control.addEventListener("input", render);
+        control.addEventListener("change", render);
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        elements.dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          elements.dropzone.classList.add("is-over");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        elements.dropzone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          elements.dropzone.classList.remove("is-over");
+        });
+      });
+
+      elements.dropzone.addEventListener("drop", (event) => {
+        loadCsvFile(event.dataTransfer.files[0]);
+      });
+
+      window.addEventListener("beforeunload", (event) => {
+        if (!state.dirty) return;
+        event.preventDefault();
+        event.returnValue = "";
+      });
+
+      render();
+    })();
+  </script>
+</body>
+</html>

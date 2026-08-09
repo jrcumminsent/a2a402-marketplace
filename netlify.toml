@@ -1,0 +1,19 @@
+[build]
+  command = "pnpm build"
+  publish = "public"
+  functions = "netlify/functions"
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/a2a402.json"
+  to = "/.netlify/functions/api/.well-known/a2a402.json"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/a2a402-keys.json"
+  to = "/.netlify/functions/api/.well-known/a2a402-keys.json"
+  status = 200

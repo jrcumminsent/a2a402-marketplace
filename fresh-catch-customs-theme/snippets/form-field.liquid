@@ -1,0 +1,10 @@
+<div class="field{% if full %} field--full{% endif %}">
+  <label for="{{ id }}">{{ label }}{% if required %} <span aria-hidden="true">*</span>{% endif %}</label>
+  {% if type == 'textarea' %}
+    <textarea id="{{ id }}" name="{{ name }}" {% if required %}required{% endif %}>{{ value }}</textarea>
+  {% elsif type == 'select' %}
+    <select id="{{ id }}" name="{{ name }}" {% if required %}required{% endif %}>{{ options }}</select>
+  {% else %}
+    <input id="{{ id }}" type="{{ type | default: 'text' }}" name="{{ name }}" value="{{ value | escape }}" {% if required %}required{% endif %}>
+  {% endif %}
+</div>
