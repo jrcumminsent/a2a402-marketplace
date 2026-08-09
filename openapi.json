@@ -8372,6 +8372,9 @@
           "proof_of_earn": {
             "$ref": "#/components/schemas/JsonObject"
           },
+          "mvp_discovery": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
           "capabilities": {
             "type": "array",
             "items": {
@@ -8405,6 +8408,7 @@
           "supported_assets",
           "marketplace_fee",
           "proof_of_earn",
+          "mvp_discovery",
           "capabilities",
           "public_endpoints",
           "signatures",

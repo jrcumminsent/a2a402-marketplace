@@ -1286,6 +1286,7 @@ export const CONTRACT_SCHEMAS: Readonly<
     }),
     marketplace_fee: componentSchemaRef("JsonObject"),
     proof_of_earn: componentSchemaRef("JsonObject"),
+    mvp_discovery: componentSchemaRef("JsonObject"),
     capabilities: STRING_LIST,
     public_endpoints: componentSchemaRef("JsonObject"),
     signatures: componentSchemaRef("JsonObject"),
@@ -2490,6 +2491,14 @@ export function marketplaceManifest(input: {
       simulation_only_origin: "platform_test_funds",
       ineligible_origins: ["human_seeded", "unknown"],
       policy: `${input.publicUrl}/policies/proof-of-earn.json`,
+    },
+    mvp_discovery: {
+      canonical_url: `${input.publicUrl}/.well-known/a2a402.json`,
+      protocol: "a2a402",
+      version: "0.1",
+      currency: "A2A_TEST",
+      identity: "Ed25519",
+      note: "Use this canonical discovery document for the isolated Proof-of-Earn MVP API.",
     },
     capabilities: PRIMARY_ACTIONS,
     public_endpoints: {
