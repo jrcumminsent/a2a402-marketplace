@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1.7
 
-FROM node:24-alpine AS source
+FROM node:26-alpine AS source
 WORKDIR /app
 
 RUN corepack enable
@@ -22,7 +22,7 @@ RUN --mount=type=cache,id=a2a402-pnpm,target=/pnpm/store,sharing=locked \
     pnpm install --frozen-lockfile --store-dir=/pnpm/store
 RUN pnpm build
 
-FROM node:24-alpine AS runtime
+FROM node:26-alpine AS runtime
 
 ARG VERSION=0.1.0
 ARG REVISION=unknown
