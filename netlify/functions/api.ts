@@ -1,4 +1,7 @@
-import { getConnectionString } from "@netlify/database";
+import {
+  MissingDatabaseConnectionError,
+  getConnectionString,
+} from "@netlify/database";
 
 import { buildApp } from "../../apps/api/src/app.js";
 
@@ -22,7 +25,13 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
   // Netlify Database injects its connection through the official runtime
   // binding. The application itself stays portable by consuming DATABASE_URL.
   if (!process.env.DATABASE_URL) {
-    process.env.DATABASE_URL = getConnectionString();
+    try {
+      process.env.DATABASE_URL = getConnectionString();
+    } catch (error) {
+      // A manually provisioned database may not yet be bound to this function.
+      // Preserve the machine-read API while deployment configuration is fixed.
+      if (!(error instanceof MissingDatabaseConnectionError)) throw error;
+    }
   }
   application ??= buildApp();
   return application;
