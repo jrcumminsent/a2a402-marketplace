@@ -4,6 +4,7 @@ import {
 } from "@netlify/database";
 
 import { buildApp } from "../../apps/api/src/app.js";
+import { createNetlifyArtifactStorage } from "./blob-storage.js";
 
 let application: Promise<Awaited<ReturnType<typeof buildApp>>> | undefined;
 
@@ -17,7 +18,9 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
     // Preserve the portable DATABASE_URL fallback while configuration is fixed.
     if (!(error instanceof MissingDatabaseConnectionError)) throw error;
   }
-  application ??= buildApp();
+  application ??= buildApp({
+    artifactStorage: createNetlifyArtifactStorage(10_000_000),
+  });
   return application;
 }
 

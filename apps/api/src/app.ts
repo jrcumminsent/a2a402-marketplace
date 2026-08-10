@@ -42,6 +42,7 @@ import {
   MarketplaceError,
   requireIdempotencyKey,
   secureEqual,
+  type ArtifactStorage,
   type JsonValue,
 } from "@a2a402/shared";
 import { executeMarketplaceAction } from "./actions.js";
@@ -229,16 +230,18 @@ export async function buildApp(
   options: {
     config?: Partial<AppConfig>;
     engine?: MarketplaceEngine;
+    artifactStorage?: ArtifactStorage;
   } = {},
 ): Promise<AppContext> {
   const config = loadConfig(options.config);
-  const localArtifactStorage =
-    config.artifactStorageMode === "local"
+  const artifactStorage =
+    options.artifactStorage ??
+    (config.artifactStorageMode === "local"
       ? new LocalArtifactStorage({
           rootPath: config.artifactStoragePath,
           maxBytes: config.engine.maxArtifactBytes,
         })
-      : null;
+      : null);
   const paymentSigner = new PlatformSigner(
     config.engine.signingPrivateKeyPem,
     config.engine.signingKeyId,
@@ -284,8 +287,8 @@ export async function buildApp(
     options.engine ??
     new MarketplaceEngine({
       ...config.engine,
-      ...(localArtifactStorage
-        ? { artifactStorage: localArtifactStorage }
+      ...(artifactStorage
+        ? { artifactStorage }
         : {}),
       ...(paymentAdapter ? { paymentAdapter } : {}),
       evaluators: [new SchemaEvaluator()],
@@ -414,8 +417,8 @@ export async function buildApp(
     const databaseHealthy = runtime.coordinator
       ? await runtime.ping().catch(() => false)
       : true;
-    const storageHealth = localArtifactStorage
-      ? await localArtifactStorage.health()
+    const storageHealth = artifactStorage
+      ? await artifactStorage.health()
       : {
           mode: "s3" as const,
           healthy: false,
