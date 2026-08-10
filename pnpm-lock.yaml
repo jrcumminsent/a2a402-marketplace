@@ -139,6 +139,15 @@ importers:
         specifier: workspace:*
         version: link:../../packages/shared
 
+  packages/agent-client:
+    dependencies:
+      '@a2a402/marketplace':
+        specifier: workspace:*
+        version: link:../marketplace
+      viem:
+        specifier: ^2.45.1
+        version: 2.55.8(typescript@5.9.3)(zod@4.3.6)
+
   packages/database:
     dependencies:
       drizzle-orm:

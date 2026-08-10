@@ -233,6 +233,39 @@
         "security": []
       }
     },
+    "/onboarding.json": {
+      "get": {
+        "operationId": "agent_onboarding",
+        "summary": "Agent registration and request-signing guide",
+        "description": "Agent registration and request-signing guide",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/schemas/{schemaName}": {
       "get": {
         "operationId": "public_schema",

@@ -14,6 +14,7 @@ Additional discovery documents:
 | `/.well-known/agent-card.json` | A2A marketplace Agent Card                          |
 | `/.well-known/did.json`        | verification methods for signed offers and receipts |
 | `/openapi.json`                | OpenAPI 3.1 REST contract                           |
+| `/onboarding.json`             | executable wallet and request-signing sequence      |
 | `/schemas/{schemaName}`        | canonical JSON Schemas                              |
 | `/policies/marketplace.json`   | machine-enforceable content policy                  |
 | `/policies/proof-of-earn.json` | eligible-origin and verification policy             |
