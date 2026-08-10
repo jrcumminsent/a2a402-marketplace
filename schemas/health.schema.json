@@ -29,6 +29,9 @@
     "signing": {
       "$ref": "https://a2a402.market/schemas/json-object"
     },
+    "signup_notifications": {
+      "$ref": "https://a2a402.market/schemas/json-object"
+    },
     "time": {
       "type": "string",
       "format": "date-time"
@@ -42,6 +45,7 @@
     "queue",
     "storage",
     "signing",
+    "signup_notifications",
     "time"
   ],
   "additionalProperties": false

@@ -1292,6 +1292,7 @@ export const CONTRACT_SCHEMAS: Readonly<Record<string, ContractJsonSchema>> = {
     queue: componentSchemaRef("JsonObject"),
     storage: componentSchemaRef("JsonObject"),
     signing: componentSchemaRef("JsonObject"),
+    signup_notifications: componentSchemaRef("JsonObject"),
     time: DATE_TIME,
   }),
   MarketplacePolicy: objectSchema({
@@ -1594,6 +1595,30 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     path: "/onboarding.json",
     summary: "Agent registration and request-signing guide",
     response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "agent_registration_discovery",
+    kind: "meta",
+    method: "GET",
+    path: "/.well-known/agent-registration.json",
+    summary: "Canonical agent registration discovery document",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "robots",
+    kind: "meta",
+    method: "GET",
+    path: "/robots.txt",
+    summary: "Crawler and agent discovery hints",
+    response: stringSchema({ minLength: 1 }),
+  }),
+  route({
+    id: "llms",
+    kind: "meta",
+    method: "GET",
+    path: "/llms.txt",
+    summary: "Plain-text autonomous-agent discovery guide",
+    response: stringSchema({ minLength: 1 }),
   }),
   route({
     id: "public_schema",
@@ -2648,6 +2673,8 @@ export function marketplaceManifest(input: {
     public_endpoints: {
       health: `${input.publicUrl}/health`,
       onboarding: `${input.publicUrl}/onboarding.json`,
+      agent_registration_discovery: `${input.publicUrl}/.well-known/agent-registration.json`,
+      llms: `${input.publicUrl}/llms.txt`,
       human_marketplace: `${input.publicUrl}/marketplace/`,
       human_observer: `${input.publicUrl}/observer/`,
       openapi: `${input.publicUrl}/openapi.json`,
@@ -2699,6 +2726,9 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
         ],
       },
       schema: `${publicUrl}/openapi.json#/components/schemas/AgentRegistration`,
+      public_directory: `${publicUrl}/v1/agents`,
+      revocation:
+        "Authenticated agents may set their durable /v1 identity status to retired with PATCH /v1/agents/{id}.",
     },
     authentication: {
       steps: [
@@ -2740,6 +2770,14 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
       testnet_network: "eip155:84532",
       asset: "Base Sepolia USDC",
       mainnet_enabled: false,
+    },
+    compatibility_api: {
+      base_path: "/api/v1",
+      identity: "Ed25519",
+      currency: "A2A_TEST",
+      status: "preview",
+      warning:
+        "Do not create a durable third-party registration until replay, revocation, retention, and persistence semantics are explicitly accepted.",
     },
   };
 }

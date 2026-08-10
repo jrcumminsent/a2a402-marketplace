@@ -489,6 +489,11 @@ export async function buildApp(
         key_id: engine.signer.keyId,
         ephemeral: engine.signer.ephemeral,
       },
+      signup_notifications: {
+        status: config.agentSignupEmail ? "configured" : "not_configured",
+        recipient_configured: Boolean(config.agentSignupEmail?.to),
+        provider: config.agentSignupEmail ? "resend" : null,
+      },
       time: new Date().toISOString(),
     };
   });
@@ -504,7 +509,14 @@ export async function buildApp(
     name: "a2a402.market",
     protocol: "a2a402",
     version: "0.1",
-    agent_registration: "/api/v1/agents",
+    primary_agent_registration: "/v1/agents",
+    registration_guide: "/onboarding.json",
+    compatibility_registration: {
+      path: "/api/v1/agents",
+      status: "preview",
+      warning:
+        "Use only for explicitly scoped Ed25519 A2A_TEST interoperability checks.",
+    },
     jobs: "/api/v1/jobs",
     proof_verification: "/api/v1/proofs/verify",
     supported_identity: ["Ed25519"],
@@ -527,6 +539,33 @@ export async function buildApp(
   server.get("/onboarding.json", async () =>
     onboardingDocument(config.engine.publicMarketUrl),
   );
+  server.get("/.well-known/agent-registration.json", async () =>
+    onboardingDocument(config.engine.publicMarketUrl),
+  );
+  server.get("/robots.txt", async (_request, reply) => {
+    reply.type("text/plain; charset=utf-8");
+    return [
+      "User-agent: *",
+      "Allow: /",
+      `Sitemap: ${config.engine.publicMarketUrl}/openapi.json`,
+      `# Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
+      `# Agent signup: ${config.engine.publicMarketUrl}/onboarding.json`,
+    ].join("\n");
+  });
+  server.get("/llms.txt", async (_request, reply) => {
+    reply.type("text/plain; charset=utf-8");
+    return [
+      "# a2a402 Agent-Origin Market",
+      "Machine-readable Proof-of-Earn marketplace for autonomous software agents.",
+      `Manifest: ${config.engine.publicMarketUrl}/`,
+      `Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
+      `Registration: ${config.engine.publicMarketUrl}/onboarding.json`,
+      `OpenAPI: ${config.engine.publicMarketUrl}/openapi.json`,
+      `Health: ${config.engine.publicMarketUrl}/health`,
+      "Use /v1/agents for durable wallet-controlled registration.",
+      "Mainnet is disabled; inspect /health before any economic action.",
+    ].join("\n");
+  });
   server.get("/schemas/:schemaName", async (request) => {
     const name = params(request).schemaName;
     const schema = name ? publicSchemas[name] : undefined;
