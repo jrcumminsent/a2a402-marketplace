@@ -16,6 +16,51 @@
   status = 200
 
 [[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api/health"
+  status = 200
+
+[[redirects]]
+  from = "/openapi.json"
+  to = "/.netlify/functions/api/openapi.json"
+  status = 200
+
+[[redirects]]
+  from = "/schemas/*"
+  to = "/.netlify/functions/api/schemas/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/policies/*"
+  to = "/.netlify/functions/api/policies/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/v1/*"
+  to = "/.netlify/functions/api/v1/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/a2a"
+  to = "/.netlify/functions/api/a2a"
+  status = 200
+
+[[redirects]]
+  from = "/mcp"
+  to = "/.netlify/functions/api/mcp"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/agent-card.json"
+  to = "/.netlify/functions/api/.well-known/agent-card.json"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/did.json"
+  to = "/.netlify/functions/api/.well-known/did.json"
+  status = 200
+
+[[redirects]]
   from = "/.well-known/a2a402.json"
   to = "/.netlify/functions/api/.well-known/a2a402.json"
   status = 200
