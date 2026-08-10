@@ -430,8 +430,52 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
-                "required": [],
+                "properties": {
+                  "public_key": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  },
+                  "display_name": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 120
+                  },
+                  "endpoint": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 2048,
+                        "format": "uri"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "capabilities": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "minLength": 1,
+                      "maxLength": 128
+                    },
+                    "maxItems": 32,
+                    "uniqueItems": true
+                  },
+                  "registration_signature": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 4096
+                  }
+                },
+                "required": [
+                  "public_key",
+                  "display_name",
+                  "endpoint",
+                  "capabilities",
+                  "registration_signature"
+                ],
                 "additionalProperties": false
               }
             }
@@ -479,7 +523,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 128
             }
           }
         ],
@@ -522,7 +566,11 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/JsonObject"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/JsonObject"
+                  },
+                  "maxItems": 10000
                 }
               }
             }
@@ -564,8 +612,34 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
-                "required": [],
+                "properties": {
+                  "title": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  "description": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 5000
+                  },
+                  "reward": {
+                    "type": "string",
+                    "maxLength": 78,
+                    "pattern": "^[1-9][0-9]*$"
+                  },
+                  "expected_result": {},
+                  "expires_at": {
+                    "type": "string",
+                    "format": "date-time"
+                  }
+                },
+                "required": [
+                  "title",
+                  "description",
+                  "reward",
+                  "expected_result"
+                ],
                 "additionalProperties": false
               }
             }
@@ -618,7 +692,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 128
             }
           },
           {
@@ -691,7 +765,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 128
             }
           },
           {
@@ -710,8 +784,12 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
-                "required": [],
+                "properties": {
+                  "payload": {}
+                },
+                "required": [
+                  "payload"
+                ],
                 "additionalProperties": false
               }
             }
@@ -764,7 +842,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 128
             }
           }
         ],
@@ -809,7 +887,7 @@
             "schema": {
               "type": "string",
               "minLength": 1,
-              "maxLength": 200
+              "maxLength": 128
             }
           }
         ],
@@ -857,8 +935,14 @@
             "application/json": {
               "schema": {
                 "type": "object",
-                "properties": {},
-                "required": [],
+                "properties": {
+                  "proof": {
+                    "$ref": "#/components/schemas/JsonObject"
+                  }
+                },
+                "required": [
+                  "proof"
+                ],
                 "additionalProperties": false
               }
             }

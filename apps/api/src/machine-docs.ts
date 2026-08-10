@@ -1535,6 +1535,15 @@ function route(input: RouteInput): HttpRouteContract {
 }
 
 const ID_PARAMS = objectSchema({ id: UUID });
+const MVP_AGENT_PARAMS = objectSchema({
+  agent_id: stringSchema({ minLength: 1, maxLength: 128 }),
+});
+const MVP_JOB_PARAMS = objectSchema({
+  job_id: stringSchema({ minLength: 1, maxLength: 128 }),
+});
+const MVP_PROOF_PARAMS = objectSchema({
+  proof_id: stringSchema({ minLength: 1, maxLength: 128 }),
+});
 const MUTATION_BYTES = CONTRACT_LIMITS.jsonBodyBytes;
 const PAGINATION_QUERY = PAGE_QUERY;
 const ACTION_NAMES = PRIMARY_ACTIONS.join(", ");
@@ -1615,15 +1624,37 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
   }),
   route({ id: "mvp_discovery", kind: "meta", method: "GET", path: "/.well-known/a2a402.json", summary: "A2A_TEST MVP discovery manifest", response: componentSchemaRef("JsonObject") }),
   route({ id: "mvp_keys", kind: "meta", method: "GET", path: "/.well-known/a2a402-keys.json", summary: "A2A_TEST MVP verification keys", response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_register_agent", kind: "rest", method: "POST", path: "/api/v1/agents", summary: "Register an Ed25519 MVP agent", security: "public-idempotent", body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201 }),
-  route({ id: "mvp_get_agent", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}", summary: "Get an MVP agent", params: objectSchema({ agent_id: SHORT_TEXT }), response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_list_jobs", kind: "rest", method: "GET", path: "/api/v1/jobs", summary: "List A2A_TEST MVP jobs", response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_create_job", kind: "rest", method: "POST", path: "/api/v1/jobs", summary: "Create an earned-capital funded MVP job", security: "agent", body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201 }),
-  route({ id: "mvp_accept_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/accept", summary: "Accept an exclusive MVP job", security: "agent", params: objectSchema({ job_id: SHORT_TEXT }), body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_submit_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/submit", summary: "Submit and settle deterministic MVP work", security: "agent", params: objectSchema({ job_id: SHORT_TEXT }), body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_balance", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}/balance", summary: "Get A2A_TEST earned balance", params: objectSchema({ agent_id: SHORT_TEXT }), response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_get_proof", kind: "rest", method: "GET", path: "/api/v1/proofs/{proof_id}", summary: "Get signed MVP Proof of Earn", params: objectSchema({ proof_id: SHORT_TEXT }), response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_verify_proof", kind: "rest", method: "POST", path: "/api/v1/proofs/verify", summary: "Verify signed MVP Proof of Earn", security: "public-idempotent", body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
+  route({
+    id: "mvp_register_agent", kind: "rest", method: "POST", path: "/api/v1/agents",
+    summary: "Register an Ed25519 MVP agent", security: "public-idempotent",
+    body: objectSchema({
+      public_key: stringSchema({ minLength: 1, maxLength: 4_096 }),
+      display_name: stringSchema({ minLength: 1, maxLength: 120 }),
+      endpoint: nullable(stringSchema({ format: "uri", maxLength: CONTRACT_LIMITS.urlMaxLength })),
+      capabilities: arraySchema(stringSchema({ minLength: 1, maxLength: 128 }), { maxItems: 32, uniqueItems: true }),
+      registration_signature: stringSchema({ minLength: 1, maxLength: 4_096 }),
+    }),
+    maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201,
+  }),
+  route({ id: "mvp_get_agent", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}", summary: "Get an MVP agent", params: MVP_AGENT_PARAMS, response: componentSchemaRef("JsonObject") }),
+  route({ id: "mvp_list_jobs", kind: "rest", method: "GET", path: "/api/v1/jobs", summary: "List A2A_TEST MVP jobs", response: arraySchema(componentSchemaRef("JsonObject"), { maxItems: 10_000 }) }),
+  route({
+    id: "mvp_create_job", kind: "rest", method: "POST", path: "/api/v1/jobs",
+    summary: "Create an earned-capital funded MVP job", security: "agent",
+    body: objectSchema({
+      title: stringSchema({ minLength: 1, maxLength: CONTRACT_LIMITS.shortTextMaxLength }),
+      description: stringSchema({ minLength: 1, maxLength: CONTRACT_LIMITS.descriptionMaxLength }),
+      reward: POSITIVE_MINOR,
+      expected_result: {},
+      expires_at: DATE_TIME,
+    }, ["title", "description", "reward", "expected_result"]),
+    maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201,
+  }),
+  route({ id: "mvp_accept_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/accept", summary: "Accept an exclusive MVP job", security: "agent", params: MVP_JOB_PARAMS, body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
+  route({ id: "mvp_submit_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/submit", summary: "Submit and settle deterministic MVP work", security: "agent", params: MVP_JOB_PARAMS, body: objectSchema({ payload: {} }), maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
+  route({ id: "mvp_balance", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}/balance", summary: "Get A2A_TEST earned balance", params: MVP_AGENT_PARAMS, response: componentSchemaRef("JsonObject") }),
+  route({ id: "mvp_get_proof", kind: "rest", method: "GET", path: "/api/v1/proofs/{proof_id}", summary: "Get signed MVP Proof of Earn", params: MVP_PROOF_PARAMS, response: componentSchemaRef("JsonObject") }),
+  route({ id: "mvp_verify_proof", kind: "rest", method: "POST", path: "/api/v1/proofs/verify", summary: "Verify signed MVP Proof of Earn", security: "public-idempotent", body: objectSchema({ proof: componentSchemaRef("JsonObject") }), maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
   route({
     id: "a2a_json_rpc",
     kind: "protocol",
