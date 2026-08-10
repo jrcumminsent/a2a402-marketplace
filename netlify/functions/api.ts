@@ -5,20 +5,6 @@ import {
 
 import { buildApp } from "../../apps/api/src/app.js";
 
-interface NetlifyEvent {
-  httpMethod: string;
-  path: string;
-  rawQuery: string;
-  headers: Record<string, string | undefined>;
-  body: string | null;
-}
-
-interface NetlifyResponse {
-  statusCode: number;
-  headers: Record<string, string>;
-  body: string;
-}
-
 let application: Promise<Awaited<ReturnType<typeof buildApp>>> | undefined;
 
 function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
@@ -35,21 +21,32 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
   return application;
 }
 
-export async function handler(event: NetlifyEvent): Promise<NetlifyResponse> {
+export default async function handler(request: Request): Promise<Response> {
   const { server } = await app();
+  const requestUrl = new URL(request.url);
   const functionPrefix = "/.netlify/functions/api";
-  const requestPath = event.path.startsWith(functionPrefix)
-    ? event.path.slice(functionPrefix.length) || "/"
-    : event.path;
+  const requestPath = requestUrl.pathname.startsWith(functionPrefix)
+    ? requestUrl.pathname.slice(functionPrefix.length) || "/"
+    : requestUrl.pathname;
+  const requestBody = ["GET", "HEAD"].includes(request.method)
+    ? undefined
+    : await request.text();
   const response = await server.inject({
-    method: event.httpMethod,
-    url: requestPath + (event.rawQuery ? `?${event.rawQuery}` : ""),
-    headers: event.headers,
-    payload: event.body ?? undefined,
+    method: request.method,
+    url: requestPath + requestUrl.search,
+    headers: Object.fromEntries(request.headers.entries()),
+    payload: requestBody || undefined,
   });
-  return {
-    statusCode: response.statusCode,
-    headers: Object.fromEntries(Object.entries(response.headers).map(([key, value]) => [key, String(value)])),
-    body: response.body,
-  };
+  const responseHeaders = new Headers();
+  for (const [name, value] of Object.entries(response.headers)) {
+    if (Array.isArray(value)) {
+      for (const item of value) responseHeaders.append(name, String(item));
+    } else if (value !== undefined) {
+      responseHeaders.set(name, String(value));
+    }
+  }
+  return new Response(response.body, {
+    status: response.statusCode,
+    headers: responseHeaders,
+  });
 }
