@@ -402,7 +402,11 @@ export async function buildApp(
     createA2ADispatcher(engine),
   );
 
-  server.get("/", async (_request, reply) => {
+  server.get("/", async (request, reply) => {
+    const accept = request.headers.accept ?? "";
+    if (accept.includes("text/html")) {
+      return reply.redirect("/marketplace/");
+    }
     reply.type("application/json");
     return marketplaceManifest({
       publicUrl: config.engine.publicMarketUrl,

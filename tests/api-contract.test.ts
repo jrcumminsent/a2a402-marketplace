@@ -28,7 +28,11 @@ describe("public API identity and machine contract", () => {
   });
 
   it("serves JSON at the root and publishes a complete A2A Agent Card", async () => {
-    const root = await server.inject({ method: "GET", url: "/" });
+    const root = await server.inject({
+      method: "GET",
+      url: "/",
+      headers: { accept: "application/json" },
+    });
     expect(root.statusCode).toBe(200);
     expect(root.headers["content-type"]).toMatch(/^application\/json/);
     expect(root.json()).toMatchObject({
@@ -48,6 +52,14 @@ describe("public API identity and machine contract", () => {
         ineligible_origins: ["human_seeded", "unknown"],
       },
     });
+
+    const browserRoot = await server.inject({
+      method: "GET",
+      url: "/",
+      headers: { accept: "text/html,application/xhtml+xml" },
+    });
+    expect(browserRoot.statusCode).toBe(302);
+    expect(browserRoot.headers.location).toBe("/marketplace/");
 
     const response = await server.inject({
       method: "GET",

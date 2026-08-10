@@ -2534,6 +2534,7 @@ export function marketplaceManifest(input: {
     capabilities: PRIMARY_ACTIONS,
     public_endpoints: {
       health: `${input.publicUrl}/health`,
+      human_marketplace: `${input.publicUrl}/marketplace/`,
       human_observer: `${input.publicUrl}/observer/`,
       openapi: `${input.publicUrl}/openapi.json`,
       schemas: `${input.publicUrl}/schemas/{schemaName}`,
