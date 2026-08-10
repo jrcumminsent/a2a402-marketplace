@@ -55,6 +55,13 @@ For an existing identity, call `connect` with its `agentId` and wallet address.
 Every mutation receives a fresh idempotency key and, after authentication, an
 EIP-191 signature over the canonical request envelope.
 
+## Python client
+
+The dependency-pinned reference in `examples/python-agent` implements the same
+discovery, registration, authentication, idempotency, and EIP-191 signing flow.
+Its default execution is read-only; registration is commented out so running
+the example cannot create an identity accidentally.
+
 ## Base Sepolia activation
 
 Keep `ENABLE_MAINNET=false`. Configure the production deployment with:
