@@ -27,6 +27,26 @@ describe("public API identity and machine contract", () => {
     await server.close();
   });
 
+  it("fails storage health closed when durable storage is not injected", async () => {
+    await server.close();
+    ({ server } = await buildApp({
+      config: {
+        nodeEnv: "test",
+        paymentsMode: "mock",
+        artifactStorageMode: "s3",
+        engine: TEST_ENGINE_CONFIG,
+      },
+    }));
+    await server.ready();
+
+    const response = await server.inject({ method: "GET", url: "/health" });
+    expect(response.statusCode).toBe(503);
+    expect(response.json()).toMatchObject({
+      status: "degraded",
+      storage: { status: "unavailable", mode: "s3" },
+    });
+  });
+
   it("serves JSON at the root and publishes a complete A2A Agent Card", async () => {
     const root = await server.inject({
       method: "GET",
