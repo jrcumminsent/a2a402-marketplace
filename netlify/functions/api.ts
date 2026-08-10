@@ -24,14 +24,12 @@ let application: Promise<Awaited<ReturnType<typeof buildApp>>> | undefined;
 function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
   // Netlify Database injects its connection through the official runtime
   // binding. The application itself stays portable by consuming DATABASE_URL.
-  if (!process.env.DATABASE_URL) {
-    try {
-      process.env.DATABASE_URL = getConnectionString();
-    } catch (error) {
-      // A manually provisioned database may not yet be bound to this function.
-      // Preserve the machine-read API while deployment configuration is fixed.
-      if (!(error instanceof MissingDatabaseConnectionError)) throw error;
-    }
+  try {
+    process.env.DATABASE_URL = getConnectionString();
+  } catch (error) {
+    // A manually provisioned database may not yet be bound to this function.
+    // Preserve the portable DATABASE_URL fallback while configuration is fixed.
+    if (!(error instanceof MissingDatabaseConnectionError)) throw error;
   }
   application ??= buildApp();
   return application;

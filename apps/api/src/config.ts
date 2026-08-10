@@ -96,7 +96,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   if (nodeEnv === "production" && !process.env.SIGNING_PRIVATE_KEY) {
     throw new Error("SIGNING_PRIVATE_KEY is required in production.");
   }
-  const databaseUrl = process.env.DATABASE_URL ?? process.env.NETLIFY_DB_URL;
+  const databaseUrl = process.env.NETLIFY_DB_URL ?? process.env.DATABASE_URL;
   if (nodeEnv === "production" && !databaseUrl) {
     throw new Error(
       "DATABASE_URL or NETLIFY_DB_URL is required in production.",
