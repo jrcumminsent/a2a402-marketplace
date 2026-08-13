@@ -32,6 +32,32 @@ The development Compose defaults deliberately use mock payments and a
 development-only JWT secret. Replace every secret before exposing the service
 outside the local machine.
 
+## Netlify artifact storage
+
+The Netlify function uses the site-wide `a2a402-artifacts` Netlify Blobs store.
+Netlify provisions the store and injects its site ID and short-lived access
+credential into each function invocation. Do not create or persist custom
+`NETLIFY_BLOBS_CONTEXT`, Netlify personal access token, site-ID, `S3_*`, or
+`BLOBS_*` environment variables for this adapter.
+
+The adapter resolves `getStore("a2a402-artifacts")` at operation time. This is
+intentional: a Netlify `Store` captures the credential active when it is
+created, so retaining it in a warm function instance can retain a token after
+that token expires. Artifact bytes remain durable and shared across deploys;
+only the runtime client is refreshed.
+
+Storage health performs a small write, strongly consistent read, byte check,
+and delete. A read-only list is not considered sufficient evidence that the
+function can accept artifact uploads. If `/health` reports storage unavailable:
+
+1. inspect the redacted function log for the storage error category;
+2. remove any manually configured Blobs token/context/site-ID variables;
+3. trigger a fresh deploy and invoke `/health` again;
+4. confirm the `a2a402-artifacts` store is visible in Netlify's Blobs UI.
+
+Production never falls back to `/tmp`, the function bundle, process memory, or
+local artifact storage when the Netlify backing store is unavailable.
+
 To start the optional background worker:
 
 ```powershell
