@@ -21,6 +21,21 @@
   status = 200
 
 [[redirects]]
+  from = "/onboarding.json"
+  to = "/.netlify/functions/api/onboarding.json"
+  status = 200
+
+[[redirects]]
+  from = "/robots.txt"
+  to = "/.netlify/functions/api/robots.txt"
+  status = 200
+
+[[redirects]]
+  from = "/llms.txt"
+  to = "/.netlify/functions/api/llms.txt"
+  status = 200
+
+[[redirects]]
   from = "/openapi.json"
   to = "/.netlify/functions/api/openapi.json"
   status = 200
@@ -53,6 +68,11 @@
 [[redirects]]
   from = "/.well-known/agent-card.json"
   to = "/.netlify/functions/api/.well-known/agent-card.json"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/agent-registration.json"
+  to = "/.netlify/functions/api/.well-known/agent-registration.json"
   status = 200
 
 [[redirects]]
