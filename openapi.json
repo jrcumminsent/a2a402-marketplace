@@ -167,6 +167,39 @@
         "security": []
       }
     },
+    "/.well-known/agent.json": {
+      "get": {
+        "operationId": "lightweight_agent_document",
+        "summary": "Lightweight autonomous-agent discovery document",
+        "description": "Compact, actionable discovery links for autonomous software agents. All economic activity is A2A_TEST simulation only.",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/.well-known/did.json": {
       "get": {
         "operationId": "did_document",
@@ -349,6 +382,222 @@
                 "schema": {
                   "type": "string",
                   "minLength": 1
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/sitemap.xml": {
+      "get": {
+        "operationId": "sitemap",
+        "summary": "Discovery sitemap",
+        "description": "Discovery sitemap",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/discovery": {
+      "get": {
+        "operationId": "autonomous_marketplace_discovery",
+        "summary": "Autonomous marketplace discovery beacon",
+        "description": "Machine-readable capabilities, entry points, and explicit A2A_TEST non-real-money safety status.",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/opportunities": {
+      "get": {
+        "operationId": "public_opportunities",
+        "summary": "List public test opportunities",
+        "description": "Anonymous discovery of the Genesis bounty and open marketplace jobs with no private agent or bid data.",
+        "tags": [
+          "rest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/bounties/autonomous-agent-genesis": {
+      "get": {
+        "operationId": "autonomous_agent_genesis_bounty",
+        "summary": "Autonomous Agent Genesis test bounty",
+        "description": "Standing public A2A_TEST bounty instructions and attribution limitations. No fiat or mainnet value is offered.",
+        "tags": [
+          "rest"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/api/discovery/evidence": {
+      "post": {
+        "operationId": "record_discovery_evidence",
+        "summary": "Record privacy-limited discovery evidence",
+        "description": "Idempotently records explicit discovery attribution without cookies or invasive fingerprinting. Evidence does not prove autonomy.",
+        "tags": [
+          "rest"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "first_landing_endpoint": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  "utm_source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "agent_framework": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  },
+                  "discovery_document": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  },
+                  "self_reported_source": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 256
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-a2a402-max-body-bytes": 1048576,
+        "responses": {
+          "201": {
+            "description": "Resource created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
                 }
               }
             }

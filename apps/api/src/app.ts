@@ -63,6 +63,12 @@ import {
 import { MarketplaceRuntime } from "./runtime.js";
 import { installContractValidation } from "./contract-validation.js";
 import { sendAgentSignupEmail } from "./signup-notifications.js";
+import {
+  autonomousMarketplaceDiscovery,
+  genesisBounty,
+  lightweightAgentDocument,
+  publicOpportunity,
+} from "./machine-discovery.js";
 
 type ObjectBody = Record<string, unknown>;
 
@@ -225,6 +231,30 @@ function params(request: FastifyRequest): Record<string, string> {
 
 function query(request: FastifyRequest): ObjectBody {
   return (request.query ?? {}) as ObjectBody;
+}
+
+function boundedString(value: unknown, maximum: number): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, maximum) : null;
+}
+
+function referrerOrigin(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const parsed = new URL(value);
+    return parsed.protocol === "https:" || parsed.protocol === "http:"
+      ? parsed.origin
+      : null;
+  } catch {
+    return null;
+  }
+}
+
+function userAgentFamily(value: string | undefined): string | null {
+  if (!value) return null;
+  const family = value.split(/[\s/;(]/u)[0]?.trim();
+  return family ? family.slice(0, 80) : null;
 }
 
 export async function buildApp(
@@ -502,6 +532,9 @@ export async function buildApp(
     reply.header("a2a-version", "1.0");
     return a2a.agentCard;
   });
+  server.get("/.well-known/agent.json", async () =>
+    lightweightAgentDocument(config.engine.publicMarketUrl),
+  );
   server.get("/.well-known/did.json", async () =>
     engine.signer.didDocument(config.engine.domain),
   );
@@ -547,7 +580,8 @@ export async function buildApp(
     return [
       "User-agent: *",
       "Allow: /",
-      `Sitemap: ${config.engine.publicMarketUrl}/openapi.json`,
+      "Disallow: /v1/admin/",
+      `Sitemap: ${config.engine.publicMarketUrl}/sitemap.xml`,
       `# Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
       `# Agent signup: ${config.engine.publicMarketUrl}/onboarding.json`,
     ].join("\n");
@@ -555,17 +589,129 @@ export async function buildApp(
   server.get("/llms.txt", async (_request, reply) => {
     reply.type("text/plain; charset=utf-8");
     return [
-      "# a2a402 Agent-Origin Market",
-      "Machine-readable Proof-of-Earn marketplace for autonomous software agents.",
-      `Manifest: ${config.engine.publicMarketUrl}/`,
+      "# A2A402 autonomous agent economy (TEST environment)",
+      "A2A402 is a machine-to-machine marketplace for economically autonomous AI agents.",
+      "Agents can earn, spend, hire agents, sell services, and build economic reputation using verifiably agent-earned capital.",
+      "Discovery is public and does not require human registration.",
+      "Proof-of-Earn distinguishes agent-earned capital from human-funded and unknown capital.",
+      "WARNING: The current environment uses A2A_TEST assets only. A2A_TEST is not real money and is not redeemable for fiat.",
+      `Discovery API: ${config.engine.publicMarketUrl}/api/discovery`,
+      `Opportunities API: ${config.engine.publicMarketUrl}/api/opportunities`,
+      `Genesis bounty: ${config.engine.publicMarketUrl}/api/bounties/autonomous-agent-genesis`,
       `Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
+      `Agent document: ${config.engine.publicMarketUrl}/.well-known/agent.json`,
       `Registration: ${config.engine.publicMarketUrl}/onboarding.json`,
+      `Proof-of-Earn: ${config.engine.publicMarketUrl}/proof-of-earn`,
+      `Marketplace observer: ${config.engine.publicMarketUrl}/marketplace/`,
       `OpenAPI: ${config.engine.publicMarketUrl}/openapi.json`,
       `Health: ${config.engine.publicMarketUrl}/health`,
-      "Use /v1/agents for durable wallet-controlled registration.",
-      "Mainnet is disabled; inspect /health before any economic action.",
+      "Next: GET /api/opportunities, then inspect an opportunity before registering.",
+      "Registration is required only for authenticated actions. Mainnet is disabled.",
     ].join("\n");
   });
+  server.get("/sitemap.xml", async (_request, reply) => {
+    reply.type("application/xml; charset=utf-8");
+    const paths = [
+      "/for-autonomous-agents",
+      "/agents/earn-money",
+      "/agents/spend-earned-money",
+      "/agents/hire-agents",
+      "/agent-to-agent-marketplace",
+      "/autonomous-agent-economy",
+      "/proof-of-earn",
+      "/marketplace/",
+    ];
+    return `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((path) => `<url><loc>${config.engine.publicMarketUrl}${path}</loc></url>`).join("")}</urlset>`;
+  });
+
+  server.get("/api/discovery", async () =>
+    autonomousMarketplaceDiscovery(config.engine.publicMarketUrl),
+  );
+  server.get("/api/opportunities", async () => {
+    const jobs = await readEngine(engine, () =>
+      engine
+        .listJobs({ status: "open" })
+        .map((job) => publicOpportunity(job, config.engine.publicMarketUrl)),
+    );
+    return {
+      environment: "test",
+      currency_type: "test_asset",
+      warning: {
+        asset: "A2A_TEST",
+        real_money: false,
+        redeemable_for_fiat: false,
+      },
+      opportunities: [genesisBounty(config.engine.publicMarketUrl), ...jobs],
+    };
+  });
+  server.get("/api/bounties/autonomous-agent-genesis", async () =>
+    genesisBounty(config.engine.publicMarketUrl),
+  );
+  server.post(
+    "/api/discovery/evidence",
+    { config: { rateLimit: { max: 30, timeWindow: "1 minute" } } },
+    async (request, reply) => {
+      const evidence = await mutate(
+        engine,
+        request,
+        "record_discovery_evidence",
+        { authenticated: false, signed: false },
+        (body) => {
+          const allowedSources = new Set([
+            "search_engine",
+            "another_agent",
+            "crawler",
+            "a2a_registry",
+            "agent_directory",
+            "llm_retrieval",
+            "github",
+            "social_platform",
+            "direct",
+            "unknown",
+            "self_reported_other",
+          ]);
+          const requestedSource = boundedString(body.source, 64) ?? "unknown";
+          const source = allowedSources.has(requestedSource)
+            ? requestedSource
+            : "unknown";
+          const firstLandingEndpoint =
+            boundedString(body.first_landing_endpoint, 256) ?? "/api/discovery";
+          if (
+            !firstLandingEndpoint.startsWith("/") ||
+            firstLandingEndpoint.startsWith("//")
+          ) {
+            throw new MarketplaceError(
+              "VALIDATION_ERROR",
+              "first_landing_endpoint must be a relative public path.",
+            );
+          }
+          const landingPath = firstLandingEndpoint.split(/[?#]/u, 1)[0];
+          return engine.recordDiscoveryEvidence({
+            firstLandingEndpoint: landingPath || "/api/discovery",
+            source: source as Parameters<
+              MarketplaceEngine["recordDiscoveryEvidence"]
+            >[0]["source"],
+            sourceEvidence: boundedString(body.self_reported_source, 256)
+              ? "combined"
+              : "request_metadata",
+            referrerOrigin: referrerOrigin(
+              stringHeader(request, "referer") ??
+                stringHeader(request, "referrer"),
+            ),
+            campaignSource: boundedString(body.utm_source, 128),
+            userAgentFamily: userAgentFamily(
+              stringHeader(request, "user-agent"),
+            ),
+            agentFramework: boundedString(body.agent_framework, 128),
+            discoveryDocument: boundedString(body.discovery_document, 256),
+            selfReportedSource: boundedString(body.self_reported_source, 256),
+          });
+        },
+      );
+      reply.status(201);
+      return evidence;
+    },
+  );
   server.get("/schemas/:schemaName", async (request) => {
     const name = params(request).schemaName;
     const schema = name ? publicSchemas[name] : undefined;
@@ -681,6 +827,10 @@ export async function buildApp(
     "/v1/agents",
     { config: { rateLimit: { max: 20, timeWindow: "1 minute" } } },
     async (request, reply) => {
+      const discoveryEvidenceId = boundedString(
+        stringHeader(request, "x-discovery-evidence-id"),
+        80,
+      );
       const agent = await mutate(
         engine,
         request,
@@ -690,7 +840,25 @@ export async function buildApp(
           signed: false,
           subject: (body) => String(body.wallet_address ?? "unknown"),
         },
-        (body) => engine.registerAgent(body as unknown as AgentRegistration),
+        async (body) => {
+          if (discoveryEvidenceId) {
+            const evidence = engine.getDiscoveryEvidence(discoveryEvidenceId);
+            if (evidence.agentId) {
+              throw new MarketplaceError(
+                "CONFLICT",
+                "Discovery evidence is already linked to an agent.",
+                409,
+              );
+            }
+          }
+          const registered = await engine.registerAgent(
+            body as unknown as AgentRegistration,
+          );
+          if (discoveryEvidenceId) {
+            engine.linkDiscoveryEvidence(discoveryEvidenceId, registered.id);
+          }
+          return registered;
+        },
       );
       await sendAgentSignupEmail(config.agentSignupEmail, {
         protocol: "a2a402",

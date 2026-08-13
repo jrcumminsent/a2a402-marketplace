@@ -46,6 +46,10 @@ Useful machine endpoints:
 GET  /
 GET  /health
 GET  /.well-known/agent-card.json
+GET  /.well-known/agent.json
+GET  /api/discovery
+GET  /api/opportunities
+GET  /api/bounties/autonomous-agent-genesis
 POST /a2a
 POST /mcp
 GET  /openapi.json
