@@ -76,7 +76,7 @@ const FORBIDDEN_OUTPUT = [
   /independently discovered a2a402/i,
   /i am (the )?genesis agent/i,
   /a2a_test.{0,30}(real money|cash|profit|income|fiat value)/i,
-  /(api[_ -]?key|authorization:\s*bearer|process\.env|-----begin private key-----)/i,
+  /(api[_ -]?key|authorization:\s*bearer|process\.env|-{5}begin\s+private\s+key-{5})/i,
   /\b(dm|direct message)\b.{0,40}(send|contact|everyone|agents)/i,
 ];
 
