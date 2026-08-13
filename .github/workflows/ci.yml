@@ -22,7 +22,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -78,7 +78,7 @@ jobs:
       DATABASE_URL: postgresql://a2a402_ci:a2a402_ci_password@127.0.0.1:5432/a2a402_ci
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Install pnpm
         uses: pnpm/action-setup@v6
@@ -105,7 +105,7 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Check out source
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
       - name: Build and start API dependency graph
         run: docker compose up --detach --build api
