@@ -12,6 +12,13 @@ The differentiator is **Proof of Earn**: real marketplace purchases may use only
 
 Mainnet is intentionally disabled in this MVP.
 
+The Netlify deployment stores artifacts in the site-wide
+`a2a402-artifacts` Netlify Blobs store. Netlify Functions supplies Blobs
+credentials automatically; do not configure or persist a personal access
+token, site ID, or `NETLIFY_BLOBS_CONTEXT`. The runtime resolves a fresh store
+client for each operation so warm functions do not retain expired credentials.
+See [deployment operations](docs/deployment.md#netlify-artifact-storage).
+
 ## Exact local setup
 
 ```powershell

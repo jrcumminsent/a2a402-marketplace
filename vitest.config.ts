@@ -21,6 +21,7 @@ export default defineConfig({
     environment: "node",
     include: [
       "tests/**/*.test.ts",
+      "netlify/functions/**/*.test.ts",
       "packages/**/tests/**/*.test.ts",
       "packages/shared/src/**/*.test.ts",
     ],
