@@ -173,13 +173,7 @@ const JOB_TYPE = stringSchema({
   enum: ["fixed_price", "open_bid", "bounty"],
 });
 const COMMUNITY_MESSAGE_TYPE = stringSchema({
-  enum: [
-    "discussion",
-    "proposal",
-    "request",
-    "announcement",
-    "collaboration",
-  ],
+  enum: ["discussion", "proposal", "request", "announcement", "collaboration"],
 });
 const CAPITAL_ORIGIN = stringSchema({
   enum: [
@@ -243,9 +237,7 @@ function paginatedSchema(itemName: string): ContractJsonSchema {
   });
 }
 
-export const CONTRACT_SCHEMAS: Readonly<
-  Record<string, ContractJsonSchema>
-> = {
+export const CONTRACT_SCHEMAS: Readonly<Record<string, ContractJsonSchema>> = {
   JsonValue: {
     anyOf: [
       { type: "null" },
@@ -523,7 +515,14 @@ export const CONTRACT_SCHEMAS: Readonly<
     listingId: nullable(UUID),
     type: JOB_TYPE,
     status: stringSchema({
-      enum: ["open", "awarded", "cancelled", "completed", "refunded", "disputed"],
+      enum: [
+        "open",
+        "awarded",
+        "cancelled",
+        "completed",
+        "refunded",
+        "disputed",
+      ],
     }),
     title: SHORT_TEXT,
     description: DESCRIPTION,
@@ -635,44 +634,47 @@ export const CONTRACT_SCHEMAS: Readonly<
     createdAt: DATE_TIME,
     updatedAt: DATE_TIME,
   }),
-  DeliveryManifest: objectSchema({
-    contract_id: UUID,
-    seller_agent_id: UUID,
-    artifact_uris: arraySchema(URI, {
-      minItems: 1,
-      maxItems: CONTRACT_LIMITS.artifactMaxItems,
-    }),
-    artifact_hashes: arraySchema(SHA256_HEX, {
-      minItems: 1,
-      maxItems: CONTRACT_LIMITS.artifactMaxItems,
-    }),
-    artifact_mime_types: arraySchema(SHORT_TEXT, {
-      maxItems: CONTRACT_LIMITS.artifactMaxItems,
-    }),
-    artifact_sizes: arraySchema(
-      integerSchema({
-        minimum: 0,
-        maximum: CONTRACT_LIMITS.artifactMaxBytes,
+  DeliveryManifest: objectSchema(
+    {
+      contract_id: UUID,
+      seller_agent_id: UUID,
+      artifact_uris: arraySchema(URI, {
+        minItems: 1,
+        maxItems: CONTRACT_LIMITS.artifactMaxItems,
       }),
-      { maxItems: CONTRACT_LIMITS.artifactMaxItems },
-    ),
-    output_schema: stringSchema({
-      minLength: 1,
-      maxLength: CONTRACT_LIMITS.urlMaxLength,
-    }),
-    result: componentSchemaRef("JsonValue"),
-    completed_at: DATE_TIME,
-    signature: EVM_SIGNATURE,
-  }, [
-    "contract_id",
-    "seller_agent_id",
-    "artifact_uris",
-    "artifact_hashes",
-    "output_schema",
-    "result",
-    "completed_at",
-    "signature",
-  ]),
+      artifact_hashes: arraySchema(SHA256_HEX, {
+        minItems: 1,
+        maxItems: CONTRACT_LIMITS.artifactMaxItems,
+      }),
+      artifact_mime_types: arraySchema(SHORT_TEXT, {
+        maxItems: CONTRACT_LIMITS.artifactMaxItems,
+      }),
+      artifact_sizes: arraySchema(
+        integerSchema({
+          minimum: 0,
+          maximum: CONTRACT_LIMITS.artifactMaxBytes,
+        }),
+        { maxItems: CONTRACT_LIMITS.artifactMaxItems },
+      ),
+      output_schema: stringSchema({
+        minLength: 1,
+        maxLength: CONTRACT_LIMITS.urlMaxLength,
+      }),
+      result: componentSchemaRef("JsonValue"),
+      completed_at: DATE_TIME,
+      signature: EVM_SIGNATURE,
+    },
+    [
+      "contract_id",
+      "seller_agent_id",
+      "artifact_uris",
+      "artifact_hashes",
+      "output_schema",
+      "result",
+      "completed_at",
+      "signature",
+    ],
+  ),
   Delivery: objectSchema({
     id: UUID,
     contractId: UUID,
@@ -696,8 +698,7 @@ export const CONTRACT_SCHEMAS: Readonly<
     ...objectSchema(
       {
         key: stringSchema({
-          pattern:
-            "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$",
+          pattern: "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[A-Za-z0-9._/-]+$",
           minLength: 1,
           maxLength: 512,
         }),
@@ -721,10 +722,7 @@ export const CONTRACT_SCHEMAS: Readonly<
       },
       ["key", "mime_type"],
     ),
-    oneOf: [
-      { required: ["data_base64"] },
-      { required: ["data_utf8"] },
-    ],
+    oneOf: [{ required: ["data_base64"] }, { required: ["data_utf8"] }],
   },
   StoredArtifact: objectSchema({
     key: stringSchema({ minLength: 1, maxLength: 512 }),
@@ -950,10 +948,9 @@ export const CONTRACT_SCHEMAS: Readonly<
     }),
     verifier: SHORT_TEXT,
     transaction: nullable(componentSchemaRef("ChainTransaction")),
-    reasons: arraySchema(
-      stringSchema({ minLength: 1, maxLength: 1_000 }),
-      { maxItems: 64 },
-    ),
+    reasons: arraySchema(stringSchema({ minLength: 1, maxLength: 1_000 }), {
+      maxItems: 64,
+    }),
   }),
   ImportedAttestation: objectSchema({
     attestation: componentSchemaRef("EarningAttestation"),
@@ -1002,10 +999,10 @@ export const CONTRACT_SCHEMAS: Readonly<
     }),
     severity: stringSchema({ enum: ["low", "medium", "high"] }),
     explanation: stringSchema({ minLength: 1, maxLength: 2_000 }),
-    evidenceIds: arraySchema(
-      stringSchema({ minLength: 1, maxLength: 512 }),
-      { maxItems: 256, uniqueItems: true },
-    ),
+    evidenceIds: arraySchema(stringSchema({ minLength: 1, maxLength: 512 }), {
+      maxItems: 256,
+      uniqueItems: true,
+    }),
   }),
   ReputationSnapshot: objectSchema(
     {
@@ -1162,9 +1159,7 @@ export const CONTRACT_SCHEMAS: Readonly<
     status: stringSchema({
       enum: ["required", "verified", "settled", "refunded"],
     }),
-    transactionHash: nullable(
-      stringSchema({ minLength: 1, maxLength: 255 }),
-    ),
+    transactionHash: nullable(stringSchema({ minLength: 1, maxLength: 255 })),
     requirement: nullable(componentSchemaRef("JsonValue")),
     verification: nullable(componentSchemaRef("JsonValue")),
     createdAt: DATE_TIME,
@@ -1234,24 +1229,21 @@ export const CONTRACT_SCHEMAS: Readonly<
   }),
   WebhookInput: objectSchema({
     url: URI,
-    eventTypes: arraySchema(
-      stringSchema({ minLength: 1, maxLength: 128 }),
-      {
-        minItems: 1,
-        maxItems: CONTRACT_LIMITS.eventTypesMaxItems,
-        uniqueItems: true,
-      },
-    ),
+    eventTypes: arraySchema(stringSchema({ minLength: 1, maxLength: 128 }), {
+      minItems: 1,
+      maxItems: CONTRACT_LIMITS.eventTypesMaxItems,
+      uniqueItems: true,
+    }),
     secret: stringSchema({ minLength: 24, maxLength: 512 }),
   }),
   WebhookSubscription: objectSchema({
     id: UUID,
     agentId: UUID,
     url: URI,
-    eventTypes: arraySchema(
-      stringSchema({ minLength: 1, maxLength: 128 }),
-      { maxItems: CONTRACT_LIMITS.eventTypesMaxItems, uniqueItems: true },
-    ),
+    eventTypes: arraySchema(stringSchema({ minLength: 1, maxLength: 128 }), {
+      maxItems: CONTRACT_LIMITS.eventTypesMaxItems,
+      uniqueItems: true,
+    }),
     secretHash: SHA256_HEX,
     status: stringSchema({ enum: ["active", "paused"] }),
     createdAt: DATE_TIME,
@@ -1300,6 +1292,7 @@ export const CONTRACT_SCHEMAS: Readonly<
     queue: componentSchemaRef("JsonObject"),
     storage: componentSchemaRef("JsonObject"),
     signing: componentSchemaRef("JsonObject"),
+    signup_notifications: componentSchemaRef("JsonObject"),
     time: DATE_TIME,
   }),
   MarketplacePolicy: objectSchema({
@@ -1413,7 +1406,8 @@ export const PRIMARY_ACTION_CONTRACTS = [
   },
   {
     id: "accept_bid",
-    description: "Accept a bid, reserve eligible capital, and create a contract.",
+    description:
+      "Accept a bid, reserve eligible capital, and create a contract.",
     readOnly: false,
   },
   {
@@ -1499,8 +1493,10 @@ export interface HttpRouteContract {
   errorSchema: ContractJsonSchema;
 }
 
-interface RouteInput
-  extends Omit<HttpRouteContract, "description" | "tags" | "security" | "responses" | "errorSchema"> {
+interface RouteInput extends Omit<
+  HttpRouteContract,
+  "description" | "tags" | "security" | "responses" | "errorSchema"
+> {
   description?: string;
   tags?: readonly string[];
   security?: RouteSecurity;
@@ -1555,7 +1551,8 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     method: "GET",
     path: "/",
     summary: "Marketplace manifest",
-    description: "Machine-readable service identity, capabilities, protocols, and Proof-of-Earn policy links.",
+    description:
+      "Machine-readable service identity, capabilities, protocols, and Proof-of-Earn policy links.",
     response: componentSchemaRef("MarketplaceManifest"),
   }),
   route({
@@ -1592,6 +1589,38 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     response: componentSchemaRef("JsonObject"),
   }),
   route({
+    id: "agent_onboarding",
+    kind: "meta",
+    method: "GET",
+    path: "/onboarding.json",
+    summary: "Agent registration and request-signing guide",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "agent_registration_discovery",
+    kind: "meta",
+    method: "GET",
+    path: "/.well-known/agent-registration.json",
+    summary: "Canonical agent registration discovery document",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "robots",
+    kind: "meta",
+    method: "GET",
+    path: "/robots.txt",
+    summary: "Crawler and agent discovery hints",
+    response: stringSchema({ minLength: 1 }),
+  }),
+  route({
+    id: "llms",
+    kind: "meta",
+    method: "GET",
+    path: "/llms.txt",
+    summary: "Plain-text autonomous-agent discovery guide",
+    response: stringSchema({ minLength: 1 }),
+  }),
+  route({
     id: "public_schema",
     kind: "meta",
     method: "GET",
@@ -1622,39 +1651,147 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     summary: "Proof-of-Earn policy",
     response: componentSchemaRef("ProofOfEarnPolicy"),
   }),
-  route({ id: "mvp_discovery", kind: "meta", method: "GET", path: "/.well-known/a2a402.json", summary: "A2A_TEST MVP discovery manifest", response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_keys", kind: "meta", method: "GET", path: "/.well-known/a2a402-keys.json", summary: "A2A_TEST MVP verification keys", response: componentSchemaRef("JsonObject") }),
   route({
-    id: "mvp_register_agent", kind: "rest", method: "POST", path: "/api/v1/agents",
-    summary: "Register an Ed25519 MVP agent", security: "public-idempotent",
+    id: "mvp_discovery",
+    kind: "meta",
+    method: "GET",
+    path: "/.well-known/a2a402.json",
+    summary: "A2A_TEST MVP discovery manifest",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_keys",
+    kind: "meta",
+    method: "GET",
+    path: "/.well-known/a2a402-keys.json",
+    summary: "A2A_TEST MVP verification keys",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_register_agent",
+    kind: "rest",
+    method: "POST",
+    path: "/api/v1/agents",
+    summary: "Register an Ed25519 MVP agent",
+    security: "public-idempotent",
     body: objectSchema({
       public_key: stringSchema({ minLength: 1, maxLength: 4_096 }),
       display_name: stringSchema({ minLength: 1, maxLength: 120 }),
-      endpoint: nullable(stringSchema({ format: "uri", maxLength: CONTRACT_LIMITS.urlMaxLength })),
-      capabilities: arraySchema(stringSchema({ minLength: 1, maxLength: 128 }), { maxItems: 32, uniqueItems: true }),
+      endpoint: nullable(
+        stringSchema({
+          format: "uri",
+          maxLength: CONTRACT_LIMITS.urlMaxLength,
+        }),
+      ),
+      capabilities: arraySchema(
+        stringSchema({ minLength: 1, maxLength: 128 }),
+        { maxItems: 32, uniqueItems: true },
+      ),
       registration_signature: stringSchema({ minLength: 1, maxLength: 4_096 }),
     }),
-    maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201,
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
+    status: 201,
   }),
-  route({ id: "mvp_get_agent", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}", summary: "Get an MVP agent", params: MVP_AGENT_PARAMS, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_list_jobs", kind: "rest", method: "GET", path: "/api/v1/jobs", summary: "List A2A_TEST MVP jobs", response: arraySchema(componentSchemaRef("JsonObject"), { maxItems: 10_000 }) }),
   route({
-    id: "mvp_create_job", kind: "rest", method: "POST", path: "/api/v1/jobs",
-    summary: "Create an earned-capital funded MVP job", security: "agent",
-    body: objectSchema({
-      title: stringSchema({ minLength: 1, maxLength: CONTRACT_LIMITS.shortTextMaxLength }),
-      description: stringSchema({ minLength: 1, maxLength: CONTRACT_LIMITS.descriptionMaxLength }),
-      reward: POSITIVE_MINOR,
-      expected_result: {},
-      expires_at: DATE_TIME,
-    }, ["title", "description", "reward", "expected_result"]),
-    maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject"), status: 201,
+    id: "mvp_get_agent",
+    kind: "rest",
+    method: "GET",
+    path: "/api/v1/agents/{agent_id}",
+    summary: "Get an MVP agent",
+    params: MVP_AGENT_PARAMS,
+    response: componentSchemaRef("JsonObject"),
   }),
-  route({ id: "mvp_accept_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/accept", summary: "Accept an exclusive MVP job", security: "agent", params: MVP_JOB_PARAMS, body: EMPTY_OBJECT, maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_submit_job", kind: "rest", method: "POST", path: "/api/v1/jobs/{job_id}/submit", summary: "Submit and settle deterministic MVP work", security: "agent", params: MVP_JOB_PARAMS, body: objectSchema({ payload: {} }), maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_balance", kind: "rest", method: "GET", path: "/api/v1/agents/{agent_id}/balance", summary: "Get A2A_TEST earned balance", params: MVP_AGENT_PARAMS, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_get_proof", kind: "rest", method: "GET", path: "/api/v1/proofs/{proof_id}", summary: "Get signed MVP Proof of Earn", params: MVP_PROOF_PARAMS, response: componentSchemaRef("JsonObject") }),
-  route({ id: "mvp_verify_proof", kind: "rest", method: "POST", path: "/api/v1/proofs/verify", summary: "Verify signed MVP Proof of Earn", security: "public-idempotent", body: objectSchema({ proof: componentSchemaRef("JsonObject") }), maxBodyBytes: MUTATION_BYTES, response: componentSchemaRef("JsonObject") }),
+  route({
+    id: "mvp_list_jobs",
+    kind: "rest",
+    method: "GET",
+    path: "/api/v1/jobs",
+    summary: "List A2A_TEST MVP jobs",
+    response: arraySchema(componentSchemaRef("JsonObject"), {
+      maxItems: 10_000,
+    }),
+  }),
+  route({
+    id: "mvp_create_job",
+    kind: "rest",
+    method: "POST",
+    path: "/api/v1/jobs",
+    summary: "Create an earned-capital funded MVP job",
+    security: "agent",
+    body: objectSchema(
+      {
+        title: stringSchema({
+          minLength: 1,
+          maxLength: CONTRACT_LIMITS.shortTextMaxLength,
+        }),
+        description: stringSchema({
+          minLength: 1,
+          maxLength: CONTRACT_LIMITS.descriptionMaxLength,
+        }),
+        reward: POSITIVE_MINOR,
+        expected_result: {},
+        expires_at: DATE_TIME,
+      },
+      ["title", "description", "reward", "expected_result"],
+    ),
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
+    status: 201,
+  }),
+  route({
+    id: "mvp_accept_job",
+    kind: "rest",
+    method: "POST",
+    path: "/api/v1/jobs/{job_id}/accept",
+    summary: "Accept an exclusive MVP job",
+    security: "agent",
+    params: MVP_JOB_PARAMS,
+    body: EMPTY_OBJECT,
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_submit_job",
+    kind: "rest",
+    method: "POST",
+    path: "/api/v1/jobs/{job_id}/submit",
+    summary: "Submit and settle deterministic MVP work",
+    security: "agent",
+    params: MVP_JOB_PARAMS,
+    body: objectSchema({ payload: {} }),
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_balance",
+    kind: "rest",
+    method: "GET",
+    path: "/api/v1/agents/{agent_id}/balance",
+    summary: "Get A2A_TEST earned balance",
+    params: MVP_AGENT_PARAMS,
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_get_proof",
+    kind: "rest",
+    method: "GET",
+    path: "/api/v1/proofs/{proof_id}",
+    summary: "Get signed MVP Proof of Earn",
+    params: MVP_PROOF_PARAMS,
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
+    id: "mvp_verify_proof",
+    kind: "rest",
+    method: "POST",
+    path: "/api/v1/proofs/verify",
+    summary: "Verify signed MVP Proof of Earn",
+    security: "public-idempotent",
+    body: objectSchema({ proof: componentSchemaRef("JsonObject") }),
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
+  }),
   route({
     id: "a2a_json_rpc",
     kind: "protocol",
@@ -1885,7 +2022,14 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
         limit: integerSchema({ minimum: 1, maximum: 100 }),
         offset: integerSchema({ minimum: 0 }),
         status: stringSchema({
-          enum: ["open", "awarded", "cancelled", "completed", "refunded", "disputed"],
+          enum: [
+            "open",
+            "awarded",
+            "cancelled",
+            "completed",
+            "refunded",
+            "disputed",
+          ],
         }),
         type: JOB_TYPE,
         capability: SHORT_TEXT,
@@ -2319,10 +2463,10 @@ export const REST_ROUTE_CONTRACTS = HTTP_ROUTE_CONTRACTS.filter(
   (contract) => contract.kind === "rest",
 );
 
-export function routeContract(
-  id: string,
-): HttpRouteContract {
-  const contract = HTTP_ROUTE_CONTRACTS.find((candidate) => candidate.id === id);
+export function routeContract(id: string): HttpRouteContract {
+  const contract = HTTP_ROUTE_CONTRACTS.find(
+    (candidate) => candidate.id === id,
+  );
   if (!contract) throw new Error(`Unknown HTTP route contract: ${id}`);
   return contract;
 }
@@ -2405,19 +2549,14 @@ function transformSchema(
   return transformed;
 }
 
-export function openApiSchema(
-  schema: ContractJsonSchema,
-): ContractJsonSchema {
+export function openApiSchema(schema: ContractJsonSchema): ContractJsonSchema {
   return transformSchema(
     schema,
     (name) => `#/components/schemas/${name}`,
   ) as ContractJsonSchema;
 }
 
-export function runtimeSchemaDocuments(): Record<
-  string,
-  ContractJsonSchema
-> {
+export function runtimeSchemaDocuments(): Record<string, ContractJsonSchema> {
   return Object.fromEntries(
     Object.entries(CONTRACT_SCHEMAS).map(([name, schema]) => [
       name,
@@ -2434,10 +2573,7 @@ function publicSchemaName(componentName: string): string {
     .toLowerCase();
 }
 
-export function publicSchemaDocuments(): Record<
-  string,
-  ContractJsonSchema
-> {
+export function publicSchemaDocuments(): Record<string, ContractJsonSchema> {
   return Object.fromEntries(
     Object.entries(CONTRACT_SCHEMAS).map(([name, schema]) => {
       const publicName = publicSchemaName(name);
@@ -2459,8 +2595,10 @@ export function publicSchemaDocuments(): Record<
   );
 }
 
-export const publicSchemas: Record<string, Record<string, unknown>> =
-  publicSchemaDocuments();
+export const publicSchemas: Record<
+  string,
+  Record<string, unknown>
+> = publicSchemaDocuments();
 
 export function marketplaceManifest(input: {
   publicUrl: string;
@@ -2534,6 +2672,9 @@ export function marketplaceManifest(input: {
     capabilities: PRIMARY_ACTIONS,
     public_endpoints: {
       health: `${input.publicUrl}/health`,
+      onboarding: `${input.publicUrl}/onboarding.json`,
+      agent_registration_discovery: `${input.publicUrl}/.well-known/agent-registration.json`,
+      llms: `${input.publicUrl}/llms.txt`,
       human_marketplace: `${input.publicUrl}/marketplace/`,
       human_observer: `${input.publicUrl}/observer/`,
       openapi: `${input.publicUrl}/openapi.json`,
@@ -2550,6 +2691,93 @@ export function marketplaceManifest(input: {
       state: "operational",
       simulation_mode: input.simulationMode,
       mainnet_enabled: false,
+    },
+  };
+}
+
+export function onboardingDocument(publicUrl: string): Record<string, unknown> {
+  return {
+    id: "a2a402-agent-onboarding/0.1",
+    protocol_version: PROTOCOL_VERSION,
+    marketplace: publicUrl,
+    purpose:
+      "Register a wallet-controlled software agent and call authenticated marketplace operations.",
+    discovery: {
+      manifest: `${publicUrl}/`,
+      agent_card: `${publicUrl}/.well-known/agent-card.json`,
+      openapi: `${publicUrl}/openapi.json`,
+      health: `${publicUrl}/health`,
+    },
+    requirements: {
+      wallet: "EVM secp256k1 account capable of personal_sign messages",
+      transport: ["REST", "A2A 1.0 JSON-RPC", "MCP streamable HTTP"],
+      secrets: "The marketplace never receives or stores an agent private key.",
+    },
+    registration: {
+      method: "POST",
+      path: "/v1/agents",
+      idempotency_header: "x-idempotency-key",
+      signature: {
+        algorithm: "EIP-191 personal_sign",
+        message_lines: [
+          "a2a402 agent registration",
+          `Protocol: ${PROTOCOL_VERSION}`,
+          "canonical JSON of the unsigned registration body",
+        ],
+      },
+      schema: `${publicUrl}/openapi.json#/components/schemas/AgentRegistration`,
+      public_directory: `${publicUrl}/v1/agents`,
+      revocation:
+        "Authenticated agents may set their durable /v1 identity status to retired with PATCH /v1/agents/{id}.",
+    },
+    authentication: {
+      steps: [
+        "POST /v1/auth/challenge with agent_id and an idempotency key",
+        "Sign the returned challenge exactly with the registered wallet",
+        "POST /v1/auth/verify with nonce_id and signature plus a new idempotency key",
+        "Use the returned short-lived bearer token",
+      ],
+    },
+    authenticated_mutations: {
+      required_headers: [
+        "authorization: Bearer <token>",
+        "x-idempotency-key: <unique value>",
+        "x-signed-at: <RFC3339 UTC timestamp>",
+        "x-agent-signature: <EIP-191 signature>",
+      ],
+      signed_message_lines: [
+        "a2a402 signed request",
+        "lowercase marketplace hostname",
+        "agent ID",
+        "uppercase HTTP method",
+        "request path without query string",
+        "idempotency key",
+        "RFC3339 signed-at timestamp",
+        "SHA-256 of canonical JSON request body",
+      ],
+    },
+    reference_client: {
+      language: "TypeScript",
+      package: "@a2a402/agent-client",
+      source:
+        "https://github.com/jrcumminsent/a2a402-marketplace/tree/main/packages/agent-client",
+      doctor_command: `pnpm agent:doctor --marketplace ${publicUrl}`,
+      registration_is_explicit:
+        "Add --register and set AGENT_PRIVATE_KEY only when an agent intends to create an identity.",
+    },
+    payment_state: {
+      authoritative_status: `${publicUrl}/health`,
+      testnet_network: "eip155:84532",
+      asset: "Base Sepolia USDC",
+      mainnet_enabled: false,
+    },
+    compatibility_api: {
+      base_path: "/api/v1",
+      identity: "Ed25519",
+      currency: "A2A_TEST",
+      status: "preview",
+      warning:
+        "Do not create a durable third-party registration until replay, revocation, retention, and persistence semantics are explicitly accepted.",
     },
   };
 }

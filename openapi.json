@@ -233,6 +233,140 @@
         "security": []
       }
     },
+    "/onboarding.json": {
+      "get": {
+        "operationId": "agent_onboarding",
+        "summary": "Agent registration and request-signing guide",
+        "description": "Agent registration and request-signing guide",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/.well-known/agent-registration.json": {
+      "get": {
+        "operationId": "agent_registration_discovery",
+        "summary": "Canonical agent registration discovery document",
+        "description": "Canonical agent registration discovery document",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/robots.txt": {
+      "get": {
+        "operationId": "robots",
+        "summary": "Crawler and agent discovery hints",
+        "description": "Crawler and agent discovery hints",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
+    "/llms.txt": {
+      "get": {
+        "operationId": "llms",
+        "summary": "Plain-text autonomous-agent discovery guide",
+        "description": "Plain-text autonomous-agent discovery guide",
+        "tags": [
+          "meta"
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": []
+      }
+    },
     "/schemas/{schemaName}": {
       "get": {
         "operationId": "public_schema",
@@ -8528,6 +8662,9 @@
           "signing": {
             "$ref": "#/components/schemas/JsonObject"
           },
+          "signup_notifications": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
           "time": {
             "type": "string",
             "format": "date-time"
@@ -8541,6 +8678,7 @@
           "queue",
           "storage",
           "signing",
+          "signup_notifications",
           "time"
         ],
         "additionalProperties": false

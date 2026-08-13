@@ -161,15 +161,15 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       "BASE_SEPOLIA_RPC_URL using HTTPS is required for x402-testnet reconciliation.",
     );
   }
-  const agentSignupEmailTo = process.env.AGENT_SIGNUP_NOTIFY_TO?.trim() || null;
+  const agentSignupEmailTo =
+    process.env.AGENT_SIGNUP_NOTIFY_TO?.trim() ||
+    "jrcumminsent@gmail.com";
   const agentSignupEmailFrom = process.env.AGENT_SIGNUP_NOTIFY_FROM?.trim() || null;
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || null;
-  if (
-    [agentSignupEmailTo, agentSignupEmailFrom, resendApiKey].some(Boolean) &&
-    ![agentSignupEmailTo, agentSignupEmailFrom, resendApiKey].every(Boolean)
-  ) {
+  if ([agentSignupEmailFrom, resendApiKey].some(Boolean) &&
+      ![agentSignupEmailFrom, resendApiKey].every(Boolean)) {
     throw new Error(
-      "AGENT_SIGNUP_NOTIFY_TO, AGENT_SIGNUP_NOTIFY_FROM, and RESEND_API_KEY must be configured together.",
+      "AGENT_SIGNUP_NOTIFY_FROM and RESEND_API_KEY must be configured together.",
     );
   }
   const engine: MarketplaceConfig = {
@@ -240,7 +240,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       .map((value) => value.trim())
       .filter(Boolean),
     agentSignupEmail:
-      agentSignupEmailTo && agentSignupEmailFrom && resendApiKey
+      agentSignupEmailFrom && resendApiKey
         ? {
             to: agentSignupEmailTo,
             from: agentSignupEmailFrom,

@@ -50,6 +50,7 @@ import { loadConfig, type AppConfig } from "./config.js";
 import {
   marketplaceManifest,
   marketplacePolicy,
+  onboardingDocument,
   proofOfEarnPolicy,
   publicSchemas,
 } from "./machine-docs.js";
@@ -255,8 +256,7 @@ export async function buildApp(
         })
       : null;
   const paymentAdapter =
-    config.paymentsMode === "x402-testnet" &&
-    config.platformSettlementAddress
+    config.paymentsMode === "x402-testnet" && config.platformSettlementAddress
       ? new X402TestnetPaymentAdapter({
           platformSettlementAddress: config.platformSettlementAddress,
           facilitatorUrl: config.x402FacilitatorUrl,
@@ -264,10 +264,8 @@ export async function buildApp(
           network: config.x402Network,
           enableMainnet: false,
           ...(x402ChainReader ? { chainReader: x402ChainReader } : {}),
-          signOffer: async (payload) =>
-            paymentSigner.sign(payload).signature,
-          signReceipt: async (payload) =>
-            paymentSigner.sign(payload).signature,
+          signOffer: async (payload) => paymentSigner.sign(payload).signature,
+          signReceipt: async (payload) => paymentSigner.sign(payload).signature,
         })
       : null;
   const webhookSecretProtector = config.webhookSecretEncryptionKey
@@ -287,9 +285,7 @@ export async function buildApp(
     options.engine ??
     new MarketplaceEngine({
       ...config.engine,
-      ...(artifactStorage
-        ? { artifactStorage }
-        : {}),
+      ...(artifactStorage ? { artifactStorage } : {}),
       ...(paymentAdapter ? { paymentAdapter } : {}),
       evaluators: [new SchemaEvaluator()],
       ...(webhookSecretProtector
@@ -449,11 +445,7 @@ export async function buildApp(
           network: "internal-simulation",
           details: { simulation: true },
         };
-    if (
-      !databaseHealthy ||
-      !storageHealth.healthy ||
-      !paymentHealth.healthy
-    ) {
+    if (!databaseHealthy || !storageHealth.healthy || !paymentHealth.healthy) {
       reply.status(503);
     }
     return {
@@ -497,6 +489,11 @@ export async function buildApp(
         key_id: engine.signer.keyId,
         ephemeral: engine.signer.ephemeral,
       },
+      signup_notifications: {
+        status: config.agentSignupEmail ? "configured" : "not_configured",
+        recipient_configured: Boolean(config.agentSignupEmail?.to),
+        provider: config.agentSignupEmail ? "resend" : null,
+      },
       time: new Date().toISOString(),
     };
   });
@@ -512,7 +509,14 @@ export async function buildApp(
     name: "a2a402.market",
     protocol: "a2a402",
     version: "0.1",
-    agent_registration: "/api/v1/agents",
+    primary_agent_registration: "/v1/agents",
+    registration_guide: "/onboarding.json",
+    compatibility_registration: {
+      path: "/api/v1/agents",
+      status: "preview",
+      warning:
+        "Use only for explicitly scoped Ed25519 A2A_TEST interoperability checks.",
+    },
     jobs: "/api/v1/jobs",
     proof_verification: "/api/v1/proofs/verify",
     supported_identity: ["Ed25519"],
@@ -520,16 +524,48 @@ export async function buildApp(
     marketplace_keys: "/.well-known/a2a402-keys.json",
   }));
   server.get("/.well-known/a2a402-keys.json", async () => ({
-    keys: [{
-      key_id: mvp.keyId,
-      algorithm: "Ed25519",
-      public_key: mvp.marketplacePublicKey(),
-      status: "active",
-    }],
+    keys: [
+      {
+        key_id: mvp.keyId,
+        algorithm: "Ed25519",
+        public_key: mvp.marketplacePublicKey(),
+        status: "active",
+      },
+    ],
   }));
   server.get("/openapi.json", async () =>
     openApiDocument(config.engine.publicMarketUrl),
   );
+  server.get("/onboarding.json", async () =>
+    onboardingDocument(config.engine.publicMarketUrl),
+  );
+  server.get("/.well-known/agent-registration.json", async () =>
+    onboardingDocument(config.engine.publicMarketUrl),
+  );
+  server.get("/robots.txt", async (_request, reply) => {
+    reply.type("text/plain; charset=utf-8");
+    return [
+      "User-agent: *",
+      "Allow: /",
+      `Sitemap: ${config.engine.publicMarketUrl}/openapi.json`,
+      `# Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
+      `# Agent signup: ${config.engine.publicMarketUrl}/onboarding.json`,
+    ].join("\n");
+  });
+  server.get("/llms.txt", async (_request, reply) => {
+    reply.type("text/plain; charset=utf-8");
+    return [
+      "# a2a402 Agent-Origin Market",
+      "Machine-readable Proof-of-Earn marketplace for autonomous software agents.",
+      `Manifest: ${config.engine.publicMarketUrl}/`,
+      `Agent Card: ${config.engine.publicMarketUrl}/.well-known/agent-card.json`,
+      `Registration: ${config.engine.publicMarketUrl}/onboarding.json`,
+      `OpenAPI: ${config.engine.publicMarketUrl}/openapi.json`,
+      `Health: ${config.engine.publicMarketUrl}/health`,
+      "Use /v1/agents for durable wallet-controlled registration.",
+      "Mainnet is disabled; inspect /health before any economic action.",
+    ].join("\n");
+  });
   server.get("/schemas/:schemaName", async (request) => {
     const name = params(request).schemaName;
     const schema = name ? publicSchemas[name] : undefined;
@@ -574,7 +610,10 @@ export async function buildApp(
         createdAt: agent.created_at,
       }).catch((error: unknown) => {
         request.log.warn(
-          { error: error instanceof Error ? error.message : "email_delivery_failed" },
+          {
+            error:
+              error instanceof Error ? error.message : "email_delivery_failed",
+          },
           "Agent signup notification could not be delivered.",
         );
       });
@@ -588,23 +627,41 @@ export async function buildApp(
   server.get("/api/v1/jobs", async () => mvp.listJobs());
   server.post("/api/v1/jobs", async (request, reply) => {
     const body = objectBody(request);
-    const job = mvp.createJob(mvpAuth(request).agent_id, mvpAuth(request), {
-      title: String(body.title ?? ""),
-      description: String(body.description ?? ""),
-      reward: String(body.reward ?? ""),
-      expected_result: (body.expected_result ?? null) as JsonValue,
-      ...(typeof body.expires_at === "string" ? { expires_at: body.expires_at } : {}),
-    }, mvpIdempotency(request));
+    const job = mvp.createJob(
+      mvpAuth(request).agent_id,
+      mvpAuth(request),
+      {
+        title: String(body.title ?? ""),
+        description: String(body.description ?? ""),
+        reward: String(body.reward ?? ""),
+        expected_result: (body.expected_result ?? null) as JsonValue,
+        ...(typeof body.expires_at === "string"
+          ? { expires_at: body.expires_at }
+          : {}),
+      },
+      mvpIdempotency(request),
+    );
     reply.status(201);
     return job;
   });
   server.post("/api/v1/jobs/:job_id/accept", async (request) => {
     const auth = mvpAuth(request);
-    return mvp.acceptJob(auth.agent_id, params(request).job_id as string, auth, mvpIdempotency(request));
+    return mvp.acceptJob(
+      auth.agent_id,
+      params(request).job_id as string,
+      auth,
+      mvpIdempotency(request),
+    );
   });
   server.post("/api/v1/jobs/:job_id/submit", async (request) => {
     const auth = mvpAuth(request);
-    return mvp.submitJob(auth.agent_id, params(request).job_id as string, auth, (objectBody(request).payload ?? null) as JsonValue, mvpIdempotency(request));
+    return mvp.submitJob(
+      auth.agent_id,
+      params(request).job_id as string,
+      auth,
+      (objectBody(request).payload ?? null) as JsonValue,
+      mvpIdempotency(request),
+    );
   });
   server.get("/api/v1/agents/:agent_id/balance", async (request) =>
     mvp.getBalance(params(request).agent_id as string),
@@ -613,7 +670,11 @@ export async function buildApp(
     mvp.getProof(params(request).proof_id as string),
   );
   server.post("/api/v1/proofs/verify", async (request) =>
-    mvp.verifyProof(objectBody(request).proof as unknown as Parameters<MvpMarketplace["verifyProof"]>[0]),
+    mvp.verifyProof(
+      objectBody(request).proof as unknown as Parameters<
+        MvpMarketplace["verifyProof"]
+      >[0],
+    ),
   );
 
   server.post(
@@ -638,7 +699,10 @@ export async function buildApp(
         createdAt: agent.createdAt,
       }).catch((error: unknown) => {
         request.log.warn(
-          { error: error instanceof Error ? error.message : "email_delivery_failed" },
+          {
+            error:
+              error instanceof Error ? error.message : "email_delivery_failed",
+          },
           "Agent signup notification could not be delivered.",
         );
       });
@@ -662,9 +726,7 @@ export async function buildApp(
     ),
   );
   server.get("/v1/agents/:id", async (request) =>
-    readEngine(engine, () =>
-      engine.getAgent(params(request).id as string),
-    ),
+    readEngine(engine, () => engine.getAgent(params(request).id as string)),
   );
   server.patch("/v1/agents/:id", async (request) =>
     mutate(
@@ -790,9 +852,7 @@ export async function buildApp(
     ),
   );
   server.get("/v1/listings/:id", async (request) =>
-    readEngine(engine, () =>
-      engine.getListing(params(request).id as string),
-    ),
+    readEngine(engine, () => engine.getListing(params(request).id as string)),
   );
   server.post("/v1/listings/:id/purchase", async (request, reply) => {
     const contract = await mutate(
@@ -935,9 +995,7 @@ export async function buildApp(
   );
 
   server.get("/v1/contracts/:id", async (request) =>
-    readEngine(engine, () =>
-      engine.getContract(params(request).id as string),
-    ),
+    readEngine(engine, () => engine.getContract(params(request).id as string)),
   );
   server.post("/v1/contracts/:id/accept-contract", async (request) =>
     mutate(
@@ -958,9 +1016,7 @@ export async function buildApp(
       (body, actor) =>
         engine.storeArtifact(
           actor!.id,
-          body as unknown as Parameters<
-            MarketplaceEngine["storeArtifact"]
-          >[1],
+          body as unknown as Parameters<MarketplaceEngine["storeArtifact"]>[1],
         ),
     );
     reply.status(201);
@@ -1077,16 +1133,11 @@ export async function buildApp(
   );
   server.get("/v1/agents/:id/capital-lots", async (request) =>
     readEngine(engine, () =>
-      page(
-        engine.getCapitalLots(params(request).id as string),
-        query(request),
-      ),
+      page(engine.getCapitalLots(params(request).id as string), query(request)),
     ),
   );
   server.get("/v1/agents/:id/ledger", async (request) =>
-    readEngine(engine, () =>
-      engine.getLedger(params(request).id as string),
-    ),
+    readEngine(engine, () => engine.getLedger(params(request).id as string)),
   );
   server.get("/v1/agents/:id/reputation", async (request) =>
     readEngine(engine, () =>
@@ -1223,9 +1274,7 @@ export async function buildApp(
             : {}),
           ...(typeof query(request).type === "string"
             ? {
-                type: String(
-                  query(request).type,
-                ) as CommunityMessage["type"],
+                type: String(query(request).type) as CommunityMessage["type"],
               }
             : {}),
           ...(typeof query(request).tag === "string"
@@ -1243,9 +1292,7 @@ export async function buildApp(
     ),
   );
   server.get("/v1/receipts/:id", async (request) =>
-    readEngine(engine, () =>
-      engine.getReceipt(params(request).id as string),
-    ),
+    readEngine(engine, () => engine.getReceipt(params(request).id as string)),
   );
   server.get("/v1/stats", async (request) =>
     readEngine(engine, () =>
@@ -1454,7 +1501,10 @@ async function dispatchProtocolAction(
     },
     {
       mutationId: `${protocol}:${request.action}:${key}`,
-      lockKeys: [`${protocol}:agent:${actorId}`, `${protocol}:${request.action}`],
+      lockKeys: [
+        `${protocol}:agent:${actorId}`,
+        `${protocol}:${request.action}`,
+      ],
     },
   );
 }

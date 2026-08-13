@@ -15,6 +15,7 @@ export default defineConfig({
       "@a2a402/protocol-a2a": `${root}packages/protocol-a2a/src/index.ts`,
       "@a2a402/protocol-mcp": `${root}packages/protocol-mcp/src/index.ts`,
       "@a2a402/database": `${root}packages/database/src/index.ts`,
+      "@a2a402/agent-client": `${root}packages/agent-client/src/index.ts`,
     },
   },
   test: {
