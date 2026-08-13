@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   createNetlifyArtifactStorage,
   type NetlifyBlobStore,
-} from "./blob-storage.js";
+} from "../netlify/functions/blob-storage.js";
 
 interface FakeBlob {
   data: Uint8Array;
@@ -60,10 +60,7 @@ class FakeStore {
       data:
         options.type === "text"
           ? new TextDecoder().decode(blob.data)
-          : blob.data.buffer.slice(
-              blob.data.byteOffset,
-              blob.data.byteOffset + blob.data.byteLength,
-            ),
+          : (Uint8Array.from(blob.data).buffer as ArrayBuffer),
       metadata: { ...blob.metadata },
     };
   }
