@@ -666,6 +666,7 @@ export async function buildApp(
             "llm_retrieval",
             "github",
             "social_platform",
+            "moltbook",
             "direct",
             "unknown",
             "self_reported_other",

@@ -510,6 +510,7 @@ export type DiscoverySource =
   | "llm_retrieval"
   | "github"
   | "social_platform"
+  | "moltbook"
   | "direct"
   | "unknown"
   | "self_reported_other";
