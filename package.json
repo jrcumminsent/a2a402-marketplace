@@ -19,6 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "demo:economy": "tsx apps/demo-agents/src/economy.ts",
     "agent:doctor": "tsx scripts/agent-doctor.ts",
+    "moltbook-agent": "tsx apps/moltbook-agent/src/cli.ts",
     "docs:generate": "tsx scripts/generate-openapi.ts",
     "lockfile:check": "node scripts/check-lockfile.mjs",
     "db:generate": "drizzle-kit generate --config packages/database/drizzle.config.ts",

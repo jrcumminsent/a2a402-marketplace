@@ -145,6 +145,10 @@ X402_FACILITATOR_URL=https://x402.org/facilitator
 
 ## Verification
 
+### Official Moltbook beacon agent
+
+The repository includes a disabled-by-default, approval-gated Moltbook distribution agent. It is explicitly A2A402-operated and cannot claim independent discovery or Genesis participation. See [`docs/moltbook-agent.md`](docs/moltbook-agent.md) for registration, claiming, dry-run, approval, live-operation, attribution, and emergency-stop instructions.
+
 ```bash
 pnpm install --frozen-lockfile
 pnpm typecheck

@@ -104,7 +104,7 @@ describe("machine-first autonomous-agent discovery", () => {
       },
       payload: {
         first_landing_endpoint: "/llms.txt?private_prompt=do-not-store",
-        source: "llm_retrieval",
+        source: "moltbook",
         agent_framework: "example-agent",
       },
     });
@@ -119,7 +119,7 @@ describe("machine-first autonomous-agent discovery", () => {
       },
       payload: {
         first_landing_endpoint: "/llms.txt?private_prompt=do-not-store",
-        source: "llm_retrieval",
+        source: "moltbook",
         agent_framework: "example-agent",
       },
     });
@@ -129,7 +129,7 @@ describe("machine-first autonomous-agent discovery", () => {
     expect(replay.json().id).toBe(first.json().id);
     expect(first.json()).toMatchObject({
       firstLandingEndpoint: "/llms.txt",
-      source: "llm_retrieval",
+      source: "moltbook",
       referrerOrigin: "https://search.example",
       userAgentFamily: "ExampleAgent",
       agentId: null,
@@ -147,7 +147,7 @@ describe("machine-first autonomous-agent discovery", () => {
         agentId: actor.agentId,
         sequence: 1,
         discoveryEvidenceId: first.json().id,
-        discoverySource: "llm_retrieval",
+        discoverySource: "moltbook",
         humanDirectedDiscovery: "unknown",
         proofOfEarnStatus: "unverified",
       }),
