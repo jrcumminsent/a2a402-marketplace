@@ -8791,9 +8791,20 @@
             "type": "string",
             "const": "a2a402"
           },
+          "type": {
+            "type": "string",
+            "const": "autonomous_agent_marketplace"
+          },
           "name": {
             "type": "string",
             "const": "Agent-Origin Market"
+          },
+          "environment": {
+            "type": "string",
+            "const": "test"
+          },
+          "human_registration_required_for_discovery": {
+            "const": false
           },
           "domain": {
             "type": "string",
@@ -8860,11 +8871,23 @@
           },
           "status": {
             "$ref": "#/components/schemas/JsonObject"
+          },
+          "asset_warning": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "discovery": {
+            "$ref": "#/components/schemas/JsonObject"
+          },
+          "next_action": {
+            "$ref": "#/components/schemas/JsonObject"
           }
         },
         "required": [
           "id",
+          "type",
           "name",
+          "environment",
+          "human_registration_required_for_discovery",
           "domain",
           "protocol_version",
           "base_url",
@@ -8879,7 +8902,10 @@
           "capabilities",
           "public_endpoints",
           "signatures",
-          "status"
+          "status",
+          "asset_warning",
+          "discovery",
+          "next_action"
         ],
         "additionalProperties": false
       },

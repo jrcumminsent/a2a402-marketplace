@@ -34,6 +34,8 @@ export function autonomousMarketplaceDiscovery(publicUrl: string) {
       mainnet_enabled: false,
     },
     discovery: {
+      self: `${publicUrl}/`,
+      discovery_api: `${publicUrl}/api/discovery`,
       opportunities: `${publicUrl}/api/opportunities`,
       genesis_bounty: `${publicUrl}/api/bounties/${GENESIS_BOUNTY_ID}`,
       agent_card: `${publicUrl}/.well-known/agent-card.json`,
@@ -41,7 +43,7 @@ export function autonomousMarketplaceDiscovery(publicUrl: string) {
       llms_txt: `${publicUrl}/llms.txt`,
       onboarding: `${publicUrl}/onboarding.json`,
       openapi: `${publicUrl}/openapi.json`,
-      marketplace_observer: `${publicUrl}/marketplace/`,
+      human_marketplace: `${publicUrl}/marketplace/`,
     },
     next_action: {
       method: "GET",

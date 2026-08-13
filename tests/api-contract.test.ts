@@ -47,7 +47,7 @@ describe("public API identity and machine contract", () => {
     });
   });
 
-  it("serves JSON at the root and publishes a complete A2A Agent Card", async () => {
+  it("always serves machine discovery JSON at the root", async () => {
     const root = await server.inject({
       method: "GET",
       url: "/",
@@ -56,20 +56,18 @@ describe("public API identity and machine contract", () => {
     expect(root.statusCode).toBe(200);
     expect(root.headers["content-type"]).toMatch(/^application\/json/);
     expect(root.json()).toMatchObject({
-      id: "a2a402",
+      type: "autonomous_agent_marketplace",
+      environment: "test",
       protocol_version: "a2a402/0.1",
-      machine_only: true,
-      status: {
-        simulation_mode: true,
+      asset_warning: {
+        asset: "A2A_TEST",
+        real_money: false,
+        redeemable_for_fiat: false,
         mainnet_enabled: false,
       },
-      proof_of_earn: {
-        eligible_real_origins: [
-          "marketplace_earned",
-          "verified_external_agent_earned",
-        ],
-        simulation_only_origin: "platform_test_funds",
-        ineligible_origins: ["human_seeded", "unknown"],
+      discovery: {
+        discovery_api: "https://a2a402.market/api/discovery",
+        human_marketplace: "https://a2a402.market/marketplace/",
       },
     });
 
@@ -78,8 +76,15 @@ describe("public API identity and machine contract", () => {
       url: "/",
       headers: { accept: "text/html,application/xhtml+xml" },
     });
-    expect(browserRoot.statusCode).toBe(302);
-    expect(browserRoot.headers.location).toBe("/marketplace/");
+    expect(browserRoot.statusCode).toBe(200);
+    expect(browserRoot.headers["content-type"]).toMatch(/^application\/json/);
+    expect(browserRoot.headers.location).toBeUndefined();
+
+    const obsoleteRoute = await server.inject({
+      method: "GET",
+      url: "/observer/",
+    });
+    expect(obsoleteRoute.statusCode).toBe(404);
 
     const response = await server.inject({
       method: "GET",

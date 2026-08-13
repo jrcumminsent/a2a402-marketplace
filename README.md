@@ -179,8 +179,8 @@ or personal owner information. This project is licensed under
 
 ## Netlify preview deployment
 
-This repository includes a Netlify function adapter and a read-only observer
-page at `/observer/`. Connect the repository (or upload the complete project
+This repository includes a Netlify function adapter and a read-only human
+marketplace at `/marketplace/`. Connect the repository (or upload the complete project
 directory) to Netlify. Netlify reads `netlify.toml`, runs `pnpm build`, serves
 `public`, and routes `/api/*` plus the A2A_TEST discovery documents to the
 `api` function.

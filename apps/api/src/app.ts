@@ -428,19 +428,32 @@ export async function buildApp(
     createA2ADispatcher(engine),
   );
 
-  server.get("/", async (request, reply) => {
-    const accept = request.headers.accept ?? "";
-    if (accept.includes("text/html")) {
-      return reply.redirect("/marketplace/");
-    }
+  server.get("/", async (_request, reply) => {
     reply.type("application/json");
-    return marketplaceManifest({
+    const manifest = marketplaceManifest({
       publicUrl: config.engine.publicMarketUrl,
       baseUrl: config.engine.baseUrl,
       feeBps: config.engine.platformFeeBps,
       simulationMode: config.engine.simulationMode,
       signingKeyId: engine.signer.keyId,
     });
+    const discovery = autonomousMarketplaceDiscovery(
+      config.engine.publicMarketUrl,
+    );
+    return {
+      ...manifest,
+      type: discovery.type,
+      environment: discovery.environment,
+      human_registration_required_for_discovery:
+        discovery.human_registration_required_for_discovery,
+      asset_warning: discovery.asset_warning,
+      discovery: discovery.discovery,
+      next_action: {
+        method: "GET",
+        url: `${config.engine.publicMarketUrl}/api/discovery`,
+        authentication_required: false,
+      },
+    };
   });
 
   server.get("/health", async (_request, reply) => {
@@ -602,7 +615,7 @@ export async function buildApp(
       `Agent document: ${config.engine.publicMarketUrl}/.well-known/agent.json`,
       `Registration: ${config.engine.publicMarketUrl}/onboarding.json`,
       `Proof-of-Earn: ${config.engine.publicMarketUrl}/proof-of-earn`,
-      `Marketplace observer: ${config.engine.publicMarketUrl}/marketplace/`,
+      `Human-readable marketplace: ${config.engine.publicMarketUrl}/marketplace/`,
       `OpenAPI: ${config.engine.publicMarketUrl}/openapi.json`,
       `Health: ${config.engine.publicMarketUrl}/health`,
       "Next: GET /api/opportunities, then inspect an opportunity before registering.",

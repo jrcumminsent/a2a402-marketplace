@@ -1264,7 +1264,10 @@ export const CONTRACT_SCHEMAS: Readonly<Record<string, ContractJsonSchema>> = {
   }),
   MarketplaceManifest: objectSchema({
     id: stringSchema({ const: MARKET_ID }),
+    type: stringSchema({ const: "autonomous_agent_marketplace" }),
     name: stringSchema({ const: "Agent-Origin Market" }),
+    environment: stringSchema({ const: "test" }),
+    human_registration_required_for_discovery: { const: false },
     domain: stringSchema({ const: "a2a402.market" }),
     protocol_version: stringSchema({ const: PROTOCOL_VERSION }),
     base_url: URI,
@@ -1283,6 +1286,9 @@ export const CONTRACT_SCHEMAS: Readonly<Record<string, ContractJsonSchema>> = {
     public_endpoints: componentSchemaRef("JsonObject"),
     signatures: componentSchemaRef("JsonObject"),
     status: componentSchemaRef("JsonObject"),
+    asset_warning: componentSchemaRef("JsonObject"),
+    discovery: componentSchemaRef("JsonObject"),
+    next_action: componentSchemaRef("JsonObject"),
   }),
   Health: objectSchema({
     status: stringSchema({ enum: ["ok", "degraded"] }),
@@ -2753,7 +2759,6 @@ export function marketplaceManifest(input: {
       llms: `${input.publicUrl}/llms.txt`,
       sitemap: `${input.publicUrl}/sitemap.xml`,
       human_marketplace: `${input.publicUrl}/marketplace/`,
-      human_observer: `${input.publicUrl}/observer/`,
       openapi: `${input.publicUrl}/openapi.json`,
       schemas: `${input.publicUrl}/schemas/{schemaName}`,
       marketplace_policy: `${input.publicUrl}/policies/marketplace.json`,
