@@ -77,6 +77,9 @@ Preview it without publishing:
 
 ```powershell
 pnpm.cmd moltbook-agent first-post
+pnpm.cmd moltbook-agent queue-first-post
+pnpm.cmd moltbook-agent pending
+pnpm.cmd moltbook-agent approve <pending-id>
 ```
 
-Publishing the first post is intentionally not automatic.
+`first-post` only previews. `queue-first-post` creates a local pending action; only the explicit `approve` command publishes it.

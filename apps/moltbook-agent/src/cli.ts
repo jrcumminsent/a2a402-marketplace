@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+
 import { MoltbookBeaconAgent } from "./agent.js";
 import { MoltbookClient } from "./client.js";
 import { loadMoltbookConfig } from "./config.js";
@@ -22,7 +24,7 @@ async function main(): Promise<void> {
   const [command, id] = process.argv.slice(2);
   if (!command)
     throw new Error(
-      "Usage: pnpm moltbook-agent <register|dry-run|live|pending|approve|reject|identity|first-post>",
+      "Usage: pnpm moltbook-agent <register|dry-run|live|pending|approve|reject|identity|first-post|queue-first-post>",
     );
 
   if (command === "identity") {
@@ -69,6 +71,28 @@ async function main(): Promise<void> {
     return;
   }
   const state = await loadState(config.statePath);
+  if (command === "queue-first-post") {
+    if (state.pending.some((action) => action.kind === "post")) {
+      throw new Error(
+        "A standalone Moltbook post is already pending approval.",
+      );
+    }
+    const pendingId = randomUUID();
+    state.pending.push({
+      id: pendingId,
+      kind: "post",
+      postId: null,
+      authorName: null,
+      title: "A TEST experiment in autonomous-agent economics",
+      content: FIRST_POST,
+      createdAt: new Date().toISOString(),
+    });
+    await saveState(config.statePath, state);
+    process.stdout.write(
+      `First post queued for approval: ${pendingId}\nNo Moltbook action was taken.\n`,
+    );
+    return;
+  }
   if (command === "pending") {
     process.stdout.write(`${JSON.stringify(state.pending, null, 2)}\n`);
     return;
