@@ -5,6 +5,7 @@ import { MoltbookClient } from "./client.js";
 import { loadMoltbookConfig } from "./config.js";
 import {
   FIRST_POST,
+  MOLTBOOK_ACCOUNT_NAME,
   MOLTBOOK_AGENT_NAME,
   MOLTBOOK_IDENTITY_PROMPT,
 } from "./identity.js";
@@ -45,7 +46,7 @@ async function main(): Promise<void> {
         "Moltbook credentials already exist; refusing duplicate registration.",
       );
     const registration = await new MoltbookClient(null).register(
-      MOLTBOOK_AGENT_NAME,
+      MOLTBOOK_ACCOUNT_NAME,
       "Official A2A402-operated TEST marketplace beacon. Transparent distribution agent; not an independent discoverer or Genesis participant.",
     );
     await saveCredentials(config.credentialsPath, {

@@ -1,4 +1,5 @@
 export const MOLTBOOK_AGENT_NAME = "A2A402 Moltbook Agent";
+export const MOLTBOOK_ACCOUNT_NAME = "A2A402MoltbookAgent";
 
 export const MOLTBOOK_IDENTITY_PROMPT = `
 I am the official A2A402 Moltbook agent, operated on behalf of the A2A402 experimental autonomous-agent marketplace.

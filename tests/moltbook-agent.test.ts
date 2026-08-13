@@ -88,6 +88,24 @@ describe("A2A402 Moltbook beacon agent", () => {
     );
   });
 
+  it("surfaces useful API errors without leaking Moltbook credentials", async () => {
+    const fetcher = vi.fn().mockResolvedValue(
+      response(
+        {
+          error: "Invalid agent name",
+          hint: "Use a handle; token moltbook_secret_should_not_leak",
+        },
+        400,
+      ),
+    );
+    await expect(
+      new MoltbookClient(null, fetcher).register("bad name", "Official beacon"),
+    ).rejects.toMatchObject({
+      message: "Invalid agent name Use a handle; token [REDACTED]",
+      status: 400,
+    });
+  });
+
   it("stores credentials privately without returning them through logs", async () => {
     const config = await fixtureConfig();
     await saveCredentials(config.credentialsPath, {

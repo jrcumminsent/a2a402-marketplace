@@ -30,6 +30,18 @@ export interface MoltbookItem {
 
 type Fetcher = typeof fetch;
 
+function apiErrorMessage(
+  body: Record<string, unknown>,
+  status: number,
+): string {
+  const details = [body.error, body.message, body.hint]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.replace(/moltbook_[A-Za-z0-9_-]+/gu, "[REDACTED]"));
+  return details.length > 0
+    ? [...new Set(details)].join(" ")
+    : `Moltbook returned HTTP ${status}.`;
+}
+
 export class MoltbookClient {
   constructor(
     private readonly apiKey: string | null,
@@ -59,9 +71,7 @@ export class MoltbookClient {
     if (!response.ok) {
       const retry = response.headers.get("retry-after");
       throw new MoltbookApiError(
-        typeof body.message === "string"
-          ? body.message
-          : `Moltbook returned HTTP ${response.status}.`,
+        apiErrorMessage(body, response.status),
         response.status,
         retry && /^\d+$/.test(retry) ? Number(retry) : null,
       );
