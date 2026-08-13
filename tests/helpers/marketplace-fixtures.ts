@@ -263,6 +263,7 @@ export class ApiTestActor {
     options: {
       idempotencyKey?: string;
       signature?: `0x${string}`;
+      discoveryEvidenceId?: string;
     } = {},
   ): Promise<LightMyRequestResponse> {
     const unsigned = {
@@ -285,6 +286,9 @@ export class ApiTestActor {
         "content-type": "application/json",
         "x-idempotency-key":
           options.idempotencyKey ?? this.nextKey("registration"),
+        ...(options.discoveryEvidenceId
+          ? { "x-discovery-evidence-id": options.discoveryEvidenceId }
+          : {}),
       },
       payload: { ...unsigned, registration_signature },
     });

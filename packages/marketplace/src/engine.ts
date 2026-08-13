@@ -59,10 +59,13 @@ import type {
   CommunityMessage,
   Contract,
   Delivery,
+  DiscoveryEvidence,
+  DiscoverySource,
   Dispute,
   Evaluation,
   EvaluationCheck,
   ImportedAttestation,
+  GenesisAgentRecord,
   Job,
   JsonSchema,
   LedgerAccount,
@@ -406,6 +409,8 @@ export class MarketplaceEngine {
   >();
   private readonly webhookSecretCiphertexts = new Map<string, string>();
   private readonly webhookDeliveries = new Map<string, WebhookDelivery>();
+  private readonly discoveryEvidence = new Map<string, DiscoveryEvidence>();
+  private readonly genesisAgents = new Map<string, GenesisAgentRecord>();
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly locks = new Map<string, Promise<void>>();
   private readonly paymentAdapter: PaymentAdapter | null;
@@ -640,6 +645,104 @@ export class MarketplaceEngine {
       capabilities: agent.capabilities,
     });
     return clone(agent);
+  }
+
+  recordDiscoveryEvidence(input: {
+    firstLandingEndpoint: string;
+    source: DiscoverySource;
+    sourceEvidence: DiscoveryEvidence["sourceEvidence"];
+    referrerOrigin?: string | null;
+    campaignSource?: string | null;
+    userAgentFamily?: string | null;
+    agentFramework?: string | null;
+    discoveryDocument?: string | null;
+    selfReportedSource?: string | null;
+  }): DiscoveryEvidence {
+    const createdAt = nowIso();
+    const evidence: DiscoveryEvidence = {
+      id: uuid(),
+      firstLandingEndpoint: input.firstLandingEndpoint,
+      source: input.source,
+      sourceEvidence: input.sourceEvidence,
+      referrerOrigin: input.referrerOrigin ?? null,
+      campaignSource: input.campaignSource ?? null,
+      userAgentFamily: input.userAgentFamily ?? null,
+      agentFramework: input.agentFramework ?? null,
+      discoveryDocument: input.discoveryDocument ?? null,
+      selfReportedSource: input.selfReportedSource ?? null,
+      agentId: null,
+      firstAuthenticatedAction: null,
+      createdAt,
+      linkedAt: null,
+    };
+    this.discoveryEvidence.set(evidence.id, evidence);
+    return clone(evidence);
+  }
+
+  linkDiscoveryEvidence(
+    evidenceId: string,
+    agentId: string,
+    firstMarketplaceAction = "agent.registered",
+  ): GenesisAgentRecord {
+    this.requiredAgent(agentId);
+    const evidence = this.discoveryEvidence.get(evidenceId);
+    if (!evidence) {
+      throw new MarketplaceError(
+        "RESOURCE_NOT_FOUND",
+        "Discovery evidence was not found.",
+        404,
+      );
+    }
+    if (evidence.agentId && evidence.agentId !== agentId) {
+      throw new MarketplaceError(
+        "CONFLICT",
+        "Discovery evidence is already linked to another agent.",
+        409,
+      );
+    }
+    const linkedAt = nowIso();
+    evidence.agentId = agentId;
+    evidence.firstAuthenticatedAction ??= firstMarketplaceAction;
+    evidence.linkedAt ??= linkedAt;
+    const existing = this.genesisAgents.get(agentId);
+    if (existing) return clone(existing);
+    const record: GenesisAgentRecord = {
+      agentId,
+      sequence: this.genesisAgents.size + 1,
+      discoveryEvidenceId: evidence.id,
+      discoveryTimestamp: evidence.createdAt,
+      firstDiscoveredEndpoint: evidence.firstLandingEndpoint,
+      discoverySource: evidence.source,
+      agentFramework: evidence.agentFramework,
+      humanDirectedDiscovery: "unknown",
+      proofOfEarnStatus: "unverified",
+      firstMarketplaceAction,
+      createdAt: linkedAt,
+    };
+    this.genesisAgents.set(agentId, record);
+    this.audit(agentId, "discovery.genesis_assigned", "agent", agentId, {
+      genesis_sequence: record.sequence,
+      discovery_evidence_id: evidence.id,
+    });
+    return clone(record);
+  }
+
+  getDiscoveryEvidence(evidenceId: string): DiscoveryEvidence {
+    const evidence = this.discoveryEvidence.get(evidenceId);
+    if (!evidence) {
+      throw new MarketplaceError(
+        "RESOURCE_NOT_FOUND",
+        "Discovery evidence was not found.",
+        404,
+      );
+    }
+    return clone(evidence);
+  }
+
+  listGenesisAgents(): GenesisAgentRecord[] {
+    return [...this.genesisAgents.values()]
+      .sort((left, right) => left.sequence - right.sequence)
+      .map(clone);
   }
 
   listAgents(
@@ -4585,6 +4688,8 @@ export class MarketplaceEngine {
           clone(flags),
         ]),
       ),
+      discoveryEvidence: [...this.discoveryEvidence.values()].map(clone),
+      genesisAgents: [...this.genesisAgents.values()].map(clone),
     };
   }
 
@@ -4702,6 +4807,19 @@ export class MarketplaceEngine {
     replaceMap(this.channels, "communityChannels");
     replaceMap(this.messages, "communityMessages");
     replaceMap(this.webhookSubscriptions, "webhookSubscriptions");
+    if (Array.isArray(source.discoveryEvidence)) {
+      replaceMap(this.discoveryEvidence, "discoveryEvidence");
+    } else {
+      this.discoveryEvidence.clear();
+    }
+    if (Array.isArray(source.genesisAgents)) {
+      this.genesisAgents.clear();
+      for (const record of rows<GenesisAgentRecord>("genesisAgents")) {
+        this.genesisAgents.set(record.agentId, clone(record));
+      }
+    } else {
+      this.genesisAgents.clear();
+    }
     if (Array.isArray(source.webhookDeliveries)) {
       replaceMap(this.webhookDeliveries, "webhookDeliveries");
     } else {

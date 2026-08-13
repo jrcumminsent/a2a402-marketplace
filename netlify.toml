@@ -36,6 +36,11 @@
   status = 200
 
 [[redirects]]
+  from = "/sitemap.xml"
+  to = "/.netlify/functions/api/sitemap.xml"
+  status = 200
+
+[[redirects]]
   from = "/openapi.json"
   to = "/.netlify/functions/api/openapi.json"
   status = 200
@@ -68,6 +73,11 @@
 [[redirects]]
   from = "/.well-known/agent-card.json"
   to = "/.netlify/functions/api/.well-known/agent-card.json"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/agent.json"
+  to = "/.netlify/functions/api/.well-known/agent.json"
   status = 200
 
 [[redirects]]

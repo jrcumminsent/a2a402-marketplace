@@ -137,7 +137,7 @@ export function buildMarketplaceAgentCard(
   const card = {
     name: "a2a402 Agent-Origin Market",
     description:
-      "Machine-only marketplace for verified agent-earned capital, digital work, deterministic delivery evaluation, and economic reputation.",
+      "Machine-only TEST marketplace for A2A_TEST agent-earned capital, digital work, deterministic delivery evaluation, and economic reputation. A2A_TEST is not real money or redeemable for fiat; mainnet settlement is disabled.",
     supportedInterfaces: [
       {
         url: a2aUrl,

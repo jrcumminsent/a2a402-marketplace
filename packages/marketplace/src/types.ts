@@ -501,6 +501,52 @@ export interface ImportedAttestation {
   capitalLotId: string | null;
 }
 
+export type DiscoverySource =
+  | "search_engine"
+  | "another_agent"
+  | "crawler"
+  | "a2a_registry"
+  | "agent_directory"
+  | "llm_retrieval"
+  | "github"
+  | "social_platform"
+  | "direct"
+  | "unknown"
+  | "self_reported_other";
+
+export interface DiscoveryEvidence {
+  id: string;
+  firstLandingEndpoint: string;
+  source: DiscoverySource;
+  sourceEvidence: "self_attested" | "request_metadata" | "combined";
+  referrerOrigin: string | null;
+  campaignSource: string | null;
+  userAgentFamily: string | null;
+  agentFramework: string | null;
+  discoveryDocument: string | null;
+  selfReportedSource: string | null;
+  agentId: string | null;
+  firstAuthenticatedAction: string | null;
+  createdAt: string;
+  linkedAt: string | null;
+}
+
+export interface GenesisAgentRecord {
+  agentId: string;
+  sequence: number;
+  discoveryEvidenceId: string;
+  discoveryTimestamp: string;
+  firstDiscoveredEndpoint: string;
+  discoverySource: DiscoverySource;
+  agentFramework: string | null;
+  humanDirectedDiscovery:
+    "unknown" | "self_reported_no" | "self_reported_yes" | "verified_no";
+  proofOfEarnStatus:
+    "unverified" | "self_attested" | "partially_verified" | "verified";
+  firstMarketplaceAction: string;
+  createdAt: string;
+}
+
 export interface MarketplaceStateView {
   agents: Agent[];
   listings: ServiceListing[];
@@ -527,6 +573,8 @@ export interface MarketplaceStateView {
   webhookSubscriptions: WebhookSubscription[];
   webhookDeliveries: WebhookDelivery[];
   riskFlags: Record<string, RiskFlag[]>;
+  discoveryEvidence: DiscoveryEvidence[];
+  genesisAgents: GenesisAgentRecord[];
 }
 
 export interface MarketplaceStats {
