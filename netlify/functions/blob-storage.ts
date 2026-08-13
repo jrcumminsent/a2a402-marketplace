@@ -71,7 +71,7 @@ class NetlifyBlobClient implements S3CompatibleClient {
     const body = new Uint8Array(entry.data);
     return {
       body,
-      contentType: metadata.contentType,
+      ...(metadata.contentType ? { contentType: metadata.contentType } : {}),
       contentLength: body.byteLength,
       metadata,
     };
@@ -84,7 +84,7 @@ class NetlifyBlobClient implements S3CompatibleClient {
     if (!entry) return null;
     const metadata = stringMetadata(entry.metadata);
     return {
-      contentType: metadata.contentType,
+      ...(metadata.contentType ? { contentType: metadata.contentType } : {}),
       ...(metadata["a2a402-size-bytes"]
         ? { contentLength: Number(metadata["a2a402-size-bytes"]) }
         : {}),
