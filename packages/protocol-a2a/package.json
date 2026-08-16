@@ -21,7 +21,7 @@
     "@a2a402/shared": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^24.10.13",
+    "@types/node": "^26.2.0",
     "typescript": "^5.9.3",
     "vitest": "^4.0.18"
   }
