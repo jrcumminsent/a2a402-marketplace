@@ -55,7 +55,7 @@
     "zod": "4.3.6"
   },
   "devDependencies": {
-    "@types/node": "^24.10.13",
+    "@types/node": "^26.2.0",
     "@types/pg": "^8.15.6",
     "@vitest/coverage-v8": "^4.0.18",
     "drizzle-kit": "^0.31.8",
