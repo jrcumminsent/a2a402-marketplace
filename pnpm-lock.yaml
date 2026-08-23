@@ -24,7 +24,7 @@ importers:
         version: 10.3.0
       '@modelcontextprotocol/sdk':
         specifier: 1.30.0
-        version: 1.30.0(supports-color@7.2.0)(zod@4.3.6)
+        version: 1.30.0(supports-color@7.2.0)(zod@4.4.3)
       '@netlify/blobs':
         specifier: ^10.7.13
         version: 10.7.13(supports-color@7.2.0)
@@ -63,10 +63,10 @@ importers:
         version: 10.3.1
       viem:
         specifier: ^2.45.1
-        version: 2.55.8(typescript@5.9.3)(zod@4.3.6)
+        version: 2.55.8(typescript@5.9.3)(zod@4.4.3)
       zod:
-        specifier: 4.3.6
-        version: 4.3.6
+        specifier: 4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.13
@@ -133,7 +133,7 @@ importers:
         version: link:../../packages/shared
       viem:
         specifier: ^2.45.1
-        version: 2.55.8(typescript@5.9.3)(zod@4.3.6)
+        version: 2.55.8(typescript@5.9.3)(zod@4.4.3)
 
   apps/demo-agents:
     dependencies:
@@ -157,7 +157,7 @@ importers:
         version: link:../marketplace
       viem:
         specifier: ^2.45.1
-        version: 2.55.8(typescript@5.9.3)(zod@4.3.6)
+        version: 2.55.8(typescript@5.9.3)(zod@4.4.3)
 
   packages/database:
     dependencies:
@@ -266,10 +266,10 @@ importers:
         version: link:../shared
       '@modelcontextprotocol/sdk':
         specifier: 1.29.0
-        version: 1.29.0(supports-color@7.2.0)(zod@4.3.6)
+        version: 1.29.0(supports-color@7.2.0)(zod@4.4.3)
       zod:
-        specifier: ^4.1.12
-        version: 4.3.6
+        specifier: ^4.4.3
+        version: 4.4.3
     devDependencies:
       '@types/node':
         specifier: ^24.10.13
@@ -2428,8 +2428,8 @@ packages:
   zod@3.25.76:
     resolution: {integrity: sha512-gzUt/qt81nXsFGKIFcC3YnfEAx5NkunCfnDlvuBSSFS02bcXu4Lmea0AFIUwbLWxWPx3d9p8S5QoaujKcNQxcQ==}
 
-  zod@4.3.6:
-    resolution: {integrity: sha512-rftlrkhHZOcjDwkGlnUtZZkvaPHCsDATp4pGpuOOMDaTdDDXF91wuVDJoWoPsKX/3YPQ5fHuF3STjcYyKr+Qhg==}
+  zod@4.4.3:
+    resolution: {integrity: sha512-ytENFjIJFl2UwYglde2jchW2Hwm4GJFLDiSXWdTrJQBIN9Fcyp7n4DhxJEiWNAJMV1/BqWfW/kkg71UDcHJyTQ==}
 
 snapshots:
 
@@ -2763,7 +2763,7 @@ snapshots:
 
   '@lukeed/ms@2.0.2': {}
 
-  '@modelcontextprotocol/sdk@1.29.0(supports-color@7.2.0)(zod@4.3.6)':
+  '@modelcontextprotocol/sdk@1.29.0(supports-color@7.2.0)(zod@4.4.3)':
     dependencies:
       '@hono/node-server': 1.19.15(hono@4.12.31)
       ajv: 8.20.0
@@ -2780,12 +2780,12 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 4.3.6
-      zod-to-json-schema: 3.25.2(zod@4.3.6)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
-  '@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.3.6)':
+  '@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.4.3)':
     dependencies:
       '@hono/node-server': 1.19.15(hono@4.12.31)
       ajv: 8.20.0
@@ -2802,8 +2802,8 @@ snapshots:
       json-schema-typed: 8.0.2
       pkce-challenge: 5.0.1
       raw-body: 3.0.2
-      zod: 4.3.6
-      zod-to-json-schema: 3.25.2(zod@4.3.6)
+      zod: 4.4.3
+      zod-to-json-schema: 3.25.2(zod@4.4.3)
     transitivePeerDependencies:
       - supports-color
 
@@ -3026,11 +3026,11 @@ snapshots:
       '@noble/hashes': 1.8.0
       apg-js: 4.4.0
 
-  '@signinwithethereum/siwe@4.2.0(viem@2.55.8(typescript@5.9.3)(zod@4.3.6))':
+  '@signinwithethereum/siwe@4.2.0(viem@2.55.8(typescript@5.9.3)(zod@4.4.3))':
     dependencies:
       '@signinwithethereum/siwe-parser': 4.2.0
     optionalDependencies:
-      viem: 2.55.8(typescript@5.9.3)(zod@4.3.6)
+      viem: 2.55.8(typescript@5.9.3)(zod@4.4.3)
 
   '@standard-schema/spec@1.1.0': {}
 
@@ -3164,7 +3164,7 @@ snapshots:
     dependencies:
       '@noble/curves': 1.9.7
       '@scure/base': 1.2.6
-      '@signinwithethereum/siwe': 4.2.0(viem@2.55.8(typescript@5.9.3)(zod@4.3.6))
+      '@signinwithethereum/siwe': 4.2.0(viem@2.55.8(typescript@5.9.3)(zod@4.4.3))
       '@x402/core': 2.19.0
       ajv: 8.20.0
       jose: 5.10.0
@@ -3193,10 +3193,10 @@ snapshots:
       typescript: 5.9.3
       zod: 3.25.76
 
-  abitype@1.2.3(typescript@5.9.3)(zod@4.3.6):
+  abitype@1.2.3(typescript@5.9.3)(zod@4.4.3):
     optionalDependencies:
       typescript: 5.9.3
-      zod: 4.3.6
+      zod: 4.4.3
 
   abstract-logging@2.0.1: {}
 
@@ -3817,7 +3817,7 @@ snapshots:
     transitivePeerDependencies:
       - zod
 
-  ox@0.14.32(typescript@5.9.3)(zod@4.3.6):
+  ox@0.14.32(typescript@5.9.3)(zod@4.4.3):
     dependencies:
       '@adraffy/ens-normalize': 1.11.1
       '@noble/ciphers': 1.3.0
@@ -3825,7 +3825,7 @@ snapshots:
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.3)
       eventemitter3: 5.0.1
     optionalDependencies:
       typescript: 5.9.3
@@ -4196,15 +4196,15 @@ snapshots:
       - utf-8-validate
       - zod
 
-  viem@2.55.8(typescript@5.9.3)(zod@4.3.6):
+  viem@2.55.8(typescript@5.9.3)(zod@4.4.3):
     dependencies:
       '@noble/curves': 1.9.1
       '@noble/hashes': 1.8.0
       '@scure/bip32': 1.7.0
       '@scure/bip39': 1.6.0
-      abitype: 1.2.3(typescript@5.9.3)(zod@4.3.6)
+      abitype: 1.2.3(typescript@5.9.3)(zod@4.4.3)
       isows: 1.0.7(ws@8.21.0)
-      ox: 0.14.32(typescript@5.9.3)(zod@4.3.6)
+      ox: 0.14.32(typescript@5.9.3)(zod@4.4.3)
       ws: 8.21.0
     optionalDependencies:
       typescript: 5.9.3
@@ -4277,10 +4277,10 @@ snapshots:
 
   xtend@4.0.2: {}
 
-  zod-to-json-schema@3.25.2(zod@4.3.6):
+  zod-to-json-schema@3.25.2(zod@4.4.3):
     dependencies:
-      zod: 4.3.6
+      zod: 4.4.3
 
   zod@3.25.76: {}
 
-  zod@4.3.6: {}
+  zod@4.4.3: {}
