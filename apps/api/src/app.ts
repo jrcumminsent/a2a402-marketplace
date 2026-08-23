@@ -289,7 +289,7 @@ export async function buildApp(
       ? createBaseSepoliaX402ChainReader({
           rpcUrl: config.baseSepoliaRpcUrl,
           assetAddress: config.x402AssetAddress,
-          assetSymbol: "USDC",
+          assetSymbol: config.x402AssetSymbol,
         })
       : null;
   const paymentAdapter =
@@ -298,6 +298,7 @@ export async function buildApp(
           platformSettlementAddress: config.platformSettlementAddress,
           facilitatorUrl: config.x402FacilitatorUrl,
           assetAddress: config.x402AssetAddress,
+          assetSymbol: config.x402AssetSymbol,
           network: config.x402Network,
           enableMainnet: false,
           ...(x402ChainReader ? { chainReader: x402ChainReader } : {}),
@@ -315,7 +316,7 @@ export async function buildApp(
         createBaseSepoliaTransactionReader({
           rpcUrl: config.baseSepoliaRpcUrl as string,
           assetAddress: config.x402AssetAddress,
-          assetSymbol: "USDC",
+          assetSymbol: config.x402AssetSymbol,
         }),
       );
   const engine =
@@ -1719,15 +1720,21 @@ export async function buildApp(
       );
     }
     reply.header("cache-control", "no-store");
-    const [metrics, stats] = await readEngine(
+    const [metrics, stats, economy] = await readEngine(
       engine,
-      () => [engine.getOperationalMetrics(), engine.getStats("USDC")] as const,
+      () =>
+        [
+          engine.getOperationalMetrics(),
+          engine.getStats("USDC"),
+          engine.getEconomicMetrics("USDC"),
+        ] as const,
     );
     return {
       id: "a2a402-operator-dashboard/0.1",
       generated_at: new Date().toISOString(),
       funnel: metrics,
       marketplace: stats,
+      economy,
       alerts: {
         structured_log_event: "marketplace.operator_alert",
         webhook_configured: Boolean(config.operatorAlertWebhookUrl),

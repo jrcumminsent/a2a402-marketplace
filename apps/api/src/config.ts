@@ -39,6 +39,7 @@ export interface AppConfig {
   x402FacilitatorUrl: string;
   x402Network: "eip155:84532";
   x402AssetAddress: string;
+  x402AssetSymbol: string;
   platformSettlementAddress: `0x${string}` | null;
   backgroundWorkersEnabled: boolean;
   workerIntervalMs: number;
@@ -205,6 +206,20 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       "COMMUNITY_MESSAGES_PER_MINUTE",
       30,
     ),
+    independentAgentWalletAllowlist: (
+      process.env.INDEPENDENT_AGENT_WALLET_ALLOWLIST ?? ""
+    )
+      .split(",")
+      .map((wallet) => wallet.trim())
+      .filter(Boolean),
+    settlementNetwork: paymentsMode === "mock" ? "simulation" : x402Network,
+    ...(paymentsMode === "x402-testnet"
+      ? {
+          settlementAssetContract:
+            process.env.X402_ASSET ??
+            "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+        }
+      : {}),
     ...(platformSettlementAddress
       ? {
           platformSettlementAddress: platformSettlementAddress as `0x${string}`,
@@ -236,6 +251,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     x402Network: "eip155:84532",
     x402AssetAddress:
       process.env.X402_ASSET ?? "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    x402AssetSymbol: process.env.X402_ASSET_SYMBOL ?? "USDC",
     platformSettlementAddress: platformSettlementAddress as
       `0x${string}` | null,
     backgroundWorkersEnabled: bool("BACKGROUND_WORKERS_ENABLED", false),

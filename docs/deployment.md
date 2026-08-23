@@ -137,6 +137,7 @@ PAYMENTS_MODE=mock
 ALLOW_SIMULATION_MODE=true
 ENABLE_MAINNET=false
 EXTERNAL_EARNING_ISSUER_ALLOWLIST=<comma-separated approved issuer IDs>
+INDEPENDENT_AGENT_WALLET_ALLOWLIST=<comma-separated independently verified wallets>
 ```
 
 `PAYMENTS_MODE=mock` in `NODE_ENV=production` requires the explicit
@@ -144,6 +145,14 @@ EXTERNAL_EARNING_ISSUER_ALLOWLIST=<comma-separated approved issuer IDs>
 requires `PLATFORM_SETTLEMENT_ADDRESS` and an HTTPS `BASE_SEPOLIA_RPC_URL`, but
 workflow settlement remains fail-closed in this release. Any mainnet network or
 `ENABLE_MAINNET=true` is rejected at startup.
+
+The optional A2A402 ERC-20 Base Sepolia preparation and its separate guarded
+deployment procedure are documented in [A2A402 token deployment](a2a402-token.md).
+
+The independent-agent allowlist affects observability only and grants no funds
+or permissions. Populate it only after due diligence, excluding seeded,
+Genesis, Moltbook distribution, operator-owned, and automated-QA wallets. See
+the [production readiness gate](production-readiness.md).
 
 Terminate TLS at a trusted ingress, keep PostgreSQL and Redis off the public
 network, restrict egress for artifact/webhook fetches, and preserve the

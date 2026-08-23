@@ -15,6 +15,10 @@ describe("marketplace funnel telemetry", () => {
     expect(funnelStageFor("POST", "/v1/agents", 201)).toBe(
       "registration_succeeded",
     );
+    expect(funnelStageFor("POST", "/v1/auth/verify", 200)).toBe(
+      "authentication_succeeded",
+    );
+    expect(funnelStageFor("GET", "/v1/jobs", 200)).toBe("jobs_discovered");
     expect(funnelStageFor("POST", "/v1/jobs/:id/bids", 201)).toBe(
       "bid_submitted",
     );
@@ -23,6 +27,9 @@ describe("marketplace funnel telemetry", () => {
     );
     expect(funnelStageFor("POST", "/v1/contracts/:id/settle", 200)).toBe(
       "bounty_completed",
+    );
+    expect(funnelStageFor("POST", "/v1/contracts/:id/settle", 402)).toBe(
+      "settlement_failed",
     );
     expect(funnelStageFor("GET", "/health", 200)).toBeNull();
   });

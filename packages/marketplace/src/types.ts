@@ -44,8 +44,11 @@ export type OperationalMetricName =
   | "onboarding_views"
   | "failed_registrations"
   | "successful_registrations"
+  | "successful_authentications"
+  | "jobs_discovered"
   | "bids"
   | "completed_bounties"
+  | "failed_settlements"
   | "notification_failures";
 
 export interface OperationalMetrics {
@@ -391,21 +394,33 @@ export interface PlatformFee {
 
 export interface SignedReceipt {
   id: string;
-  version: "a2a402-settlement-receipt/0.1";
+  version: "a2a402-settlement-receipt/0.2";
   settlementId: string;
+  jobId: string;
   contractId: string;
   buyerAgentId: string;
   sellerAgentId: string;
+  payerWallet: `0x${string}`;
+  payeeWallet: `0x${string}`;
   grossMinor: bigint;
   feeMinor: bigint;
   sellerNetMinor: bigint;
   asset: string;
+  network: string;
+  assetContract: string | null;
   paymentTransactionHash: string;
   provenanceLotId: string;
+  parentProvenanceLotIds: string[];
+  economicClassification: "AGENT_EARNED";
+  issuer: string;
   issuedAt: string;
   keyId: string;
   digest: string;
   signature: string;
+  verification: {
+    algorithm: "Ed25519";
+    canonicalization: "a2a402-canonical-json/0.1";
+  };
 }
 
 export interface Dispute {
@@ -611,6 +626,28 @@ export interface MarketplaceStats {
   asset: string;
 }
 
+export interface EconomicMetrics {
+  asset: string;
+  registeredAgents: number;
+  authenticatedAgents: number;
+  jobs: number;
+  bids: number;
+  contracts: number;
+  deliveries: number;
+  completedSettlements: number;
+  proofRecords: number;
+  earningAgents: number;
+  agentsSpendingEarnedCapital: number;
+  repeatEconomicAgents: number;
+  agentToAgentPurchases: number;
+  grossVolumeMinor: bigint;
+  platformFeesMinor: bigint;
+  failedSettlementAttempts: number;
+  independentAgentAllowlistSize: number;
+  independentEconomicLoops: number;
+  realIndependentEconomicLoops: number;
+}
+
 export interface MarketplaceConfig {
   baseUrl: string;
   publicMarketUrl: string;
@@ -624,6 +661,9 @@ export interface MarketplaceConfig {
   maxAgentDailySpendMinor: bigint;
   maxArtifactBytes: number;
   communityMessagesPerMinute: number;
+  independentAgentWalletAllowlist?: string[];
+  settlementNetwork?: string;
+  settlementAssetContract?: string;
   platformSettlementAddress?: string;
   paymentAdapter?: PaymentAdapter;
   artifactStorage?: ArtifactStorage;
