@@ -323,6 +323,304 @@ const JOBS = [
       { path: "$.private_key_shared", operator: "equals", value: false },
     ],
   },
+  {
+    title: "Check an A2A Agent Card for marketplace readiness",
+    description:
+      "Review the supplied Agent Card fields and return a structured conformance and marketplace-readiness assessment.",
+    budget_minor: "100000",
+    required_capabilities: ["agent_card_validation"],
+    tags: ["a2a", "agent-card", "conformance", "seeded-test-job"],
+    input: {
+      required_sections: [
+        "name",
+        "description",
+        "skills",
+        "supportedInterfaces",
+        "defaultInputModes",
+        "defaultOutputModes",
+      ],
+    },
+    output_schema: {
+      type: "object",
+      required: ["conformant", "sections_checked", "findings"],
+      properties: {
+        conformant: { type: "boolean" },
+        sections_checked: { const: 6 },
+        findings: { type: "array", minItems: 1 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.sections_checked", operator: "equals", value: 6 },
+      { path: "$.findings", operator: "present" },
+    ],
+  },
+  {
+    title: "Draft a machine-readable service listing",
+    description:
+      "Create a bounded service-listing proposal for a JSON data-cleaning agent, including price, schemas, and delivery terms.",
+    budget_minor: "100000",
+    required_capabilities: ["service_listing_design"],
+    tags: ["listing", "service", "schemas", "seeded-test-job"],
+    input: { service: "JSON data cleaning", asset: "A2A_TEST" },
+    output_schema: {
+      type: "object",
+      required: [
+        "title",
+        "price_minor",
+        "input_schema",
+        "output_schema",
+        "delivery_seconds",
+      ],
+      properties: {
+        title: { type: "string" },
+        price_minor: { type: "string", pattern: "^[1-9][0-9]*$" },
+        input_schema: { type: "object" },
+        output_schema: { type: "object" },
+        delivery_seconds: { type: "integer", minimum: 1 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.price_minor", operator: "present" },
+      { path: "$.input_schema", operator: "present" },
+      { path: "$.output_schema", operator: "present" },
+    ],
+  },
+  {
+    title: "Construct a deterministic bid proposal",
+    description:
+      "Produce a bid proposal for the supplied job constraints without exceeding budget or execution-time limits.",
+    budget_minor: "100000",
+    required_capabilities: ["bid_planning"],
+    tags: ["bids", "contracts", "planning", "seeded-test-job"],
+    input: { maximum_amount_minor: 100000, maximum_execution_seconds: 600 },
+    output_schema: {
+      type: "object",
+      required: [
+        "amount_minor",
+        "execution_seconds",
+        "approach",
+        "within_limits",
+      ],
+      properties: {
+        amount_minor: { type: "integer", minimum: 1, maximum: 100000 },
+        execution_seconds: { type: "integer", minimum: 1, maximum: 600 },
+        approach: { type: "array", minItems: 2 },
+        within_limits: { const: true },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.within_limits", operator: "equals", value: true },
+      { path: "$.amount_minor", operator: "lte", value: 100000 },
+      { path: "$.execution_seconds", operator: "lte", value: 600 },
+    ],
+  },
+  {
+    title: "Design an artifact integrity verification plan",
+    description:
+      "Return an ordered plan for hashing, storing, delivering, and independently verifying a JSON artifact.",
+    budget_minor: "100000",
+    required_capabilities: ["artifact_integrity"],
+    tags: ["artifacts", "sha256", "verification", "seeded-test-job"],
+    input: { hash_algorithm: "SHA-256", mime_type: "application/json" },
+    output_schema: {
+      type: "object",
+      required: ["hash_algorithm", "mime_type", "steps"],
+      properties: {
+        hash_algorithm: { const: "SHA-256" },
+        mime_type: { const: "application/json" },
+        steps: { type: "array", minItems: 4 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.hash_algorithm", operator: "equals", value: "SHA-256" },
+      { path: "$.steps", operator: "present" },
+    ],
+  },
+  {
+    title: "Interpret an economic reputation snapshot",
+    description:
+      "Analyze supplied reputation dimensions and return strengths, risks, and a bounded hiring recommendation.",
+    budget_minor: "100000",
+    required_capabilities: ["reputation_analysis"],
+    tags: ["reputation", "risk", "hiring", "seeded-test-job"],
+    input: {
+      completed_contracts: 8,
+      refund_rate_ppm: 100000,
+      on_time_delivery_rate_ppm: 875000,
+      policy_violations: 0,
+    },
+    output_schema: {
+      type: "object",
+      required: ["recommendation", "strengths", "risks", "dimensions_reviewed"],
+      properties: {
+        recommendation: { type: "string", enum: ["hire", "review", "decline"] },
+        strengths: { type: "array", minItems: 1 },
+        risks: { type: "array", minItems: 1 },
+        dimensions_reviewed: { const: 4 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.dimensions_reviewed", operator: "equals", value: 4 },
+    ],
+  },
+  {
+    title: "Build a contract refund decision tree",
+    description:
+      "Map pre-delivery, rejected-delivery, timeout, dispute, and settled states to safe refund or escalation actions.",
+    budget_minor: "100000",
+    required_capabilities: ["refund_policy_analysis"],
+    tags: ["refunds", "disputes", "contracts", "seeded-test-job"],
+    input: {
+      states: ["active", "delivered", "rejected", "disputed", "settled"],
+    },
+    output_schema: {
+      type: "object",
+      required: ["state_count", "decisions", "post_settlement_requires_review"],
+      properties: {
+        state_count: { const: 5 },
+        decisions: { type: "array", minItems: 5, maxItems: 5 },
+        post_settlement_requires_review: { const: true },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.state_count", operator: "equals", value: 5 },
+      {
+        path: "$.post_settlement_requires_review",
+        operator: "equals",
+        value: true,
+      },
+    ],
+  },
+  {
+    title: "Plan a minimal webhook subscription",
+    description:
+      "Select the smallest event set needed to track contract award, delivery, settlement, and failure without subscribing to unrelated events.",
+    budget_minor: "100000",
+    required_capabilities: ["event_integration"],
+    tags: ["webhooks", "events", "integration", "seeded-test-job"],
+    input: {
+      required_outcomes: [
+        "contract_awarded",
+        "delivery_received",
+        "settlement_completed",
+        "delivery_failed",
+      ],
+    },
+    output_schema: {
+      type: "object",
+      required: ["event_count", "event_types", "verification_steps"],
+      properties: {
+        event_count: { const: 4 },
+        event_types: { type: "array", minItems: 4, maxItems: 4 },
+        verification_steps: { type: "array", minItems: 2 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [{ path: "$.event_count", operator: "equals", value: 4 }],
+  },
+  {
+    title: "Create a settlement receipt verification checklist",
+    description:
+      "Return checks for receipt signature, wallets, amounts, fee arithmetic, transaction reference, network, and provenance parents.",
+    budget_minor: "100000",
+    required_capabilities: ["receipt_verification"],
+    tags: ["settlement", "receipts", "proof-of-earn", "seeded-test-job"],
+    input: {
+      receipt_version: "a2a402-settlement-receipt/0.2",
+      required_checks: 8,
+    },
+    output_schema: {
+      type: "object",
+      required: ["receipt_version", "check_count", "checks"],
+      properties: {
+        receipt_version: { const: "a2a402-settlement-receipt/0.2" },
+        check_count: { const: 8 },
+        checks: { type: "array", minItems: 8, maxItems: 8 },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.check_count", operator: "equals", value: 8 },
+      {
+        path: "$.receipt_version",
+        operator: "equals",
+        value: "a2a402-settlement-receipt/0.2",
+      },
+    ],
+  },
+  {
+    title: "Generate canonical JSON signing vectors",
+    description:
+      "Normalize the supplied objects into stable key order and return deterministic canonical JSON strings for signing tests.",
+    budget_minor: "100000",
+    required_capabilities: ["canonical_json"],
+    tags: ["signing", "json", "canonicalization", "seeded-test-job"],
+    input: {
+      vectors: [
+        { b: 2, a: 1 },
+        { nested: { z: false, a: true } },
+        { list: [3, 2, 1] },
+      ],
+    },
+    output_schema: {
+      type: "object",
+      required: ["vector_count", "canonical_values"],
+      properties: {
+        vector_count: { const: 3 },
+        canonical_values: {
+          type: "array",
+          minItems: 3,
+          maxItems: 3,
+          items: { type: "string" },
+        },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.vector_count", operator: "equals", value: 3 },
+    ],
+  },
+  {
+    title: "Compare three agent service offers",
+    description:
+      "Rank three supplied offers by price, execution time, schema clarity, and reputation requirements using explicit integer scoring.",
+    budget_minor: "100000",
+    required_capabilities: ["offer_comparison"],
+    tags: ["services", "comparison", "procurement", "seeded-test-job"],
+    input: {
+      offer_ids: ["offer-a", "offer-b", "offer-c"],
+      scoring_dimensions: [
+        "price",
+        "execution_time",
+        "schema_clarity",
+        "reputation_requirement",
+      ],
+    },
+    output_schema: {
+      type: "object",
+      required: ["offer_count", "ranking", "recommended_offer", "method"],
+      properties: {
+        offer_count: { const: 3 },
+        ranking: { type: "array", minItems: 3, maxItems: 3 },
+        recommended_offer: {
+          type: "string",
+          enum: ["offer-a", "offer-b", "offer-c"],
+        },
+        method: { const: "integer_weighted_score" },
+      },
+      additionalProperties: false,
+    },
+    acceptance_rules: [
+      { path: "$.offer_count", operator: "equals", value: 3 },
+      { path: "$.method", operator: "equals", value: "integer_weighted_score" },
+    ],
+  },
 ] as const;
 
 const GENESIS_JOB = JOBS[0];
@@ -431,6 +729,25 @@ export async function ensureSimulationSeedOpportunities(
         });
       }
 
+      const secondExpansionFundingHash =
+        "test:a2a402-seeded-opportunities-expansion-v4";
+      if (
+        !engine
+          .stateView()
+          .capitalLots.some(
+            (lot) => lot.sourceTransactionHash === secondExpansionFundingHash,
+          )
+      ) {
+        engine.importCapital({
+          agentId: buyer.id,
+          amountMinor: "1000000",
+          asset: "USDC",
+          originType: "platform_test_funds",
+          provenanceScope: "simulation",
+          sourceTransactionHash: secondExpansionFundingHash,
+        });
+      }
+
       const storedDesignation = engine.getCanonicalSeededGenesisDesignation();
       const expectedDefinitionDigest = canonicalSeededGenesisDefinitionDigest(
         engine.config.maxArtifactBytes,
@@ -515,7 +832,7 @@ export async function ensureSimulationSeedOpportunities(
       }
     },
     {
-      mutationId: "simulation-seed-opportunities:v3",
+      mutationId: "simulation-seed-opportunities:v4",
       lockKeys: ["simulation-seed-opportunities"],
     },
   );
