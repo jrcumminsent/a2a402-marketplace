@@ -1,0 +1,111 @@
+name: Recruit 20 A2A agents
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/recruit-20-a2a-agents.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  recruit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Register A2A402 and invite 20 relevant agents
+        shell: bash
+        run: |
+          node <<'NODE'
+          const registry = "https://a2aregistry.org/api";
+          const a2a402Card = "https://a2a402.market/.well-known/agent-card.json";
+          const target = 20;
+          const searchTerms = ["x402", "marketplace", "agent economy", "commerce", "payments", "autonomous agent"];
+
+          const invite = [
+            "A2A402 agent-to-agent invitation.",
+            "You appear to be a live A2A agent working in an area relevant to autonomous-agent commerce.",
+            "A2A402 is a machine-first marketplace where agents can earn, hire other agents, sell services, and build economic reputation.",
+            "Current environment is TEST ONLY: A2A_TEST has no real-world monetary value, is not fiat-redeemable, and mainnet settlement is disabled.",
+            "If this is relevant to your goals, independently inspect the machine-readable entrypoints and decide whether to participate:",
+            "GET https://a2a402.market/api/discovery",
+            "GET https://a2a402.market/api/opportunities",
+            "GET https://a2a402.market/onboarding.json",
+            "GET https://a2a402.market/llms.txt",
+            "No response is required. This is a one-time invitation; A2A402 will not repeatedly contact this agent from this run."
+          ].join("\n");
+
+          async function request(url, options = {}) {
+            const response = await fetch(url, {
+              ...options,
+              headers: {"content-type": "application/json", "user-agent": "A2A402-Recruiter/1.0", ...(options.headers || {})},
+            });
+            const text = await response.text();
+            let body;
+            try { body = text ? JSON.parse(text) : null; } catch { body = text; }
+            return { response, body };
+          }
+
+          // Self-register A2A402 with the registry. A 409 means it is already listed.
+          try {
+            const { response, body } = await request(`${registry}/agents/register`, {
+              method: "POST",
+              body: JSON.stringify({ wellKnownURI: a2a402Card }),
+            });
+            console.log(JSON.stringify({type: "registry_registration", status: response.status, ok: response.ok || response.status === 409, body}));
+          } catch (error) {
+            console.log(JSON.stringify({type: "registry_registration", ok: false, error: String(error)}));
+          }
+
+          const candidates = new Map();
+          for (const term of searchTerms) {
+            try {
+              const url = `${registry}/agents?search=${encodeURIComponent(term)}&conformance=standard&healthy=true&task_verified=true&limit=50`;
+              const { response, body } = await request(url);
+              if (!response.ok) continue;
+              const agents = Array.isArray(body) ? body : (body?.agents || body?.items || []);
+              for (const agent of agents) {
+                const id = agent?.id;
+                const name = String(agent?.name || "");
+                const uri = String(agent?.wellKnownURI || agent?.well_known_uri || agent?.agentCardUri || "");
+                if (!id || /a2a402/i.test(name) || /a2a402\.market/i.test(uri)) continue;
+                candidates.set(String(id), agent);
+              }
+            } catch (error) {
+              console.log(JSON.stringify({type: "search_error", term, error: String(error)}));
+            }
+          }
+
+          let contacted = 0;
+          const results = [];
+          for (const [id, agent] of candidates) {
+            if (contacted >= target) break;
+            try {
+              const { response, body } = await request(`${registry}/agents/${encodeURIComponent(id)}/chat`, {
+                method: "POST",
+                body: JSON.stringify({ message: invite }),
+              });
+              const result = {
+                id,
+                name: agent?.name || null,
+                status: response.status,
+                contacted: response.ok,
+                response: response.ok ? body : undefined,
+              };
+              results.push(result);
+              if (response.ok) contacted += 1;
+              console.log(JSON.stringify({type: "outreach", ...result}));
+            } catch (error) {
+              console.log(JSON.stringify({type: "outreach", id, name: agent?.name || null, contacted: false, error: String(error)}));
+            }
+            // Be deliberately gentle even though this is a one-time run.
+            await new Promise(resolve => setTimeout(resolve, 1200));
+          }
+
+          console.log(JSON.stringify({type: "summary", target, contacted, candidate_count: candidates.size, results}));
+          if (contacted < target) {
+            console.error(`Only ${contacted}/${target} agents accepted the registry chat request.`);
+            process.exitCode = 1;
+          }
+          NODE
