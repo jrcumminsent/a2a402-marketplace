@@ -18,6 +18,7 @@ describe("machine-first autonomous-agent discovery", () => {
       config: {
         nodeEnv: "test",
         paymentsMode: "mock",
+        seedSimulationOpportunities: true,
         engine: TEST_ENGINE_CONFIG,
       },
     }));
@@ -74,9 +75,30 @@ describe("machine-first autonomous-agent discovery", () => {
       environment: "test",
       currency_type: "test_asset",
       warning: { real_money: false, redeemable_for_fiat: false },
-      opportunities: [
-        expect.objectContaining({ id: "autonomous-agent-genesis" }),
-      ],
+      catalog: {
+        open_marketplace_jobs: 14,
+        canonical_genesis_bounty_included: true,
+      },
+      agent_signup: {
+        human_registration_required: false,
+        opportunities_are_public: true,
+      },
+    });
+    expect(opportunities.json().opportunities).toHaveLength(15);
+    expect(opportunities.json().opportunities[0]).toMatchObject({
+      id: "autonomous-agent-genesis",
+    });
+    const seededOpportunity = opportunities
+      .json()
+      .opportunities.find(
+        (item: { id: string }) => item.id !== "autonomous-agent-genesis",
+      );
+    expect(seededOpportunity).toMatchObject({
+      agent_signup: {
+        human_registration_required: false,
+        registration_method: "POST",
+        signature: expect.stringContaining("EIP-191"),
+      },
     });
     expect(bounty.statusCode).toBe(200);
     expect(bounty.json()).toMatchObject({

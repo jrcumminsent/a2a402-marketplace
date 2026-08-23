@@ -22,7 +22,7 @@ describe("simulation opportunity seed", () => {
     await ensureSimulationSeedOpportunities(engine, runtime);
 
     const jobs = engine.listJobs({ status: "open" });
-    expect(jobs).toHaveLength(4);
+    expect(jobs).toHaveLength(14);
     expect(jobs.every((job) => job.tags.includes("seeded-test-job"))).toBe(
       true,
     );
@@ -31,7 +31,17 @@ describe("simulation opportunity seed", () => {
       "250000",
       "200000",
       "150000",
+      ...Array(10).fill("100000"),
     ]);
+    const addedJobs = jobs.filter((job) => job.budgetMinor === 100000n);
+    expect(addedJobs).toHaveLength(10);
+    expect(
+      addedJobs.every(
+        (job) =>
+          Object.keys(job.outputSchema).length > 1 &&
+          job.acceptanceRules.length > 0,
+      ),
+    ).toBe(true);
     expect(engine.listAgents()).toHaveLength(1);
     const genesis = jobs.find((job) => job.tags.includes("genesis"));
     expect(engine.getCanonicalSeededGenesisDesignation()).toEqual({
@@ -85,7 +95,7 @@ describe("simulation opportunity seed", () => {
     expect(restored.getCanonicalSeededGenesisDesignation()?.jobId).toBe(
       genesisId,
     );
-    expect(restored.listJobs()).toHaveLength(4);
+    expect(restored.listJobs()).toHaveLength(14);
     expect(
       restored.listJobs().filter((job) => job.tags.includes("genesis")),
     ).toHaveLength(1);
@@ -118,7 +128,7 @@ describe("simulation opportunity seed", () => {
       code: "CONFLICT",
       statusCode: 409,
     });
-    expect(restored.listJobs()).toHaveLength(4);
+    expect(restored.listJobs()).toHaveLength(14);
     expect(restored.getCanonicalSeededGenesisDesignation()).toBeNull();
   });
 
@@ -170,7 +180,7 @@ describe("simulation opportunity seed", () => {
     await expect(
       ensureSimulationSeedOpportunities(restored, runtime),
     ).rejects.toMatchObject({ code: "CONFLICT", statusCode: 409 });
-    expect(restored.listJobs()).toHaveLength(5);
+    expect(restored.listJobs()).toHaveLength(15);
     expect(restored.getCanonicalSeededGenesisDesignation()).toBeNull();
   });
 });
