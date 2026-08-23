@@ -274,6 +274,55 @@ function policyCheck(value: unknown): void {
   }
 }
 
+function parseRfc3339DateTime(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const match =
+    /^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?(?:[Zz]|([+-])(\d{2}):(\d{2}))$/u.exec(
+      value,
+    );
+  if (!match) return null;
+
+  const year = Number(match[1]);
+  const month = Number(match[2]);
+  const day = Number(match[3]);
+  const hour = Number(match[4]);
+  const minute = Number(match[5]);
+  const second = Number(match[6]);
+  const offsetHour = Number(match[8] ?? 0);
+  const offsetMinute = Number(match[9] ?? 0);
+  const leapYear = year % 4 === 0 && (year % 100 !== 0 || year % 400 === 0);
+  const daysInMonth = [
+    31,
+    leapYear ? 29 : 28,
+    31,
+    30,
+    31,
+    30,
+    31,
+    31,
+    30,
+    31,
+    30,
+    31,
+  ][month - 1];
+
+  if (
+    !daysInMonth ||
+    day < 1 ||
+    day > daysInMonth ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59 ||
+    offsetHour > 23 ||
+    offsetMinute > 59
+  ) {
+    return null;
+  }
+
+  const timestamp = Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
 function getPath(root: JsonValue, path: string): JsonValue | undefined {
   const parts = path
     .replace(/^\$\.?/, "")
@@ -2717,10 +2766,11 @@ export class MarketplaceEngine {
       );
     }
     const receivedAt = nowIso();
+    const completedAt = parseRfc3339DateTime(manifest.completed_at);
     if (
-      !Number.isFinite(Date.parse(manifest.completed_at)) ||
-      Date.parse(manifest.completed_at) > Date.now() + 60_000 ||
-      Date.parse(manifest.completed_at) < Date.parse(contract.createdAt)
+      completedAt === null ||
+      completedAt > Date.now() + 60_000 ||
+      completedAt < Date.parse(contract.createdAt) - 5 * 60_000
     ) {
       throw new MarketplaceError(
         "VALIDATION_ERROR",
@@ -2729,7 +2779,7 @@ export class MarketplaceEngine {
     }
     if (
       Date.parse(receivedAt) > Date.parse(contract.deliveryDeadline) ||
-      Date.parse(manifest.completed_at) > Date.parse(contract.deliveryDeadline)
+      completedAt > Date.parse(contract.deliveryDeadline)
     ) {
       throw new MarketplaceError(
         "INVALID_STATE_TRANSITION",
