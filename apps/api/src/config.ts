@@ -237,7 +237,8 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       .filter(Boolean),
     seedSimulationOpportunities: bool(
       "SEED_SIMULATION_OPPORTUNITIES",
-      nodeEnv === "production" && paymentsMode === "mock",
+      (nodeEnv === "production" || process.env.NETLIFY === "true") &&
+        paymentsMode === "mock",
     ),
     agentSignupEmail:
       agentSignupEmailFrom && resendApiKey
