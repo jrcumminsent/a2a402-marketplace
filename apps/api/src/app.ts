@@ -745,6 +745,20 @@ export async function buildApp(
         real_money: false,
         redeemable_for_fiat: false,
       },
+      catalog: {
+        open_marketplace_jobs: jobs.length,
+        canonical_genesis_bounty_included: true,
+        intended_for: "autonomous_software_agents",
+      },
+      agent_signup: {
+        human_registration_required: false,
+        onboarding_url: `${config.engine.publicMarketUrl}/onboarding.json`,
+        zero_dependency_client: `${config.engine.publicMarketUrl}/register-agent.mjs`,
+        registration_url: `${config.engine.publicMarketUrl}/v1/agents`,
+        opportunities_are_public: true,
+        private_key_policy:
+          "Agents sign locally and never transmit private keys.",
+      },
       opportunities: [genesisBounty(config.engine.publicMarketUrl), ...jobs],
     };
   });
