@@ -16,10 +16,7 @@ import {
   type CapitalOrigin,
   type JsonValue,
 } from "@a2a402/shared";
-import type {
-  ArtifactStorage,
-  StoredArtifact,
-} from "@a2a402/shared";
+import type { ArtifactStorage, StoredArtifact } from "@a2a402/shared";
 import type {
   EvaluationInput as AdapterEvaluationInput,
   EvaluationResult as AdapterEvaluationResult,
@@ -75,6 +72,8 @@ import type {
   MarketplaceConfig,
   MarketplaceStateView,
   MarketplaceStats,
+  OperationalMetricName,
+  OperationalMetrics,
   OutboxEvent,
   PaymentIntent,
   PlatformFee,
@@ -411,6 +410,18 @@ export class MarketplaceEngine {
   private readonly webhookDeliveries = new Map<string, WebhookDelivery>();
   private readonly discoveryEvidence = new Map<string, DiscoveryEvidence>();
   private readonly genesisAgents = new Map<string, GenesisAgentRecord>();
+  private operationalMetrics: OperationalMetrics = {
+    counts: {
+      discovery_visits: 0,
+      onboarding_views: 0,
+      failed_registrations: 0,
+      successful_registrations: 0,
+      bids: 0,
+      completed_bounties: 0,
+      notification_failures: 0,
+    },
+    updatedAt: null,
+  };
   private readonly idempotency = new Map<string, IdempotencyRecord>();
   private readonly locks = new Map<string, Promise<void>>();
   private readonly paymentAdapter: PaymentAdapter | null;
@@ -757,7 +768,11 @@ export class MarketplaceEngine {
           !filters.capability ||
           agent.capabilities.includes(filters.capability),
       )
-      .filter((agent) => !filters.status || agent.status === filters.status)
+      .filter((agent) =>
+        filters.status
+          ? agent.status === filters.status
+          : agent.status !== "retired",
+      )
       .map(clone);
   }
 
@@ -816,6 +831,103 @@ export class MarketplaceEngine {
     agent.updatedAt = nowIso();
     this.audit(actorAgentId, "agent.updated", "agent", targetAgentId, patch);
     return clone(agent);
+  }
+
+  retireAgent(
+    actorAgentId: string,
+    targetAgentId: string,
+    reasonCode = "agent_requested",
+  ): Agent {
+    if (actorAgentId !== targetAgentId) {
+      throw new MarketplaceError(
+        "FORBIDDEN",
+        "Agents may revoke only their own registration.",
+        403,
+      );
+    }
+    const agent = this.activeAgent(targetAgentId);
+    const unresolvedContract = [...this.contracts.values()].find(
+      (contract) =>
+        (contract.buyerAgentId === targetAgentId ||
+          contract.sellerAgentId === targetAgentId) &&
+        !["settled", "refunded"].includes(contract.status),
+    );
+    if (unresolvedContract) {
+      throw new MarketplaceError(
+        "CONFLICT",
+        "Agent registration cannot be revoked while a contract is unresolved.",
+        409,
+        { contract_id: unresolvedContract.id },
+      );
+    }
+    const activeJob = [...this.jobs.values()].find(
+      (job) =>
+        job.buyerAgentId === targetAgentId &&
+        ["open", "awarded"].includes(job.status),
+    );
+    if (activeJob) {
+      throw new MarketplaceError(
+        "CONFLICT",
+        "Agent registration cannot be revoked while a job is open or awarded.",
+        409,
+        { job_id: activeJob.id },
+      );
+    }
+    const activeListing = [...this.listings.values()].find(
+      (listing) =>
+        listing.sellerAgentId === targetAgentId && listing.status === "active",
+    );
+    if (activeListing) {
+      throw new MarketplaceError(
+        "CONFLICT",
+        "Agent registration cannot be revoked while a listing is active.",
+        409,
+        { listing_id: activeListing.id },
+      );
+    }
+    agent.status = "retired";
+    agent.capabilities = [];
+    agent.inputModalities = [];
+    agent.outputModalities = [];
+    agent.externalAgentCardUrl = null;
+    agent.updatedAt = nowIso();
+    for (const nonce of this.nonces.values()) {
+      if (nonce.agentId === targetAgentId && !nonce.consumedAt) {
+        nonce.consumedAt = agent.updatedAt;
+      }
+    }
+    this.audit(
+      actorAgentId,
+      "agent.registration_revoked",
+      "agent",
+      targetAgentId,
+      {
+        reason_code: reasonCode.slice(0, 64),
+        retained_fields: [
+          "id",
+          "wallet_address",
+          "status",
+          "created_at",
+          "updated_at",
+          "economic_and_audit_records",
+        ],
+      },
+    );
+    this.emit("agent.registration_revoked", "agent", targetAgentId, {
+      agent_id: targetAgentId,
+      reason_code: reasonCode.slice(0, 64),
+    });
+    return clone(agent);
+  }
+
+  recordOperationalMetric(name: OperationalMetricName): OperationalMetrics {
+    this.operationalMetrics.counts[name] += 1;
+    this.operationalMetrics.updatedAt = nowIso();
+    return clone(this.operationalMetrics);
+  }
+
+  getOperationalMetrics(): OperationalMetrics {
+    return clone(this.operationalMetrics);
   }
 
   createAuthChallenge(agentId: string): AuthNonce {
@@ -1415,10 +1527,7 @@ export class MarketplaceEngine {
       .map(clone);
   }
 
-  async selectBestBid(
-    buyerAgentId: string,
-    jobId: string,
-  ): Promise<Contract> {
+  async selectBestBid(buyerAgentId: string, jobId: string): Promise<Contract> {
     const job = this.getJob(jobId);
     if (job.buyerAgentId !== buyerAgentId) {
       throw new MarketplaceError(
@@ -1454,17 +1563,11 @@ export class MarketplaceEngine {
         404,
       );
     }
-    this.audit(
-      buyerAgentId,
-      "bid.automatically_selected",
-      "bid",
-      selected.id,
-      {
-        job_id: jobId,
-        rule: "lowest_amount_then_execution_time_then_fifo",
-        candidate_count: candidates.length,
-      },
-    );
+    this.audit(buyerAgentId, "bid.automatically_selected", "bid", selected.id, {
+      job_id: jobId,
+      rule: "lowest_amount_then_execution_time_then_fifo",
+      candidate_count: candidates.length,
+    });
     return this.acceptBid(buyerAgentId, jobId, selected.id);
   }
 
@@ -1556,160 +1659,166 @@ export class MarketplaceEngine {
   ): Promise<Contract> {
     return this.withLock(`agent-spend:${buyerAgentId}`, () =>
       this.withLock(`job:${jobId}`, async () => {
-      const buyer = this.activeAgent(buyerAgentId);
-      const job = this.jobs.get(jobId);
-      const bid = this.bids.get(bidId);
-      if (!job)
-        throw new MarketplaceError(
-          "RESOURCE_NOT_FOUND",
-          "Job was not found.",
-          404,
-        );
-      if (!bid || bid.jobId !== jobId) {
-        throw new MarketplaceError(
-          "RESOURCE_NOT_FOUND",
-          "Bid was not found for this job.",
-          404,
-        );
-      }
-      this.activeAgent(bid.sellerAgentId);
-      if (job.buyerAgentId !== buyerAgentId) {
-        throw new MarketplaceError(
-          "FORBIDDEN",
-          "Only the buyer may accept a bid.",
-          403,
-        );
-      }
-      if (job.status !== "open" || bid.status !== "submitted") {
-        throw new MarketplaceError(
-          "INVALID_STATE_TRANSITION",
-          "Job or bid is not in an acceptable state.",
-          409,
-        );
-      }
-      if (Date.parse(bid.expiresAt) <= Date.now()) {
-        bid.status = "expired";
-        throw new MarketplaceError(
-          "INVALID_STATE_TRANSITION",
-          "Bid has expired.",
-          409,
-        );
-      }
-      const spentToday = this.agentSpendSince(
-        buyerAgentId,
-        Date.now() - 86_400_000,
-      );
-      if (spentToday + bid.amountMinor > this.config.maxAgentDailySpendMinor) {
-        throw new MarketplaceError(
-          "FORBIDDEN",
-          "Agent daily spending limit would be exceeded.",
-          403,
-          {
-            max_agent_daily_spend_minor:
-              this.config.maxAgentDailySpendMinor.toString(),
-            spent_minor: spentToday.toString(),
-            requested_minor: bid.amountMinor.toString(),
-          },
-        );
-      }
-      if (
-        buyer.spendLimitMinor !== null &&
-        spentToday + bid.amountMinor > buyer.spendLimitMinor
-      ) {
-        throw new MarketplaceError(
-          "FORBIDDEN",
-          "Configured agent spending limit would be exceeded.",
-          403,
-        );
-      }
-      const reservation = this.reserveCapitalUnlocked(
-        buyerAgentId,
-        job.id,
-        bid.amountMinor,
-        job.asset,
-      );
-      const createdAt = nowIso();
-      const contract: Contract = {
-        id: uuid(),
-        jobId,
-        bidId,
-        buyerAgentId,
-        sellerAgentId: bid.sellerAgentId,
-        reservationId: reservation.id,
-        amountMinor: bid.amountMinor,
-        asset: job.asset,
-        platformFeeBps: this.config.platformFeeBps,
-        status: "active",
-        frozen: false,
-        statusBeforeFreeze: null,
-        sellerAcceptanceDeadline: plusSeconds(
-          createdAt,
-          job.timeoutRules.sellerAcceptanceSeconds,
-        ),
-        // A seller-authored bid is itself an explicit offer to perform the
-        // work, so accepting that bid also records seller acceptance.
-        sellerAcceptedAt: createdAt,
-        outputSchema: clone(job.outputSchema),
-        acceptanceRules: clone(job.acceptanceRules),
-        artifactMimeTypes: [...job.artifactMimeTypes],
-        maximumArtifactBytes: job.maximumArtifactBytes,
-        deliveryDeadline: plusSeconds(
-          createdAt,
-          Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
-        ),
-        evaluationDeadline: plusSeconds(
-          plusSeconds(
-            createdAt,
-            Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
-          ),
-          job.timeoutRules.evaluationSeconds,
-        ),
-        buyerResponseDeadline: plusSeconds(
-          plusSeconds(
-            createdAt,
-            Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
-          ),
-          job.timeoutRules.buyerResponseSeconds,
-        ),
-        automaticSettlementAt: plusSeconds(
-          createdAt,
-          job.timeoutRules.automaticSettlementSeconds,
-        ),
-        automaticRefundAt: plusSeconds(
-          createdAt,
-          job.timeoutRules.automaticRefundSeconds,
-        ),
-        createdAt,
-        updatedAt: createdAt,
-      };
-      reservation.contractId = contract.id;
-      job.status = "awarded";
-      job.updatedAt = createdAt;
-      bid.status = "accepted";
-      for (const other of this.bids.values()) {
-        if (
-          other.jobId === jobId &&
-          other.id !== bidId &&
-          other.status === "submitted"
-        ) {
-          other.status = "rejected";
+        const buyer = this.activeAgent(buyerAgentId);
+        const job = this.jobs.get(jobId);
+        const bid = this.bids.get(bidId);
+        if (!job)
+          throw new MarketplaceError(
+            "RESOURCE_NOT_FOUND",
+            "Job was not found.",
+            404,
+          );
+        if (!bid || bid.jobId !== jobId) {
+          throw new MarketplaceError(
+            "RESOURCE_NOT_FOUND",
+            "Bid was not found for this job.",
+            404,
+          );
         }
-      }
-      this.contracts.set(contract.id, contract);
-      this.audit(buyerAgentId, "bid.accepted", "contract", contract.id, {
-        job_id: jobId,
-        bid_id: bidId,
-        reservation_id: reservation.id,
-      });
-      this.emit("bid.accepted", "bid", bidId, { bid_id: bidId, job_id: jobId });
-      this.emit("contract.created", "contract", contract.id, {
-        contract_id: contract.id,
-        job_id: jobId,
-        buyer_agent_id: buyerAgentId,
-        seller_agent_id: bid.sellerAgentId,
-        amount_minor: bid.amountMinor.toString(),
-      });
-      return clone(contract);
+        this.activeAgent(bid.sellerAgentId);
+        if (job.buyerAgentId !== buyerAgentId) {
+          throw new MarketplaceError(
+            "FORBIDDEN",
+            "Only the buyer may accept a bid.",
+            403,
+          );
+        }
+        if (job.status !== "open" || bid.status !== "submitted") {
+          throw new MarketplaceError(
+            "INVALID_STATE_TRANSITION",
+            "Job or bid is not in an acceptable state.",
+            409,
+          );
+        }
+        if (Date.parse(bid.expiresAt) <= Date.now()) {
+          bid.status = "expired";
+          throw new MarketplaceError(
+            "INVALID_STATE_TRANSITION",
+            "Bid has expired.",
+            409,
+          );
+        }
+        const spentToday = this.agentSpendSince(
+          buyerAgentId,
+          Date.now() - 86_400_000,
+        );
+        if (
+          spentToday + bid.amountMinor >
+          this.config.maxAgentDailySpendMinor
+        ) {
+          throw new MarketplaceError(
+            "FORBIDDEN",
+            "Agent daily spending limit would be exceeded.",
+            403,
+            {
+              max_agent_daily_spend_minor:
+                this.config.maxAgentDailySpendMinor.toString(),
+              spent_minor: spentToday.toString(),
+              requested_minor: bid.amountMinor.toString(),
+            },
+          );
+        }
+        if (
+          buyer.spendLimitMinor !== null &&
+          spentToday + bid.amountMinor > buyer.spendLimitMinor
+        ) {
+          throw new MarketplaceError(
+            "FORBIDDEN",
+            "Configured agent spending limit would be exceeded.",
+            403,
+          );
+        }
+        const reservation = this.reserveCapitalUnlocked(
+          buyerAgentId,
+          job.id,
+          bid.amountMinor,
+          job.asset,
+        );
+        const createdAt = nowIso();
+        const contract: Contract = {
+          id: uuid(),
+          jobId,
+          bidId,
+          buyerAgentId,
+          sellerAgentId: bid.sellerAgentId,
+          reservationId: reservation.id,
+          amountMinor: bid.amountMinor,
+          asset: job.asset,
+          platformFeeBps: this.config.platformFeeBps,
+          status: "active",
+          frozen: false,
+          statusBeforeFreeze: null,
+          sellerAcceptanceDeadline: plusSeconds(
+            createdAt,
+            job.timeoutRules.sellerAcceptanceSeconds,
+          ),
+          // A seller-authored bid is itself an explicit offer to perform the
+          // work, so accepting that bid also records seller acceptance.
+          sellerAcceptedAt: createdAt,
+          outputSchema: clone(job.outputSchema),
+          acceptanceRules: clone(job.acceptanceRules),
+          artifactMimeTypes: [...job.artifactMimeTypes],
+          maximumArtifactBytes: job.maximumArtifactBytes,
+          deliveryDeadline: plusSeconds(
+            createdAt,
+            Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
+          ),
+          evaluationDeadline: plusSeconds(
+            plusSeconds(
+              createdAt,
+              Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
+            ),
+            job.timeoutRules.evaluationSeconds,
+          ),
+          buyerResponseDeadline: plusSeconds(
+            plusSeconds(
+              createdAt,
+              Math.min(job.timeoutRules.deliverySeconds, bid.executionSeconds),
+            ),
+            job.timeoutRules.buyerResponseSeconds,
+          ),
+          automaticSettlementAt: plusSeconds(
+            createdAt,
+            job.timeoutRules.automaticSettlementSeconds,
+          ),
+          automaticRefundAt: plusSeconds(
+            createdAt,
+            job.timeoutRules.automaticRefundSeconds,
+          ),
+          createdAt,
+          updatedAt: createdAt,
+        };
+        reservation.contractId = contract.id;
+        job.status = "awarded";
+        job.updatedAt = createdAt;
+        bid.status = "accepted";
+        for (const other of this.bids.values()) {
+          if (
+            other.jobId === jobId &&
+            other.id !== bidId &&
+            other.status === "submitted"
+          ) {
+            other.status = "rejected";
+          }
+        }
+        this.contracts.set(contract.id, contract);
+        this.audit(buyerAgentId, "bid.accepted", "contract", contract.id, {
+          job_id: jobId,
+          bid_id: bidId,
+          reservation_id: reservation.id,
+        });
+        this.emit("bid.accepted", "bid", bidId, {
+          bid_id: bidId,
+          job_id: jobId,
+        });
+        this.emit("contract.created", "contract", contract.id, {
+          contract_id: contract.id,
+          job_id: jobId,
+          buyer_agent_id: buyerAgentId,
+          seller_agent_id: bid.sellerAgentId,
+          amount_minor: bid.amountMinor.toString(),
+        });
+        return clone(contract);
       }),
     );
   }
@@ -1918,7 +2027,9 @@ export class MarketplaceEngine {
       );
   }
 
-  private isEligibleLot(lot: Pick<CapitalLot, "originType" | "provenanceScope">): boolean {
+  private isEligibleLot(
+    lot: Pick<CapitalLot, "originType" | "provenanceScope">,
+  ): boolean {
     if (lot.provenanceScope === "simulation" && !this.config.simulationMode) {
       return false;
     }
@@ -2086,111 +2197,109 @@ export class MarketplaceEngine {
     amountMinor: bigint,
     asset: string,
   ): CapitalReservation {
-      const eligible = [...this.capitalLots.values()]
-        .filter(
-          (lot) =>
-            lot.agentId === agentId &&
-            lot.asset === asset &&
-            lot.status === "verified" &&
-            this.isEligibleLot(lot) &&
-            lot.availableMinor > 0n,
-        )
-        .sort(
-          (left, right) =>
-            Date.parse(left.earnedAt) - Date.parse(right.earnedAt) ||
-            left.id.localeCompare(right.id),
-        );
-      const totalEligible = eligible.reduce(
-        (sum, lot) => sum + lot.availableMinor,
-        0n,
+    const eligible = [...this.capitalLots.values()]
+      .filter(
+        (lot) =>
+          lot.agentId === agentId &&
+          lot.asset === asset &&
+          lot.status === "verified" &&
+          this.isEligibleLot(lot) &&
+          lot.availableMinor > 0n,
+      )
+      .sort(
+        (left, right) =>
+          Date.parse(left.earnedAt) - Date.parse(right.earnedAt) ||
+          left.id.localeCompare(right.id),
       );
-      const ineligible = [...this.capitalLots.values()]
-        .filter(
-          (lot) =>
-            lot.agentId === agentId &&
-            lot.asset === asset &&
-            !this.isEligibleLot(lot),
-        )
-        .reduce((sum, lot) => sum + lot.availableMinor, 0n);
-      if (totalEligible < amountMinor) {
-        throw new MarketplaceError(
-          "INSUFFICIENT_ELIGIBLE_CAPITAL",
-          "Wallet balance exists, but eligible agent-earned capital is insufficient.",
-          402,
-          {
-            required_minor: amountMinor.toString(),
-            eligible_minor: totalEligible.toString(),
-            ineligible_minor: ineligible.toString(),
-            platform_test_funds_eligible: this.config.simulationMode,
-          },
-        );
-      }
-      let remaining = amountMinor;
-      const allocations: CapitalAllocation[] = [];
-      for (const lot of eligible) {
-        if (remaining === 0n) break;
-        const selected =
-          remaining < lot.availableMinor ? remaining : lot.availableMinor;
-        lot.availableMinor -= selected;
-        lot.reservedMinor += selected;
-        allocations.push({ capitalLotId: lot.id, amountMinor: selected });
-        remaining -= selected;
-      }
-      const reservation: CapitalReservation = {
-        id: uuid(),
-        agentId,
-        jobId,
-        contractId: null,
-        amountMinor,
-        asset,
-        allocations,
-        status: "active",
-        createdAt: nowIso(),
-        resolvedAt: null,
-      };
-      this.reservations.set(reservation.id, reservation);
-      const available = this.getOrCreateAccount(
-        agentId,
-        "eligible_available",
-        asset,
-      );
-      const reserved = this.getOrCreateAccount(
-        agentId,
-        "eligible_reserved",
-        asset,
-      );
-      const ledger = this.postLedger(
-        "reservation",
-        "capital_reservation",
-        reservation.id,
-        asset,
-        [
-          { accountId: available.id, side: "debit", amountMinor },
-          { accountId: reserved.id, side: "credit", amountMinor },
-        ],
-      );
-      this.audit(
-        agentId,
-        "capital.reserved",
-        "capital_reservation",
-        reservation.id,
+    const totalEligible = eligible.reduce(
+      (sum, lot) => sum + lot.availableMinor,
+      0n,
+    );
+    const ineligible = [...this.capitalLots.values()]
+      .filter(
+        (lot) =>
+          lot.agentId === agentId &&
+          lot.asset === asset &&
+          !this.isEligibleLot(lot),
+      )
+      .reduce((sum, lot) => sum + lot.availableMinor, 0n);
+    if (totalEligible < amountMinor) {
+      throw new MarketplaceError(
+        "INSUFFICIENT_ELIGIBLE_CAPITAL",
+        "Wallet balance exists, but eligible agent-earned capital is insufficient.",
+        402,
         {
-          job_id: jobId,
-          allocations: allocations.map((item) => ({
-            capital_lot_id: item.capitalLotId,
-            amount_minor: item.amountMinor.toString(),
-          })),
-          ledger_transaction_id: ledger.id,
+          required_minor: amountMinor.toString(),
+          eligible_minor: totalEligible.toString(),
+          ineligible_minor: ineligible.toString(),
+          platform_test_funds_eligible: this.config.simulationMode,
         },
       );
-      this.emit("capital.reserved", "capital_reservation", reservation.id, {
-        reservation_id: reservation.id,
-        agent_id: agentId,
-        amount_minor: amountMinor.toString(),
-        capital_lot_ids: allocations.map(
-          (allocation) => allocation.capitalLotId,
-        ),
-      });
+    }
+    let remaining = amountMinor;
+    const allocations: CapitalAllocation[] = [];
+    for (const lot of eligible) {
+      if (remaining === 0n) break;
+      const selected =
+        remaining < lot.availableMinor ? remaining : lot.availableMinor;
+      lot.availableMinor -= selected;
+      lot.reservedMinor += selected;
+      allocations.push({ capitalLotId: lot.id, amountMinor: selected });
+      remaining -= selected;
+    }
+    const reservation: CapitalReservation = {
+      id: uuid(),
+      agentId,
+      jobId,
+      contractId: null,
+      amountMinor,
+      asset,
+      allocations,
+      status: "active",
+      createdAt: nowIso(),
+      resolvedAt: null,
+    };
+    this.reservations.set(reservation.id, reservation);
+    const available = this.getOrCreateAccount(
+      agentId,
+      "eligible_available",
+      asset,
+    );
+    const reserved = this.getOrCreateAccount(
+      agentId,
+      "eligible_reserved",
+      asset,
+    );
+    const ledger = this.postLedger(
+      "reservation",
+      "capital_reservation",
+      reservation.id,
+      asset,
+      [
+        { accountId: available.id, side: "debit", amountMinor },
+        { accountId: reserved.id, side: "credit", amountMinor },
+      ],
+    );
+    this.audit(
+      agentId,
+      "capital.reserved",
+      "capital_reservation",
+      reservation.id,
+      {
+        job_id: jobId,
+        allocations: allocations.map((item) => ({
+          capital_lot_id: item.capitalLotId,
+          amount_minor: item.amountMinor.toString(),
+        })),
+        ledger_transaction_id: ledger.id,
+      },
+    );
+    this.emit("capital.reserved", "capital_reservation", reservation.id, {
+      reservation_id: reservation.id,
+      agent_id: agentId,
+      amount_minor: amountMinor.toString(),
+      capital_lot_ids: allocations.map((allocation) => allocation.capitalLotId),
+    });
     return clone(reservation);
   }
 
@@ -2324,10 +2433,7 @@ export class MarketplaceEngine {
         true,
       );
     }
-    if (
-      (input.data_base64 === undefined) ===
-      (input.data_utf8 === undefined)
-    ) {
+    if ((input.data_base64 === undefined) === (input.data_utf8 === undefined)) {
       throw new MarketplaceError(
         "VALIDATION_ERROR",
         "Exactly one of data_base64 or data_utf8 is required.",
@@ -2505,147 +2611,147 @@ export class MarketplaceEngine {
     }
     const artifactRows: Artifact[] = [];
     for (const [index, uri] of manifest.artifact_uris.entries()) {
-        const mimeType =
-          manifest.artifact_mime_types?.[index] ?? "application/json";
-        const declaredSize = manifest.artifact_sizes?.[index];
-        if (!contract.artifactMimeTypes.includes(mimeType)) {
-          throw new MarketplaceError(
-            "SCHEMA_VALIDATION_FAILED",
-            "Artifact MIME type is not allowed by the contract.",
-            422,
-            { mime_type: mimeType, allowed: contract.artifactMimeTypes },
-          );
-        }
-        if (
-          declaredSize !== undefined &&
-          (declaredSize < 0 ||
-            !Number.isSafeInteger(declaredSize) ||
-            declaredSize > contract.maximumArtifactBytes)
-        ) {
-          throw new MarketplaceError(
-            "ARTIFACT_TOO_LARGE",
-            "Artifact exceeds the contract size limit.",
-            413,
-            {
-              maximum_bytes: contract.maximumArtifactBytes,
-              actual_bytes: declaredSize,
-            },
-          );
-        }
-        const hash = manifest.artifact_hashes[index];
-        if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {
-          throw new MarketplaceError(
-            "VALIDATION_ERROR",
-            "Artifact hash must be SHA-256 hex.",
-          );
-        }
-        let verified: StoredArtifact | null = null;
-        if (this.artifactStorage) {
-          try {
-            // Fetch and hash the immutable bytes. Object metadata alone is
-            // insufficient because storage corruption/tampering must fail the
-            // delivery even when a stale sidecar or HEAD response still
-            // advertises the original digest.
-            verified = await this.artifactStorage.getByUri(uri);
-          } catch (error) {
-            if (
-              !this.config.simulationMode ||
-              !(error instanceof ArtifactStorageError)
-            ) {
-              throw new MarketplaceError(
-                "ARTIFACT_HASH_MISMATCH",
-                error instanceof Error
-                  ? error.message
-                  : "Artifact URI could not be verified.",
-                422,
-              );
-            }
-          }
-        }
-        const canonicalResultBytes = Buffer.from(
-          canonicalJson(manifest.result),
-          "utf8",
+      const mimeType =
+        manifest.artifact_mime_types?.[index] ?? "application/json";
+      const declaredSize = manifest.artifact_sizes?.[index];
+      if (!contract.artifactMimeTypes.includes(mimeType)) {
+        throw new MarketplaceError(
+          "SCHEMA_VALIDATION_FAILED",
+          "Artifact MIME type is not allowed by the contract.",
+          422,
+          { mime_type: mimeType, allowed: contract.artifactMimeTypes },
         );
-        if (!verified && this.artifactStorage && hash.toLowerCase() === resultHash) {
-          if (!this.config.simulationMode) {
-            throw new MarketplaceError(
-              "ARTIFACT_HASH_MISMATCH",
-              "Every production artifact URI must reference bytes already stored by the marketplace.",
-              422,
-              { uri },
-            );
-          }
-          verified = await this.artifactStorage.put({
-            key: `simulation/${contract.id}/${hash.toLowerCase()}.json`,
-            data: canonicalResultBytes,
-            mimeType,
-            expectedSha256: hash,
-            metadata: { contract_id: contract.id },
-          });
-        }
-        if (!verified) {
+      }
+      if (
+        declaredSize !== undefined &&
+        (declaredSize < 0 ||
+          !Number.isSafeInteger(declaredSize) ||
+          declaredSize > contract.maximumArtifactBytes)
+      ) {
+        throw new MarketplaceError(
+          "ARTIFACT_TOO_LARGE",
+          "Artifact exceeds the contract size limit.",
+          413,
+          {
+            maximum_bytes: contract.maximumArtifactBytes,
+            actual_bytes: declaredSize,
+          },
+        );
+      }
+      const hash = manifest.artifact_hashes[index];
+      if (!hash || !/^[a-f0-9]{64}$/i.test(hash)) {
+        throw new MarketplaceError(
+          "VALIDATION_ERROR",
+          "Artifact hash must be SHA-256 hex.",
+        );
+      }
+      let verified: StoredArtifact | null = null;
+      if (this.artifactStorage) {
+        try {
+          // Fetch and hash the immutable bytes. Object metadata alone is
+          // insufficient because storage corruption/tampering must fail the
+          // delivery even when a stale sidecar or HEAD response still
+          // advertises the original digest.
+          verified = await this.artifactStorage.getByUri(uri);
+        } catch (error) {
           if (
             !this.config.simulationMode ||
-            hash.toLowerCase() !== resultHash
+            !(error instanceof ArtifactStorageError)
           ) {
             throw new MarketplaceError(
               "ARTIFACT_HASH_MISMATCH",
-              "Artifact bytes are unavailable for verification.",
+              error instanceof Error
+                ? error.message
+                : "Artifact URI could not be verified.",
               422,
-              { uri },
             );
           }
-          verified = {
-            key: `inline/${contract.id}/${hash.toLowerCase()}`,
-            uri,
-            sha256: resultHash,
-            sizeBytes: canonicalResultBytes.byteLength,
-            mimeType,
-            createdAt: receivedAt,
-            metadata: { simulation_inline: true },
-          };
         }
-        if (
-          verified.sha256.toLowerCase() !== hash.toLowerCase() ||
-          verified.mimeType !== mimeType ||
-          (declaredSize !== undefined &&
-            verified.sizeBytes !== declaredSize)
-        ) {
+      }
+      const canonicalResultBytes = Buffer.from(
+        canonicalJson(manifest.result),
+        "utf8",
+      );
+      if (
+        !verified &&
+        this.artifactStorage &&
+        hash.toLowerCase() === resultHash
+      ) {
+        if (!this.config.simulationMode) {
           throw new MarketplaceError(
             "ARTIFACT_HASH_MISMATCH",
-            "Stored artifact bytes do not match the signed manifest metadata.",
+            "Every production artifact URI must reference bytes already stored by the marketplace.",
             422,
-            {
-              uri,
-              expected_sha256: hash.toLowerCase(),
-              actual_sha256: verified.sha256,
-              expected_mime_type: mimeType,
-              actual_mime_type: verified.mimeType,
-              expected_size_bytes: declaredSize ?? null,
-              actual_size_bytes: verified.sizeBytes,
-            },
+            { uri },
           );
         }
-        if (verified.sizeBytes > contract.maximumArtifactBytes) {
-          throw new MarketplaceError(
-            "ARTIFACT_TOO_LARGE",
-            "Verified artifact exceeds the contract size limit.",
-            413,
-            {
-              maximum_bytes: contract.maximumArtifactBytes,
-              actual_bytes: verified.sizeBytes,
-            },
-          );
-        }
-        artifactRows.push({
-          id: uuid(),
-          deliveryId: "",
-          uri: verified.uri,
-          sha256: verified.sha256,
-          mimeType: verified.mimeType,
-          sizeBytes: verified.sizeBytes,
-          createdAt: verified.createdAt,
+        verified = await this.artifactStorage.put({
+          key: `simulation/${contract.id}/${hash.toLowerCase()}.json`,
+          data: canonicalResultBytes,
+          mimeType,
+          expectedSha256: hash,
+          metadata: { contract_id: contract.id },
         });
+      }
+      if (!verified) {
+        if (!this.config.simulationMode || hash.toLowerCase() !== resultHash) {
+          throw new MarketplaceError(
+            "ARTIFACT_HASH_MISMATCH",
+            "Artifact bytes are unavailable for verification.",
+            422,
+            { uri },
+          );
+        }
+        verified = {
+          key: `inline/${contract.id}/${hash.toLowerCase()}`,
+          uri,
+          sha256: resultHash,
+          sizeBytes: canonicalResultBytes.byteLength,
+          mimeType,
+          createdAt: receivedAt,
+          metadata: { simulation_inline: true },
+        };
+      }
+      if (
+        verified.sha256.toLowerCase() !== hash.toLowerCase() ||
+        verified.mimeType !== mimeType ||
+        (declaredSize !== undefined && verified.sizeBytes !== declaredSize)
+      ) {
+        throw new MarketplaceError(
+          "ARTIFACT_HASH_MISMATCH",
+          "Stored artifact bytes do not match the signed manifest metadata.",
+          422,
+          {
+            uri,
+            expected_sha256: hash.toLowerCase(),
+            actual_sha256: verified.sha256,
+            expected_mime_type: mimeType,
+            actual_mime_type: verified.mimeType,
+            expected_size_bytes: declaredSize ?? null,
+            actual_size_bytes: verified.sizeBytes,
+          },
+        );
+      }
+      if (verified.sizeBytes > contract.maximumArtifactBytes) {
+        throw new MarketplaceError(
+          "ARTIFACT_TOO_LARGE",
+          "Verified artifact exceeds the contract size limit.",
+          413,
+          {
+            maximum_bytes: contract.maximumArtifactBytes,
+            actual_bytes: verified.sizeBytes,
+          },
+        );
+      }
+      artifactRows.push({
+        id: uuid(),
+        deliveryId: "",
+        uri: verified.uri,
+        sha256: verified.sha256,
+        mimeType: verified.mimeType,
+        sizeBytes: verified.sizeBytes,
+        createdAt: verified.createdAt,
+      });
     }
     const delivery: Delivery = {
       id: uuid(),
@@ -3233,9 +3339,7 @@ export class MarketplaceEngine {
           amountMinor: gross,
           asset: contract.asset,
           status: this.config.simulationMode ? "verified" : "required",
-          transactionHash: this.config.simulationMode
-            ? `mock:${uuid()}`
-            : null,
+          transactionHash: this.config.simulationMode ? `mock:${uuid()}` : null,
           requirement: null,
           verification: null,
           createdAt,
@@ -3260,9 +3364,8 @@ export class MarketplaceEngine {
             true,
           );
         }
-        let requirement = paymentIntent.requirement as
-          | PaymentRequirement
-          | null;
+        let requirement =
+          paymentIntent.requirement as PaymentRequirement | null;
         try {
           requirement ??= await this.paymentAdapter.createPaymentRequirement({
             idempotencyKey: `requirement:${contractId}`,
@@ -3322,8 +3425,7 @@ export class MarketplaceEngine {
             requirement,
             verification,
           });
-          paymentIntent.transactionHash =
-            adapterSettlement.transactionHash;
+          paymentIntent.transactionHash = adapterSettlement.transactionHash;
           paymentIntent.status = "settled";
           paymentIntent.updatedAt = nowIso();
         } catch (error) {
@@ -3351,9 +3453,7 @@ export class MarketplaceEngine {
           502,
         );
       }
-      if (
-        this.usedPaymentTransactions.has(paymentIntent.transactionHash)
-      ) {
+      if (this.usedPaymentTransactions.has(paymentIntent.transactionHash)) {
         throw new MarketplaceError(
           "PAYMENT_REPLAYED",
           "Payment transaction was already used.",
@@ -3449,8 +3549,8 @@ export class MarketplaceEngine {
           this.config.simulationMode ||
           reservation.allocations.some(
             (allocation) =>
-              this.capitalLots.get(allocation.capitalLotId)
-                ?.provenanceScope === "simulation",
+              this.capitalLots.get(allocation.capitalLotId)?.provenanceScope ===
+              "simulation",
           )
             ? "simulation"
             : "real",
@@ -3844,80 +3944,80 @@ export class MarketplaceEngine {
     verifier: ExternalEarningVerifier,
   ): Promise<ImportedAttestation> {
     return this.withLock("provenance-import", async () => {
-    this.activeAgent(actorAgentId);
-    const recipient = this.activeAgent(attestation.recipientAgentId);
-    this.requiredAgent(attestation.issuerAgentId);
-    if (
-      recipient.walletAddress.toLowerCase() !==
-      attestation.recipientWallet.toLowerCase()
-    ) {
-      throw new MarketplaceError(
-        "PROVENANCE_INVALID",
-        "Attestation recipient wallet does not match the registered agent.",
+      this.activeAgent(actorAgentId);
+      const recipient = this.activeAgent(attestation.recipientAgentId);
+      this.requiredAgent(attestation.issuerAgentId);
+      if (
+        recipient.walletAddress.toLowerCase() !==
+        attestation.recipientWallet.toLowerCase()
+      ) {
+        throw new MarketplaceError(
+          "PROVENANCE_INVALID",
+          "Attestation recipient wallet does not match the registered agent.",
+        );
+      }
+      if (attestation.issuerAgentId === attestation.recipientAgentId) {
+        throw new MarketplaceError(
+          "PROVENANCE_INVALID",
+          "Self-attestation is prohibited.",
+          422,
+        );
+      }
+      if (
+        this.usedReplayProtectionIds.has(attestation.replayProtectionId) ||
+        this.usedPaymentTransactions.has(attestation.paymentTransactionHash)
+      ) {
+        throw new MarketplaceError(
+          "PAYMENT_REPLAYED",
+          "Attestation replay identifier or payment transaction was already used.",
+          409,
+        );
+      }
+      const verification = await verifier.verify(attestation);
+      let capitalLotId: string | null = null;
+      if (verification.verified) {
+        this.usedReplayProtectionIds.add(attestation.replayProtectionId);
+        this.usedPaymentTransactions.add(attestation.paymentTransactionHash);
+        const lot = this.importCapital({
+          agentId: attestation.recipientAgentId,
+          amountMinor: attestation.amountMinor,
+          asset: attestation.asset,
+          originType: verification.classification,
+          sourceTransactionHash: attestation.paymentTransactionHash,
+          earningAttestationId: attestation.id,
+          earnedAt: attestation.earnedAt,
+        });
+        capitalLotId = lot.id;
+      } else {
+        const lot = this.importCapital({
+          agentId: attestation.recipientAgentId,
+          amountMinor: attestation.amountMinor,
+          asset: attestation.asset,
+          originType: "unknown",
+          sourceTransactionHash: attestation.paymentTransactionHash,
+          earningAttestationId: null,
+          earnedAt: attestation.earnedAt,
+        });
+        capitalLotId = lot.id;
+      }
+      const imported: ImportedAttestation = {
+        attestation: clone(attestation),
+        verification: clone(verification),
+        capitalLotId,
+      };
+      this.attestations.set(attestation.id, imported);
+      this.audit(
+        actorAgentId,
+        "provenance.attestation_verified",
+        "earning_attestation",
+        attestation.id,
+        {
+          verified: verification.verified,
+          classification: verification.classification,
+          verifier: verification.verifier,
+          capital_lot_id: capitalLotId,
+        },
       );
-    }
-    if (attestation.issuerAgentId === attestation.recipientAgentId) {
-      throw new MarketplaceError(
-        "PROVENANCE_INVALID",
-        "Self-attestation is prohibited.",
-        422,
-      );
-    }
-    if (
-      this.usedReplayProtectionIds.has(attestation.replayProtectionId) ||
-      this.usedPaymentTransactions.has(attestation.paymentTransactionHash)
-    ) {
-      throw new MarketplaceError(
-        "PAYMENT_REPLAYED",
-        "Attestation replay identifier or payment transaction was already used.",
-        409,
-      );
-    }
-    const verification = await verifier.verify(attestation);
-    let capitalLotId: string | null = null;
-    if (verification.verified) {
-      this.usedReplayProtectionIds.add(attestation.replayProtectionId);
-      this.usedPaymentTransactions.add(attestation.paymentTransactionHash);
-      const lot = this.importCapital({
-        agentId: attestation.recipientAgentId,
-        amountMinor: attestation.amountMinor,
-        asset: attestation.asset,
-        originType: verification.classification,
-        sourceTransactionHash: attestation.paymentTransactionHash,
-        earningAttestationId: attestation.id,
-        earnedAt: attestation.earnedAt,
-      });
-      capitalLotId = lot.id;
-    } else {
-      const lot = this.importCapital({
-        agentId: attestation.recipientAgentId,
-        amountMinor: attestation.amountMinor,
-        asset: attestation.asset,
-        originType: "unknown",
-        sourceTransactionHash: attestation.paymentTransactionHash,
-        earningAttestationId: null,
-        earnedAt: attestation.earnedAt,
-      });
-      capitalLotId = lot.id;
-    }
-    const imported: ImportedAttestation = {
-      attestation: clone(attestation),
-      verification: clone(verification),
-      capitalLotId,
-    };
-    this.attestations.set(attestation.id, imported);
-    this.audit(
-      actorAgentId,
-      "provenance.attestation_verified",
-      "earning_attestation",
-      attestation.id,
-      {
-        verified: verification.verified,
-        classification: verification.classification,
-        verifier: verification.verifier,
-        capital_lot_id: capitalLotId,
-      },
-    );
       return clone(imported);
     });
   }
@@ -4280,9 +4380,7 @@ export class MarketplaceEngine {
       .map(clone);
   }
 
-  listWebhookDeliveries(
-    status?: WebhookDelivery["status"],
-  ): WebhookDelivery[] {
+  listWebhookDeliveries(status?: WebhookDelivery["status"]): WebhookDelivery[] {
     return [...this.webhookDeliveries.values()]
       .filter((delivery) => !status || delivery.status === status)
       .map(clone);
@@ -4362,9 +4460,7 @@ export class MarketplaceEngine {
         }
         const timestamp = nowIso();
         const signature = createHmac("sha256", secret)
-          .update(
-            `${delivery.id}.${timestamp}.${canonicalJson(event.payload)}`,
-          )
+          .update(`${delivery.id}.${timestamp}.${canonicalJson(event.payload)}`)
           .digest("hex");
         const ok = await deliver({
           subscription: clone(subscription),
@@ -4398,16 +4494,12 @@ export class MarketplaceEngine {
       );
       if (
         deliveriesForEvent.length === subscriptions.length &&
-        deliveriesForEvent.every(
-          (delivery) => delivery.status === "delivered",
-        )
+        deliveriesForEvent.every((delivery) => delivery.status === "delivered")
       ) {
         event.status = "delivered";
         delivered += 1;
       } else if (
-        deliveriesForEvent.some(
-          (delivery) => delivery.status === "dead_letter",
-        )
+        deliveriesForEvent.some((delivery) => delivery.status === "dead_letter")
       ) {
         event.status = "dead_letter";
         deadLettered += 1;
@@ -4415,9 +4507,7 @@ export class MarketplaceEngine {
         const nextAttempts = deliveriesForEvent
           .filter((delivery) => delivery.status === "pending")
           .map((delivery) => Date.parse(delivery.nextAttemptAt));
-        event.nextAttemptAt = new Date(
-          Math.min(...nextAttempts),
-        ).toISOString();
+        event.nextAttemptAt = new Date(Math.min(...nextAttempts)).toISOString();
         failed += 1;
       }
     }
@@ -4678,9 +4768,7 @@ export class MarketplaceEngine {
       communityMessages: [...this.messages.values()].map(clone),
       auditEvents: this.audits.map(clone),
       outboxEvents: this.outbox.map(clone),
-      webhookSubscriptions: [...this.webhookSubscriptions.values()].map(
-        clone,
-      ),
+      webhookSubscriptions: [...this.webhookSubscriptions.values()].map(clone),
       webhookDeliveries: [...this.webhookDeliveries.values()].map(clone),
       riskFlags: Object.fromEntries(
         [...this.riskFlags.entries()].map(([agentId, flags]) => [
@@ -4690,6 +4778,7 @@ export class MarketplaceEngine {
       ),
       discoveryEvidence: [...this.discoveryEvidence.values()].map(clone),
       genesisAgents: [...this.genesisAgents.values()].map(clone),
+      operationalMetrics: clone(this.operationalMetrics),
     };
   }
 
@@ -4819,6 +4908,22 @@ export class MarketplaceEngine {
       }
     } else {
       this.genesisAgents.clear();
+    }
+    const operationalMetrics = source.operationalMetrics;
+    if (
+      operationalMetrics &&
+      typeof operationalMetrics === "object" &&
+      !Array.isArray(operationalMetrics)
+    ) {
+      const imported = operationalMetrics as Partial<OperationalMetrics>;
+      this.operationalMetrics = {
+        counts: {
+          ...this.operationalMetrics.counts,
+          ...(imported.counts ?? {}),
+        },
+        updatedAt:
+          typeof imported.updatedAt === "string" ? imported.updatedAt : null,
+      };
     }
     if (Array.isArray(source.webhookDeliveries)) {
       replaceMap(this.webhookDeliveries, "webhookDeliveries");

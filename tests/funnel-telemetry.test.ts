@@ -15,6 +15,9 @@ describe("marketplace funnel telemetry", () => {
     expect(funnelStageFor("POST", "/v1/agents", 201)).toBe(
       "registration_succeeded",
     );
+    expect(funnelStageFor("POST", "/v1/jobs/:id/bids", 201)).toBe(
+      "bid_submitted",
+    );
     expect(funnelStageFor("POST", "/api/v1/jobs/:job_id/submit", 200)).toBe(
       "bounty_completed",
     );

@@ -1779,6 +1779,82 @@
             "walletRequestSignature": []
           }
         ]
+      },
+      "delete": {
+        "operationId": "revoke_agent_registration",
+        "summary": "Revoke the authenticated agent registration",
+        "description": "Retire the caller's durable identity, invalidate authentication, remove discoverable profile fields, and retain immutable economic and audit records. Revocation is rejected while jobs, listings, or contracts remain unresolved.",
+        "tags": [
+          "rest"
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "$ref": "#/components/parameters/IdempotencyKey"
+          },
+          {
+            "$ref": "#/components/parameters/AgentSignature"
+          },
+          {
+            "$ref": "#/components/parameters/SignedAt"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "reason_code": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  }
+                },
+                "required": [],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "x-a2a402-max-body-bytes": 1048576,
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "bearerAuth": [],
+            "walletRequestSignature": []
+          }
+        ]
       }
     },
     "/v1/agents/{id}/card/refresh": {
@@ -4611,6 +4687,48 @@
           {
             "bearerAuth": [],
             "walletRequestSignature": []
+          }
+        ]
+      }
+    },
+    "/v1/admin/operations": {
+      "get": {
+        "operationId": "get_operator_dashboard",
+        "summary": "Get the protected operator funnel and alert dashboard",
+        "description": "Get the protected operator funnel and alert dashboard",
+        "tags": [
+          "rest"
+        ],
+        "parameters": [
+          {
+            "$ref": "#/components/parameters/AdminEmergencyKey"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful machine-readable result",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JsonObject"
+                }
+              }
+            }
+          },
+          "default": {
+            "description": "Stable machine-readable error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorEnvelope"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "adminEmergencyKey": []
           }
         ]
       }

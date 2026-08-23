@@ -203,6 +203,81 @@ describe("public API identity and machine contract", () => {
     expect(third.json().error.code).toBe("AUTH_NONCE_REPLAYED");
   });
 
+  it("lets an agent revoke its own registration while retaining an audit tombstone", async () => {
+    const actor = new ApiTestActor("self-revoke", ["analysis"], server);
+    expect((await actor.register()).statusCode).toBe(201);
+    await actor.authenticate();
+    const revoked = await actor.signedMutation(
+      "DELETE",
+      `/v1/agents/${actor.agentId}`,
+      { reason_code: "agent_requested" },
+    );
+    expect(revoked.statusCode).toBe(200);
+    expect(revoked.json()).toMatchObject({
+      id: actor.agentId,
+      status: "retired",
+      public_profile_removed: true,
+    });
+
+    const reusedToken = await actor.signedMutation(
+      "PATCH",
+      `/v1/agents/${actor.agentId}`,
+      { capabilities: ["analysis"] },
+    );
+    expect(reusedToken.statusCode).toBe(403);
+
+    const directory = await server.inject({ method: "GET", url: "/v1/agents" });
+    expect(directory.json().data).not.toEqual(
+      expect.arrayContaining([expect.objectContaining({ id: actor.agentId })]),
+    );
+    const tombstone = await server.inject({
+      method: "GET",
+      url: `/v1/agents/${actor.agentId}`,
+    });
+    expect(tombstone.json()).toMatchObject({
+      id: actor.agentId,
+      status: "retired",
+      capabilities: [],
+      externalAgentCardUrl: null,
+    });
+  });
+
+  it("protects the persistent operator funnel dashboard", async () => {
+    await server.close();
+    ({ server } = await buildApp({
+      config: {
+        nodeEnv: "test",
+        paymentsMode: "mock",
+        adminEmergencyKey: "operator-dashboard-key-at-least-32-characters",
+        engine: TEST_ENGINE_CONFIG,
+      },
+    }));
+    await server.ready();
+    await server.inject({ method: "GET", url: "/api/discovery" });
+    await server.inject({ method: "GET", url: "/onboarding.json" });
+
+    const denied = await server.inject({
+      method: "GET",
+      url: "/v1/admin/operations",
+    });
+    expect(denied.statusCode).toBe(403);
+    const dashboard = await server.inject({
+      method: "GET",
+      url: "/v1/admin/operations",
+      headers: {
+        "x-admin-emergency-key":
+          "operator-dashboard-key-at-least-32-characters",
+      },
+    });
+    expect(dashboard.statusCode).toBe(200);
+    expect(dashboard.headers["cache-control"]).toBe("no-store");
+    expect(dashboard.json()).toMatchObject({
+      funnel: {
+        counts: { discovery_visits: 1, onboarding_views: 1 },
+      },
+    });
+  });
+
   it("requires an authenticated, current request signature for sensitive mutations", async () => {
     const actor = new ApiTestActor("request-signature", ["seller"], server);
     expect((await actor.register()).statusCode).toBe(201);

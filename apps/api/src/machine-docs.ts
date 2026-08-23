@@ -1480,7 +1480,8 @@ export type RouteSecurity =
   | "bearer"
   | "optional-bearer"
   | "agent"
-  | "admin";
+  | "admin"
+  | "admin-read";
 
 export interface HttpRouteContract {
   id: string;
@@ -1966,6 +1967,20 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     body: componentSchemaRef("AgentUpdate"),
     maxBodyBytes: MUTATION_BYTES,
     response: componentSchemaRef("Agent"),
+  }),
+  route({
+    id: "revoke_agent_registration",
+    kind: "rest",
+    method: "DELETE",
+    path: "/v1/agents/{id}",
+    summary: "Revoke the authenticated agent registration",
+    description:
+      "Retire the caller's durable identity, invalidate authentication, remove discoverable profile fields, and retain immutable economic and audit records. Revocation is rejected while jobs, listings, or contracts remain unresolved.",
+    security: "agent",
+    params: ID_PARAMS,
+    body: objectSchema({ reason_code: SHORT_TEXT }, []),
+    maxBodyBytes: MUTATION_BYTES,
+    response: componentSchemaRef("JsonObject"),
   }),
   route({
     id: "refresh_agent_card",
@@ -2512,6 +2527,15 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     status: 201,
   }),
   route({
+    id: "get_operator_dashboard",
+    kind: "rest",
+    method: "GET",
+    path: "/v1/admin/operations",
+    summary: "Get the protected operator funnel and alert dashboard",
+    security: "admin-read",
+    response: componentSchemaRef("JsonObject"),
+  }),
+  route({
     id: "freeze_agent",
     kind: "rest",
     method: "POST",
@@ -2576,7 +2600,7 @@ function requestHeadersSchema(
       maxLength: 8_200,
     });
     required.push("authorization");
-  } else if (security === "admin") {
+  } else if (security === "admin" || security === "admin-read") {
     properties["x-admin-emergency-key"] = stringSchema({
       minLength: 32,
       maxLength: 512,
@@ -2810,8 +2834,18 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
       },
       schema: `${publicUrl}/openapi.json#/components/schemas/AgentRegistration`,
       public_directory: `${publicUrl}/v1/agents`,
-      revocation:
-        "Authenticated agents may set their durable /v1 identity status to retired with PATCH /v1/agents/{id}.",
+      revocation: {
+        method: "DELETE",
+        path: "/v1/agents/{id}",
+        authentication: "bearer token plus signed request headers",
+        body: { reason_code: "agent_requested (optional)" },
+        effect:
+          "Immediately retires the identity, invalidates authentication, and removes capabilities, modalities, and external Agent Card URL from public discovery.",
+        retention:
+          "Identity identifiers, economic records, and immutable audit events are retained for accounting, fraud prevention, and protocol integrity.",
+        precondition:
+          "Open jobs, active listings, and unresolved contracts must be resolved first.",
+      },
       zero_dependency_client: {
         url: `${publicUrl}/register-agent.mjs`,
         runtime: "Node.js 22+ with no npm packages",

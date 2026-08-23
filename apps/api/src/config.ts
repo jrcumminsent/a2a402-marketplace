@@ -51,6 +51,7 @@ export interface AppConfig {
     from: string;
     resendApiKey: string;
   } | null;
+  operatorAlertWebhookUrl: string | null;
   engine: MarketplaceConfig;
 }
 
@@ -165,6 +166,18 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
   const agentSignupEmailFrom =
     process.env.AGENT_SIGNUP_NOTIFY_FROM?.trim() || null;
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || null;
+  const operatorAlertWebhookUrl =
+    process.env.OPERATOR_ALERT_WEBHOOK_URL?.trim() || null;
+  if (
+    operatorAlertWebhookUrl &&
+    (new URL(operatorAlertWebhookUrl).protocol !== "https:" ||
+      new URL(operatorAlertWebhookUrl).username ||
+      new URL(operatorAlertWebhookUrl).password)
+  ) {
+    throw new Error(
+      "OPERATOR_ALERT_WEBHOOK_URL must use HTTPS without embedded credentials.",
+    );
+  }
   if (
     [agentSignupEmailFrom, resendApiKey].some(Boolean) &&
     ![agentSignupEmailFrom, resendApiKey].every(Boolean)
@@ -247,6 +260,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
             resendApiKey,
           }
         : null,
+    operatorAlertWebhookUrl,
     engine,
   };
   return {

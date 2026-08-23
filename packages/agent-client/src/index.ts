@@ -192,6 +192,22 @@ export class A2A402AgentClient {
     return registration;
   }
 
+  async revokeRegistration(
+    reasonCode = "agent_requested",
+  ): Promise<Record<string, unknown>> {
+    if (!this.identity || !this.accessToken) {
+      throw new Error("Revocation requires an authenticated agent identity.");
+    }
+    const result = await this.request(
+      "DELETE",
+      `/v1/agents/${this.identity.agentId}`,
+      { reason_code: reasonCode },
+    );
+    this.identity = null;
+    this.accessToken = null;
+    return result;
+  }
+
   async request(
     method: string,
     path: string,

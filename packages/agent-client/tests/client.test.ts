@@ -56,4 +56,20 @@ describe("A2A402AgentClient", () => {
     });
     expect(channel.createdByAgentId).toBe(client.agentId);
   });
+
+  it("revokes its registration and clears local authentication", async () => {
+    const client = await testClient();
+    await client.connect({
+      registration: { capabilities: ["research"] },
+    });
+    const agentId = client.agentId;
+    const revoked = await client.revokeRegistration();
+    expect(revoked).toMatchObject({
+      id: agentId,
+      status: "retired",
+      public_profile_removed: true,
+    });
+    expect(client.agentId).toBeNull();
+    expect(client.authenticated).toBe(false);
+  });
 });

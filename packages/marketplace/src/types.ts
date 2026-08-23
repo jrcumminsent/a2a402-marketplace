@@ -39,6 +39,20 @@ export interface AgentRegistration {
   registration_signature: `0x${string}`;
 }
 
+export type OperationalMetricName =
+  | "discovery_visits"
+  | "onboarding_views"
+  | "failed_registrations"
+  | "successful_registrations"
+  | "bids"
+  | "completed_bounties"
+  | "notification_failures";
+
+export interface OperationalMetrics {
+  counts: Record<OperationalMetricName, number>;
+  updatedAt: string | null;
+}
+
 export interface AuthNonce {
   id: string;
   agentId: string;
@@ -576,6 +590,7 @@ export interface MarketplaceStateView {
   riskFlags: Record<string, RiskFlag[]>;
   discoveryEvidence: DiscoveryEvidence[];
   genesisAgents: GenesisAgentRecord[];
+  operationalMetrics: OperationalMetrics;
 }
 
 export interface MarketplaceStats {

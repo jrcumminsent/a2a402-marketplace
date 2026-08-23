@@ -16,6 +16,7 @@ import {
   type JobStatus,
   type JobType,
   type ListingType,
+  type OperationalMetricName,
 } from "@a2a402/marketplace";
 import { SchemaEvaluator } from "@a2a402/evaluation";
 import { X402TestnetPaymentAdapter } from "@a2a402/payments";
@@ -65,6 +66,7 @@ import { installContractValidation } from "./contract-validation.js";
 import { sendAgentSignupEmail } from "./signup-notifications.js";
 import { installFunnelTelemetry } from "./funnel-telemetry.js";
 import { ensureSimulationSeedOpportunities } from "./simulation-seed.js";
+import { createOperatorAlerter } from "./operator-alerts.js";
 import {
   autonomousMarketplaceDiscovery,
   genesisBounty,
@@ -366,14 +368,31 @@ export async function buildApp(
     requestIdHeader: "x-request-id",
     genReqId: () => crypto.randomUUID(),
   });
-  installFunnelTelemetry(server);
+  const recordOperationalMetric = (
+    metric: OperationalMetricName,
+    requestId: string,
+  ) =>
+    runtime.runMutation(
+      () => {
+        engine.recordOperationalMetric(metric);
+      },
+      {
+        mutationId: `telemetry:${metric}:${requestId}`,
+        lockKeys: ["telemetry:funnel"],
+      },
+    );
+  installFunnelTelemetry(server, recordOperationalMetric);
+  const sendOperatorAlert = createOperatorAlerter({
+    webhookUrl: config.operatorAlertWebhookUrl,
+    email: config.agentSignupEmail,
+  });
   server.setReplySerializer((payload) =>
     JSON.stringify(payload, bigintJsonReplacer),
   );
   // This deliberately isolated compatibility surface never shares capital,
   // identities, or settlement state with the broader USDC/x402 marketplace.
   const mvp = new MvpMarketplace();
-  server.setErrorHandler((error, request, reply) => {
+  server.setErrorHandler(async (error, request, reply) => {
     const normalized =
       error instanceof MarketplaceError
         ? error
@@ -407,6 +426,35 @@ export async function buildApp(
       reply.header(
         "payment-required",
         normalized.details.payment_required_header,
+      );
+    }
+    if (normalized.statusCode >= 500) {
+      request.log.error(
+        {
+          event: "marketplace.operator_alert",
+          kind: "api_crash",
+          request_id: request.id,
+          error_code: normalized.code,
+        },
+        "Unhandled marketplace API failure.",
+      );
+      await sendOperatorAlert({
+        kind: "api_crash",
+        summary: `API request failed with ${normalized.code}.`,
+        requestId: request.id,
+        details: { status_code: normalized.statusCode },
+      }).catch((alertError: unknown) =>
+        request.log.warn(
+          {
+            event: "marketplace.operator_alert_delivery_failed",
+            kind: "api_crash",
+            error:
+              alertError instanceof Error
+                ? alertError.message
+                : "alert_delivery_failed",
+          },
+          "Operator alert could not be delivered.",
+        ),
       );
     }
     reply
@@ -496,6 +544,39 @@ export async function buildApp(
         };
     if (!databaseHealthy || !storageHealth.healthy || !paymentHealth.healthy) {
       reply.status(503);
+      const dependencyAlert = !databaseHealthy
+        ? {
+            kind: "database_failure" as const,
+            summary: "Production database health check failed.",
+          }
+        : !storageHealth.healthy
+          ? {
+              kind: "storage_failure" as const,
+              summary: "Production artifact storage health check failed.",
+            }
+          : null;
+      if (dependencyAlert) {
+        _request.log.error(
+          { event: "marketplace.operator_alert", kind: dependencyAlert.kind },
+          "Marketplace dependency health check failed.",
+        );
+        await sendOperatorAlert({
+          ...dependencyAlert,
+          requestId: _request.id,
+        }).catch((alertError: unknown) =>
+          _request.log.warn(
+            {
+              event: "marketplace.operator_alert_delivery_failed",
+              kind: dependencyAlert.kind,
+              error:
+                alertError instanceof Error
+                  ? alertError.message
+                  : "alert_delivery_failed",
+            },
+            "Operator alert could not be delivered.",
+          ),
+        );
+      }
     }
     return {
       status:
@@ -774,7 +855,16 @@ export async function buildApp(
         agentId: agent.agent_id,
         identity: agent.public_key,
         createdAt: agent.created_at,
-      }).catch((error: unknown) => {
+      }).catch(async (error: unknown) => {
+        await Promise.allSettled([
+          recordOperationalMetric("notification_failures", request.id),
+          sendOperatorAlert({
+            kind: "resend_delivery_failure",
+            summary: "Agent signup notification could not be delivered.",
+            requestId: request.id,
+            details: { agent_id: agent.agent_id },
+          }),
+        ]);
         request.log.warn(
           {
             error:
@@ -885,7 +975,16 @@ export async function buildApp(
         agentId: agent.id,
         identity: agent.walletAddress,
         createdAt: agent.createdAt,
-      }).catch((error: unknown) => {
+      }).catch(async (error: unknown) => {
+        await Promise.allSettled([
+          recordOperationalMetric("notification_failures", request.id),
+          sendOperatorAlert({
+            kind: "resend_delivery_failure",
+            summary: "Agent signup notification could not be delivered.",
+            requestId: request.id,
+            details: { agent_id: agent.id },
+          }),
+        ]);
         request.log.warn(
           {
             error:
@@ -926,6 +1025,32 @@ export async function buildApp(
         engine.updateAgent(actor!.id, params(request).id as string, body),
     ),
   );
+  server.delete("/v1/agents/:id", async (request, reply) => {
+    const retired = await mutate(
+      engine,
+      request,
+      "revoke_agent_registration",
+      { authenticated: true, signed: true },
+      (body, actor) =>
+        engine.retireAgent(
+          actor!.id,
+          params(request).id as string,
+          boundedString(body.reason_code, 64) ?? "agent_requested",
+        ),
+    );
+    reply.header("cache-control", "no-store");
+    return {
+      id: retired.id,
+      status: retired.status,
+      revoked_at: retired.updatedAt,
+      public_profile_removed: true,
+      retained_for_audit: [
+        "identity identifiers",
+        "economic records",
+        "immutable audit events",
+      ],
+    };
+  });
   server.post("/v1/agents/:id/card/refresh", async (request) =>
     mutate(
       engine,
@@ -1550,6 +1675,38 @@ export async function buildApp(
       },
     );
   };
+  server.get("/v1/admin/operations", async (request, reply) => {
+    if (
+      !config.adminEmergencyKey ||
+      !secureEqual(
+        stringHeader(request, "x-admin-emergency-key") ?? "",
+        config.adminEmergencyKey,
+      )
+    ) {
+      throw new MarketplaceError(
+        "FORBIDDEN",
+        "Emergency administration key is required.",
+        403,
+      );
+    }
+    reply.header("cache-control", "no-store");
+    const [metrics, stats] = await readEngine(
+      engine,
+      () => [engine.getOperationalMetrics(), engine.getStats("USDC")] as const,
+    );
+    return {
+      id: "a2a402-operator-dashboard/0.1",
+      generated_at: new Date().toISOString(),
+      funnel: metrics,
+      marketplace: stats,
+      alerts: {
+        structured_log_event: "marketplace.operator_alert",
+        webhook_configured: Boolean(config.operatorAlertWebhookUrl),
+        email_configured: Boolean(config.agentSignupEmail),
+        cooldown_seconds: 300,
+      },
+    };
+  });
   server.post("/v1/admin/agents/:id/freeze", async (request, reply) =>
     emergency(request, reply, "freeze_agent", (body) =>
       engine.freezeAgent(

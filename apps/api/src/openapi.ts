@@ -23,6 +23,7 @@ const SECURITY: Record<HttpRouteContract["security"], OpenApiObject[]> = {
   bearer: [{ bearerAuth: [] }],
   agent: [{ bearerAuth: [], walletRequestSignature: [] }],
   admin: [{ adminEmergencyKey: [] }],
+  "admin-read": [{ adminEmergencyKey: [] }],
 };
 
 function statusDescription(status: string): string {
@@ -73,10 +74,10 @@ function securityHeaderParameters(
     ];
   }
   if (security === "admin") {
-    return [
-      HEADER_PARAMETER_REFS.idempotency,
-      HEADER_PARAMETER_REFS.adminKey,
-    ];
+    return [HEADER_PARAMETER_REFS.idempotency, HEADER_PARAMETER_REFS.adminKey];
+  }
+  if (security === "admin-read") {
+    return [HEADER_PARAMETER_REFS.adminKey];
   }
   return [];
 }
@@ -88,10 +89,7 @@ function responseContent(
   const content: OpenApiObject = {
     [mediaTypeFor(contract)]: { schema: openApiSchema(schema) },
   };
-  if (
-    contract.id === "a2a_json_rpc" ||
-    contract.id === "mcp_streamable_http"
-  ) {
+  if (contract.id === "a2a_json_rpc" || contract.id === "mcp_streamable_http") {
     content["text/event-stream"] = {
       schema: {
         type: "string",
