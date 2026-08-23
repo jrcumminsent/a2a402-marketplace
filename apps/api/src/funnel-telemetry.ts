@@ -6,16 +6,22 @@ export type FunnelStage =
   | "onboarding_view"
   | "registration_failed"
   | "registration_succeeded"
+  | "authentication_succeeded"
+  | "jobs_discovered"
   | "bid_submitted"
-  | "bounty_completed";
+  | "bounty_completed"
+  | "settlement_failed";
 
 const METRIC_BY_STAGE: Record<FunnelStage, OperationalMetricName> = {
   discovery_view: "discovery_visits",
   onboarding_view: "onboarding_views",
   registration_failed: "failed_registrations",
   registration_succeeded: "successful_registrations",
+  authentication_succeeded: "successful_authentications",
+  jobs_discovered: "jobs_discovered",
   bid_submitted: "bids",
   bounty_completed: "completed_bounties",
+  settlement_failed: "failed_settlements",
 };
 
 export function funnelStageFor(
@@ -39,11 +45,34 @@ export function funnelStageFor(
   }
   if (
     method === "POST" &&
+    route === "/v1/auth/verify" &&
+    statusCode >= 200 &&
+    statusCode < 300
+  ) {
+    return "authentication_succeeded";
+  }
+  if (
+    method === "GET" &&
+    ["/v1/jobs", "/api/v1/opportunities"].includes(route) &&
+    statusCode >= 200 &&
+    statusCode < 300
+  ) {
+    return "jobs_discovered";
+  }
+  if (
+    method === "POST" &&
     route === "/v1/jobs/:id/bids" &&
     statusCode >= 200 &&
     statusCode < 300
   ) {
     return "bid_submitted";
+  }
+  if (
+    method === "POST" &&
+    route === "/v1/contracts/:id/settle" &&
+    statusCode >= 400
+  ) {
+    return "settlement_failed";
   }
   if (
     method === "POST" &&

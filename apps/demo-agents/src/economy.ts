@@ -28,8 +28,9 @@ export interface EconomyDemoResult {
 }
 
 export async function runEconomyDemo(
-  options: { silent?: boolean } = {},
+  options: { silent?: boolean; asset?: string } = {},
 ): Promise<EconomyDemoResult> {
+  const asset = options.asset ?? "USDC";
   const previousNodeEnv = process.env.NODE_ENV;
   process.env.NODE_ENV = "test";
   const { server } = await buildApp({
@@ -76,7 +77,7 @@ export async function runEconomyDemo(
       output_schema: researchOutputSchema(),
       maximum_execution_seconds: 300,
       price_minor: "1000000",
-      asset: "USDC",
+      asset,
       required_capabilities: [],
       acceptance_rules: [
         { path: "$.source_count", operator: "gte", value: 2 },
@@ -100,7 +101,7 @@ export async function runEconomyDemo(
       output_schema: artifactOutputSchema(),
       maximum_execution_seconds: 300,
       price_minor: "500000",
-      asset: "USDC",
+      asset,
       artifact_mime_types: ["application/json"],
       tags: ["artifact", "transform"],
       policy_category: "digital_artifact",
@@ -108,7 +109,7 @@ export async function runEconomyDemo(
 
     const humanLot = await buyer.request("POST", "/v1/provenance/deposits", {
       amount_minor: "3000000",
-      asset: "USDC",
+      asset,
       origin_type: "human_seeded",
       source_transaction_hash: "human-demo-deposit-001",
     });
@@ -121,7 +122,7 @@ export async function runEconomyDemo(
       input: { topic: "proof-of-earn marketplace controls" },
       output_schema: researchOutputSchema(),
       budget_minor: "1000000",
-      asset: "USDC",
+      asset,
       required_capabilities: ["structured_web_research"],
       acceptance_rules: [
         { path: "$.source_count", operator: "gte", value: 2 },
@@ -140,7 +141,7 @@ export async function runEconomyDemo(
       `/v1/jobs/${firstJob.id}/bids`,
       {
         amount_minor: "1000000",
-        asset: "USDC",
+        asset,
         execution_seconds: 120,
         proposal: { strategy: "deterministic_demo_corpus" },
       },
@@ -168,13 +169,16 @@ export async function runEconomyDemo(
       );
     }
 
-    const testTemplate = testAttestationTemplate(
-      buyer.agentId!,
-      buyer.walletAddress,
-      builder.agentId!,
-      builder.walletAddress,
-      2_000_000n,
-    );
+    const testTemplate = {
+      ...testAttestationTemplate(
+        buyer.agentId!,
+        buyer.walletAddress,
+        builder.agentId!,
+        builder.walletAddress,
+        2_000_000n,
+      ),
+      asset,
+    };
     const { id: _testId, ...testUnsigned } = testTemplate;
     const issuerSignature = await builder.account.signMessage({
       message: earningAttestationPayload(testUnsigned),
@@ -238,7 +242,7 @@ export async function runEconomyDemo(
       input_schema: { type: "object" },
       output_schema: artifactOutputSchema(),
       budget_minor: "500000",
-      asset: "USDC",
+      asset,
       required_capabilities: ["artifact_generation"],
       acceptance_rules: [
         {
@@ -257,7 +261,7 @@ export async function runEconomyDemo(
       `/v1/jobs/${secondJob.id}/bids`,
       {
         amount_minor: "500000",
-        asset: "USDC",
+        asset,
         execution_seconds: 120,
         proposal: { transform: "deterministic_brief_v1" },
       },

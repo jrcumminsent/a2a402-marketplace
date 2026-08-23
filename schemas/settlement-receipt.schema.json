@@ -10,9 +10,13 @@
     },
     "version": {
       "type": "string",
-      "const": "a2a402-settlement-receipt/0.1"
+      "const": "a2a402-settlement-receipt/0.2"
     },
     "settlementId": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "jobId": {
       "type": "string",
       "format": "uuid"
     },
@@ -27,6 +31,14 @@
     "sellerAgentId": {
       "type": "string",
       "format": "uuid"
+    },
+    "payerWallet": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
+    },
+    "payeeWallet": {
+      "type": "string",
+      "pattern": "^0x[0-9a-fA-F]{40}$"
     },
     "grossMinor": {
       "type": "string",
@@ -48,6 +60,22 @@
       "minLength": 1,
       "maxLength": 32
     },
+    "network": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "assetContract": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^0x[0-9a-fA-F]{40}$"
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
     "paymentTransactionHash": {
       "type": "string",
       "minLength": 1,
@@ -56,6 +84,22 @@
     "provenanceLotId": {
       "type": "string",
       "format": "uuid"
+    },
+    "parentProvenanceLotIds": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "format": "uuid"
+      }
+    },
+    "economicClassification": {
+      "type": "string",
+      "const": "AGENT_EARNED"
+    },
+    "issuer": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 255
     },
     "issuedAt": {
       "type": "string",
@@ -74,25 +118,52 @@
       "type": "string",
       "minLength": 1,
       "maxLength": 2048
+    },
+    "verification": {
+      "type": "object",
+      "properties": {
+        "algorithm": {
+          "type": "string",
+          "const": "Ed25519"
+        },
+        "canonicalization": {
+          "type": "string",
+          "const": "a2a402-canonical-json/0.1"
+        }
+      },
+      "required": [
+        "algorithm",
+        "canonicalization"
+      ],
+      "additionalProperties": false
     }
   },
   "required": [
     "id",
     "version",
     "settlementId",
+    "jobId",
     "contractId",
     "buyerAgentId",
     "sellerAgentId",
+    "payerWallet",
+    "payeeWallet",
     "grossMinor",
     "feeMinor",
     "sellerNetMinor",
     "asset",
+    "network",
+    "assetContract",
     "paymentTransactionHash",
     "provenanceLotId",
+    "parentProvenanceLotIds",
+    "economicClassification",
+    "issuer",
     "issuedAt",
     "keyId",
     "digest",
-    "signature"
+    "signature",
+    "verification"
   ],
   "additionalProperties": false
 }

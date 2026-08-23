@@ -33,6 +33,29 @@ function fakeFacilitator(): X402FacilitatorPort {
 }
 
 describe("X402TestnetPaymentAdapter", () => {
+  it("creates Base Sepolia requirements for a configured A2A402 contract", async () => {
+    const tokenAddress = "0x4024024024024024024024024024024024024024";
+    const adapter = new X402TestnetPaymentAdapter({
+      platformSettlementAddress: settlementAddress,
+      facilitator: fakeFacilitator(),
+      assetAddress: tokenAddress,
+      assetSymbol: "A2A402",
+    });
+    const requirement = await adapter.createPaymentRequirement({
+      idempotencyKey: "a2a402-requirement",
+      amountMinor: "1000000000000000000",
+      asset: "A2A402",
+      payTo: settlementAddress,
+      resource: { url: "https://a2a402.market/contracts/a2a402" },
+    });
+    expect(requirement).toMatchObject({
+      network: BASE_SEPOLIA_NETWORK,
+      asset: "A2A402",
+      amountMinor: "1000000000000000000",
+      protocolData: { paymentRequirements: { asset: tokenAddress } },
+    });
+  });
+
   it("uses official facilitator verification and settlement on Base Sepolia", async () => {
     const adapter = new X402TestnetPaymentAdapter({
       platformSettlementAddress: settlementAddress,

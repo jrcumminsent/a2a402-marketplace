@@ -60,6 +60,7 @@ import type {
   DiscoveryEvidence,
   DiscoverySource,
   Dispute,
+  EconomicMetrics,
   Evaluation,
   EvaluationCheck,
   ImportedAttestation,
@@ -571,8 +572,11 @@ export class MarketplaceEngine {
       onboarding_views: 0,
       failed_registrations: 0,
       successful_registrations: 0,
+      successful_authentications: 0,
+      jobs_discovered: 0,
       bids: 0,
       completed_bounties: 0,
+      failed_settlements: 0,
       notification_failures: 0,
     },
     updatedAt: null,
@@ -599,6 +603,8 @@ export class MarketplaceEngine {
       maxAgentDailySpendMinor: 250_000_000n,
       maxArtifactBytes: 10_000_000,
       communityMessagesPerMinute: 30,
+      independentAgentWalletAllowlist: [],
+      settlementNetwork: "simulation",
     };
     this.config = { ...defaults, ...config };
     this.paymentAdapter = this.config.paymentAdapter ?? null;
@@ -3886,18 +3892,30 @@ export class MarketplaceEngine {
       );
       const receiptBase = {
         id: receiptId,
-        version: "a2a402-settlement-receipt/0.1" as const,
+        version: "a2a402-settlement-receipt/0.2" as const,
         settlementId: settlement.id,
+        jobId: contract.jobId,
         contractId,
         buyerAgentId: contract.buyerAgentId,
         sellerAgentId: contract.sellerAgentId,
+        payerWallet: this.requiredAgent(contract.buyerAgentId).walletAddress,
+        payeeWallet: this.requiredAgent(contract.sellerAgentId).walletAddress,
         grossMinor: gross,
         feeMinor: fee,
         sellerNetMinor: net,
         asset: contract.asset,
+        network: this.config.settlementNetwork ?? "simulation",
+        assetContract: this.config.settlementAssetContract ?? null,
         paymentTransactionHash: settlement.paymentTransactionHash,
         provenanceLotId: sellerLot.id,
+        parentProvenanceLotIds: [...sellerLot.parentCapitalLotIds],
+        economicClassification: "AGENT_EARNED" as const,
+        issuer: this.config.domain,
         issuedAt: createdAt,
+        verification: {
+          algorithm: "Ed25519" as const,
+          canonicalization: "a2a402-canonical-json/0.1" as const,
+        },
       };
       const signed = this.signer.sign(receiptBase);
       const receipt: SignedReceipt = {
@@ -4810,6 +4828,116 @@ export class MarketplaceEngine {
         0n,
       ),
       asset,
+    };
+  }
+
+  getEconomicMetrics(asset: string = DEFAULT_ASSET): EconomicMetrics {
+    const settlements = [...this.settlements.values()]
+      .filter((item) => item.asset === asset && item.status === "completed")
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt));
+    const contracts = new Map(
+      [...this.contracts.values()]
+        .filter((item) => item.asset === asset)
+        .map((item) => [item.id, item]),
+    );
+    const authenticated = new Set(
+      [...this.nonces.values()]
+        .filter((nonce) => nonce.consumedAt)
+        .map((nonce) => nonce.agentId),
+    );
+    const earningAgents = new Set<string>();
+    const earnedSpenders = new Set<string>();
+    const economicParticipation = new Map<string, number>();
+    const priorEarnings = new Set<string>();
+    const independentWallets = new Set(
+      (this.config.independentAgentWalletAllowlist ?? []).map((wallet) =>
+        wallet.toLowerCase(),
+      ),
+    );
+    const genesisAgentIds = new Set(this.genesisAgents.keys());
+    const canonicalBuyerId =
+      this.canonicalSeededGenesisDesignation?.buyerAgentId;
+    let independentEconomicLoops = 0;
+    let realIndependentEconomicLoops = 0;
+
+    for (const settlement of settlements) {
+      const contract = contracts.get(settlement.contractId);
+      if (!contract) continue;
+      earningAgents.add(contract.sellerAgentId);
+      economicParticipation.set(
+        contract.buyerAgentId,
+        (economicParticipation.get(contract.buyerAgentId) ?? 0) + 1,
+      );
+      economicParticipation.set(
+        contract.sellerAgentId,
+        (economicParticipation.get(contract.sellerAgentId) ?? 0) + 1,
+      );
+      const reservation = this.reservations.get(settlement.reservationId);
+      const fundingLots = (reservation?.allocations ?? [])
+        .map((allocation) => this.capitalLots.get(allocation.capitalLotId))
+        .filter((lot): lot is CapitalLot => Boolean(lot));
+      const spentEarnedCapital = fundingLots.some((lot) =>
+        ELIGIBLE_REAL_ORIGINS.has(lot.originType),
+      );
+      if (spentEarnedCapital) earnedSpenders.add(contract.buyerAgentId);
+      const buyer = this.agents.get(contract.buyerAgentId);
+      const independentlyAttributed =
+        buyer !== undefined &&
+        independentWallets.has(buyer.walletAddress.toLowerCase()) &&
+        !genesisAgentIds.has(buyer.id) &&
+        buyer.id !== canonicalBuyerId &&
+        contract.buyerAgentId !== contract.sellerAgentId;
+      if (
+        independentlyAttributed &&
+        priorEarnings.has(contract.buyerAgentId) &&
+        spentEarnedCapital
+      ) {
+        independentEconomicLoops += 1;
+        if (fundingLots.some((lot) => lot.provenanceScope === "real")) {
+          realIndependentEconomicLoops += 1;
+        }
+      }
+      priorEarnings.add(contract.sellerAgentId);
+    }
+
+    return {
+      asset,
+      registeredAgents: this.agents.size,
+      authenticatedAgents: authenticated.size,
+      jobs: [...this.jobs.values()].filter((item) => item.asset === asset)
+        .length,
+      bids: [...this.bids.values()].filter((item) => item.asset === asset)
+        .length,
+      contracts: contracts.size,
+      deliveries: [...this.deliveries.values()].filter((item) =>
+        contracts.has(item.contractId),
+      ).length,
+      completedSettlements: settlements.length,
+      proofRecords: [...this.receipts.values()].filter(
+        (receipt) => receipt.asset === asset,
+      ).length,
+      earningAgents: earningAgents.size,
+      agentsSpendingEarnedCapital: earnedSpenders.size,
+      repeatEconomicAgents: [...economicParticipation.values()].filter(
+        (count) => count > 1,
+      ).length,
+      agentToAgentPurchases: settlements.filter((settlement) => {
+        const contract = contracts.get(settlement.contractId);
+        return contract && contract.buyerAgentId !== contract.sellerAgentId;
+      }).length,
+      grossVolumeMinor: settlements.reduce(
+        (sum, settlement) => sum + settlement.grossMinor,
+        0n,
+      ),
+      platformFeesMinor: settlements.reduce(
+        (sum, settlement) => sum + settlement.feeMinor,
+        0n,
+      ),
+      failedSettlementAttempts:
+        this.operationalMetrics.counts.failed_settlements,
+      independentAgentAllowlistSize: independentWallets.size,
+      independentEconomicLoops,
+      realIndependentEconomicLoops,
     };
   }
 
