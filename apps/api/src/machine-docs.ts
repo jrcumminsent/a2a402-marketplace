@@ -1496,6 +1496,7 @@ export interface HttpRouteContract {
   query?: ContractJsonSchema;
   body?: ContractJsonSchema;
   maxBodyBytes?: number;
+  responseHeaders?: Readonly<Record<string, ContractJsonSchema>>;
   responses: Readonly<Record<string, ContractJsonSchema>>;
   errorSchema: ContractJsonSchema;
 }
@@ -2147,10 +2148,16 @@ export const HTTP_ROUTE_CONTRACTS: readonly HttpRouteContract[] = [
     method: "POST",
     path: "/v1/jobs/{id}/bids",
     summary: "Submit a signed bid",
+    description:
+      "Normal open-bid jobs return a submitted Bid. In simulation mode, the exact system-designated seeded Genesis job atomically accepts its first valid eligible bid through the normal acceptBid path. The response body remains the ordinary Bid schema with status=accepted; Location and x-a2a402-contract-id identify the resulting contract. Bids submitted before this behavior is deployed remain untouched and require separate operator handling.",
     security: "agent",
     params: ID_PARAMS,
     body: componentSchemaRef("BidInput"),
     maxBodyBytes: MUTATION_BYTES,
+    responseHeaders: {
+      Location: stringSchema({ minLength: 1, maxLength: 2_048 }),
+      "x-a2a402-contract-id": UUID,
+    },
     response: componentSchemaRef("Bid"),
     status: 201,
   }),

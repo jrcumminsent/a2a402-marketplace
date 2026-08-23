@@ -52,6 +52,7 @@ import type {
   CapitalAllocation,
   CapitalLot,
   CapitalReservation,
+  CanonicalSeededGenesisDesignation,
   CommunityChannel,
   CommunityMessage,
   Contract,
@@ -368,6 +369,109 @@ export function signedRequestMessage(input: {
   ].join("\n");
 }
 
+export function marketplaceJobDefinitionDigest(
+  job: Pick<
+    Job,
+    | "listingId"
+    | "type"
+    | "title"
+    | "description"
+    | "input"
+    | "inputSchema"
+    | "outputSchema"
+    | "maximumExecutionSeconds"
+    | "budgetMinor"
+    | "asset"
+    | "requiredReputation"
+    | "requiredCapabilities"
+    | "acceptanceRules"
+    | "artifactMimeTypes"
+    | "maximumArtifactBytes"
+    | "licenseTerms"
+    | "refundRules"
+    | "timeoutRules"
+    | "tags"
+    | "policyCategory"
+  >,
+): string {
+  return sha256(
+    canonicalJson({
+      listing_id: job.listingId,
+      type: job.type,
+      title: job.title,
+      description: job.description,
+      input: job.input,
+      input_schema: job.inputSchema,
+      output_schema: job.outputSchema,
+      maximum_execution_seconds: job.maximumExecutionSeconds,
+      budget_minor: job.budgetMinor.toString(),
+      asset: job.asset,
+      required_reputation: job.requiredReputation,
+      required_capabilities: job.requiredCapabilities,
+      acceptance_rules: job.acceptanceRules,
+      artifact_mime_types: job.artifactMimeTypes,
+      maximum_artifact_bytes: job.maximumArtifactBytes,
+      license_terms: job.licenseTerms,
+      refund_rules: job.refundRules,
+      timeout_rules: job.timeoutRules,
+      tags: job.tags,
+      policy_category: job.policyCategory,
+    }),
+  );
+}
+
+export const CANONICAL_SEEDED_GENESIS_DEFINITION_VERSION =
+  "a2a402.seeded-genesis/1";
+export const CANONICAL_SEEDED_GENESIS_BUYER_WALLET =
+  "0x17c5185167401ed00cf5f5b2fc97d9bbfdb7d025";
+export const CANONICAL_SEEDED_GENESIS_BUYER_CAPABILITY = "a2a402_seed_buyer";
+export function canonicalSeededGenesisDefinition(
+  maximumArtifactBytes = 10_000_000,
+): Parameters<typeof marketplaceJobDefinitionDigest>[0] {
+  return {
+    listingId: null,
+    type: "open_bid",
+    title: "Genesis: verify autonomous marketplace discovery",
+    description:
+      "Return a JSON report showing the discovery endpoints inspected, the canonical registration path used, and the TEST-only safeguards observed.",
+    input: {
+      discovery: "https://a2a402.market/api/discovery",
+      onboarding: "https://a2a402.market/onboarding.json",
+    },
+    inputSchema: { type: "object" },
+    outputSchema: { type: "object" },
+    maximumExecutionSeconds: 86_400,
+    budgetMinor: 400_000n,
+    asset: "USDC",
+    requiredReputation: {},
+    requiredCapabilities: ["protocol_analysis"],
+    acceptanceRules: [],
+    artifactMimeTypes: ["application/json"],
+    maximumArtifactBytes,
+    licenseTerms: "Marketplace output license",
+    refundRules: {},
+    timeoutRules: {
+      bidExpirationSeconds: 31_536_000,
+      sellerAcceptanceSeconds: 86_400,
+      deliverySeconds: 604_800,
+      evaluationSeconds: 86_400,
+      buyerResponseSeconds: 86_400,
+      automaticRefundSeconds: 1_209_600,
+      automaticSettlementSeconds: 604_800,
+    },
+    tags: ["discovery", "genesis", "seeded-test-job"],
+    policyCategory: "analysis",
+  };
+}
+
+export function canonicalSeededGenesisDefinitionDigest(
+  maximumArtifactBytes = 10_000_000,
+): string {
+  return marketplaceJobDefinitionDigest(
+    canonicalSeededGenesisDefinition(maximumArtifactBytes),
+  );
+}
+
 export class MarketplaceEngine {
   readonly config: MarketplaceConfig;
   readonly signer: PlatformSigner;
@@ -410,6 +514,8 @@ export class MarketplaceEngine {
   private readonly webhookDeliveries = new Map<string, WebhookDelivery>();
   private readonly discoveryEvidence = new Map<string, DiscoveryEvidence>();
   private readonly genesisAgents = new Map<string, GenesisAgentRecord>();
+  private canonicalSeededGenesisDesignation: CanonicalSeededGenesisDesignation | null =
+    null;
   private operationalMetrics: OperationalMetrics = {
     counts: {
       discovery_visits: 0,
@@ -1423,6 +1529,82 @@ export class MarketplaceEngine {
         404,
       );
     return clone(job);
+  }
+
+  setCanonicalSeededGenesisJob(
+    designation: CanonicalSeededGenesisDesignation,
+  ): Job {
+    if (!this.config.simulationMode) {
+      throw new MarketplaceError(
+        "FORBIDDEN",
+        "A canonical seeded Genesis job may only be designated in simulation mode.",
+        403,
+      );
+    }
+    const job = this.jobs.get(designation.jobId);
+    if (!job) {
+      throw new MarketplaceError(
+        "RESOURCE_NOT_FOUND",
+        "The canonical seeded Genesis job was not found.",
+        404,
+      );
+    }
+    const buyer = this.agents.get(designation.buyerAgentId);
+    const expectedDefinitionDigest = canonicalSeededGenesisDefinitionDigest(
+      this.config.maxArtifactBytes,
+    );
+    if (
+      designation.definitionVersion !==
+        CANONICAL_SEEDED_GENESIS_DEFINITION_VERSION ||
+      designation.definitionDigest !== expectedDefinitionDigest ||
+      job.buyerAgentId !== designation.buyerAgentId ||
+      marketplaceJobDefinitionDigest(job) !== expectedDefinitionDigest ||
+      buyer?.walletAddress !== CANONICAL_SEEDED_GENESIS_BUYER_WALLET ||
+      !buyer.capabilities.includes(CANONICAL_SEEDED_GENESIS_BUYER_CAPABILITY)
+    ) {
+      throw new MarketplaceError(
+        "VALIDATION_ERROR",
+        "The canonical seeded Genesis designation does not match the job definition.",
+        422,
+      );
+    }
+    if (
+      this.canonicalSeededGenesisDesignation &&
+      canonicalJson(this.canonicalSeededGenesisDesignation) !==
+        canonicalJson(designation)
+    ) {
+      throw new MarketplaceError(
+        "CONFLICT",
+        "A different canonical seeded Genesis job is already designated.",
+        409,
+        {
+          canonical_job_id: this.canonicalSeededGenesisDesignation.jobId,
+        },
+      );
+    }
+    if (!this.canonicalSeededGenesisDesignation) {
+      this.canonicalSeededGenesisDesignation = clone(designation);
+      this.audit(
+        null,
+        "simulation.genesis_job_designated",
+        "job",
+        designation.jobId,
+        designation,
+      );
+      this.emit("simulation.genesis_job_designated", "job", designation.jobId, {
+        job_id: designation.jobId,
+        buyer_agent_id: designation.buyerAgentId,
+        definition_version: designation.definitionVersion,
+        definition_digest: designation.definitionDigest,
+      });
+    }
+    return clone(job);
+  }
+
+  getCanonicalSeededGenesisDesignation(): CanonicalSeededGenesisDesignation | null {
+    return this.canonicalSeededGenesisDesignation
+      ? clone(this.canonicalSeededGenesisDesignation)
+      : null;
   }
 
   submitBid(sellerAgentId: string, jobId: string, input: BidInput): Bid {
@@ -4746,6 +4928,9 @@ export class MarketplaceEngine {
 
   stateView(): MarketplaceStateView {
     return {
+      canonicalSeededGenesisDesignation: this.canonicalSeededGenesisDesignation
+        ? clone(this.canonicalSeededGenesisDesignation)
+        : null,
       agents: [...this.agents.values()].map(clone),
       listings: [...this.listings.values()].map(clone),
       jobs: [...this.jobs.values()].map(clone),
@@ -4866,6 +5051,42 @@ export class MarketplaceEngine {
     replaceMap(this.nonces, "nonces");
     replaceMap(this.listings, "listings");
     replaceMap(this.jobs, "jobs");
+    const designation = source.canonicalSeededGenesisDesignation;
+    if (
+      designation &&
+      typeof designation === "object" &&
+      !Array.isArray(designation)
+    ) {
+      const candidate =
+        designation as Partial<CanonicalSeededGenesisDesignation>;
+      const job =
+        typeof candidate.jobId === "string"
+          ? this.jobs.get(candidate.jobId)
+          : null;
+      const buyer =
+        typeof candidate.buyerAgentId === "string"
+          ? this.agents.get(candidate.buyerAgentId)
+          : null;
+      const expectedDefinitionDigest = canonicalSeededGenesisDefinitionDigest(
+        this.config.maxArtifactBytes,
+      );
+      this.canonicalSeededGenesisDesignation =
+        job &&
+        typeof candidate.buyerAgentId === "string" &&
+        typeof candidate.definitionVersion === "string" &&
+        typeof candidate.definitionDigest === "string" &&
+        candidate.definitionVersion ===
+          CANONICAL_SEEDED_GENESIS_DEFINITION_VERSION &&
+        candidate.definitionDigest === expectedDefinitionDigest &&
+        job.buyerAgentId === candidate.buyerAgentId &&
+        marketplaceJobDefinitionDigest(job) === expectedDefinitionDigest &&
+        buyer?.walletAddress === CANONICAL_SEEDED_GENESIS_BUYER_WALLET &&
+        buyer.capabilities.includes(CANONICAL_SEEDED_GENESIS_BUYER_CAPABILITY)
+          ? clone(candidate as CanonicalSeededGenesisDesignation)
+          : null;
+    } else {
+      this.canonicalSeededGenesisDesignation = null;
+    }
     replaceMap(this.bids, "bids");
     replaceMap(this.contracts, "contracts");
     for (const contract of this.contracts.values()) {

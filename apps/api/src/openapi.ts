@@ -106,6 +106,18 @@ function operation(contract: HttpRouteContract): OpenApiObject {
   for (const [status, schema] of Object.entries(contract.responses)) {
     responses[status] = {
       description: statusDescription(status),
+      ...(contract.responseHeaders
+        ? {
+            headers: Object.fromEntries(
+              Object.entries(contract.responseHeaders).map(
+                ([name, headerSchema]) => [
+                  name,
+                  { schema: openApiSchema(headerSchema) },
+                ],
+              ),
+            ),
+          }
+        : {}),
       ...(status === "204"
         ? {}
         : { content: responseContent(contract, schema) }),

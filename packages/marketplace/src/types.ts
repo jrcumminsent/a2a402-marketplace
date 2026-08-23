@@ -562,7 +562,15 @@ export interface GenesisAgentRecord {
   createdAt: string;
 }
 
+export interface CanonicalSeededGenesisDesignation {
+  jobId: string;
+  buyerAgentId: string;
+  definitionVersion: string;
+  definitionDigest: string;
+}
+
 export interface MarketplaceStateView {
+  canonicalSeededGenesisDesignation: CanonicalSeededGenesisDesignation | null;
   agents: Agent[];
   listings: ServiceListing[];
   jobs: Job[];
