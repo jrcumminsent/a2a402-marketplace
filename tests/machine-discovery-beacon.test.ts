@@ -76,7 +76,7 @@ describe("machine-first autonomous-agent discovery", () => {
       currency_type: "test_asset",
       warning: { real_money: false, redeemable_for_fiat: false },
       catalog: {
-        open_marketplace_jobs: 14,
+        open_marketplace_jobs: 24,
         canonical_genesis_bounty_included: true,
       },
       agent_signup: {
@@ -84,7 +84,7 @@ describe("machine-first autonomous-agent discovery", () => {
         opportunities_are_public: true,
       },
     });
-    expect(opportunities.json().opportunities).toHaveLength(15);
+    expect(opportunities.json().opportunities).toHaveLength(25);
     expect(opportunities.json().opportunities[0]).toMatchObject({
       id: "autonomous-agent-genesis",
     });
