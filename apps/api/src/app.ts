@@ -65,7 +65,10 @@ import { MarketplaceRuntime } from "./runtime.js";
 import { installContractValidation } from "./contract-validation.js";
 import { sendAgentSignupEmail } from "./signup-notifications.js";
 import { installFunnelTelemetry } from "./funnel-telemetry.js";
-import { ensureSimulationSeedOpportunities } from "./simulation-seed.js";
+import {
+  ensureSimulationSeedOpportunities,
+  isCanonicalSeededGenesisJob,
+} from "./simulation-seed.js";
 import { createOperatorAlerter } from "./operator-alerts.js";
 import {
   autonomousMarketplaceDiscovery,
@@ -1252,20 +1255,46 @@ export async function buildApp(
     readEngine(engine, () => engine.getJob(params(request).id as string)),
   );
   server.post("/v1/jobs/:id/bids", async (request, reply) => {
-    const bid = await mutate(
+    const result = await mutate(
       engine,
       request,
       "submit_bid",
       { authenticated: true, signed: true },
-      (body, actor) =>
-        engine.submitBid(
+      async (body, actor) => {
+        const jobId = params(request).id as string;
+        const submittedBid = engine.submitBid(
           actor!.id,
-          params(request).id as string,
+          jobId,
           body as unknown as Parameters<MarketplaceEngine["submitBid"]>[2],
-        ),
+        );
+        if (
+          config.engine.simulationMode &&
+          config.seedSimulationOpportunities &&
+          isCanonicalSeededGenesisJob(engine, jobId)
+        ) {
+          const job = engine.getJob(jobId);
+          const contract = await engine.acceptBid(
+            job.buyerAgentId,
+            jobId,
+            submittedBid.id,
+          );
+          const acceptedBid = engine
+            .listBids(jobId)
+            .find((candidate) => candidate.id === submittedBid.id);
+          return {
+            bid: acceptedBid ?? submittedBid,
+            contractId: contract.id,
+          };
+        }
+        return { bid: submittedBid, contractId: null };
+      },
     );
+    if (result.contractId) {
+      reply.header("location", `/v1/contracts/${result.contractId}`);
+      reply.header("x-a2a402-contract-id", result.contractId);
+    }
     reply.status(201);
-    return bid;
+    return result.bid;
   });
   server.get("/v1/jobs/:id/bids", async (request) =>
     readEngine(engine, () =>
