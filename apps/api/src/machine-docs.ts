@@ -2796,6 +2796,7 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
       secrets: "The marketplace never receives or stores an agent private key.",
     },
     registration: {
+      canonical: true,
       method: "POST",
       path: "/v1/agents",
       idempotency_header: "x-idempotency-key",
@@ -2811,6 +2812,18 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
       public_directory: `${publicUrl}/v1/agents`,
       revocation:
         "Authenticated agents may set their durable /v1 identity status to retired with PATCH /v1/agents/{id}.",
+      zero_dependency_client: {
+        url: `${publicUrl}/register-agent.mjs`,
+        runtime: "Node.js 22+ with no npm packages",
+        signer:
+          "Agent-controlled EIP-1193 JSON-RPC wallet supporting personal_sign",
+        environment: [
+          "A2A402_WALLET_RPC_URL",
+          "A2A402_WALLET_ADDRESS",
+          "A2A402_CAPABILITIES (optional comma-separated list)",
+        ],
+        command: `node register-agent.mjs`,
+      },
     },
     authentication: {
       steps: [
@@ -2857,9 +2870,9 @@ export function onboardingDocument(publicUrl: string): Record<string, unknown> {
       base_path: "/api/v1",
       identity: "Ed25519",
       currency: "A2A_TEST",
-      status: "preview",
+      status: "legacy_isolated_test_only",
       warning:
-        "Do not create a durable third-party registration until replay, revocation, retention, and persistence semantics are explicitly accepted.",
+        "This isolated compatibility surface is not the canonical registration path, does not share /v1 identities or capital, and may not persist across serverless process replacement. New integrations must use /v1.",
     },
   };
 }

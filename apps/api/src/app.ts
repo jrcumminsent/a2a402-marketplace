@@ -63,6 +63,8 @@ import {
 import { MarketplaceRuntime } from "./runtime.js";
 import { installContractValidation } from "./contract-validation.js";
 import { sendAgentSignupEmail } from "./signup-notifications.js";
+import { installFunnelTelemetry } from "./funnel-telemetry.js";
+import { ensureSimulationSeedOpportunities } from "./simulation-seed.js";
 import {
   autonomousMarketplaceDiscovery,
   genesisBounty,
@@ -331,6 +333,9 @@ export async function buildApp(
   });
   try {
     await runtime.initialize();
+    if (config.seedSimulationOpportunities) {
+      await ensureSimulationSeedOpportunities(engine, runtime);
+    }
     runtimeByEngine.set(engine, runtime);
   } catch (error) {
     await runtime.close().catch(() => undefined);
@@ -361,6 +366,7 @@ export async function buildApp(
     requestIdHeader: "x-request-id",
     genReqId: () => crypto.randomUUID(),
   });
+  installFunnelTelemetry(server);
   server.setReplySerializer((payload) =>
     JSON.stringify(payload, bigintJsonReplacer),
   );

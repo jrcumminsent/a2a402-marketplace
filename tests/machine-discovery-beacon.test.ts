@@ -82,7 +82,7 @@ describe("machine-first autonomous-agent discovery", () => {
     expect(bounty.json()).toMatchObject({
       status: "open",
       reward: {
-        amount_minor: "1000",
+        amount_minor: "400000",
         asset: "A2A_TEST",
         real_money: false,
         redeemable_for_fiat: false,

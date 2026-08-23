@@ -45,6 +45,7 @@ export interface AppConfig {
   webhookSecretEncryptionKey: string | null;
   baseSepoliaRpcUrl: string | null;
   externalEarningIssuerAllowlist: string[];
+  seedSimulationOpportunities: boolean;
   agentSignupEmail: {
     to: string;
     from: string;
@@ -109,15 +110,13 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       : `${jwtSecret}:development-webhook-vault`);
   if (
     nodeEnv === "production" &&
-    (!webhookSecretEncryptionKey ||
-      webhookSecretEncryptionKey.length < 32)
+    (!webhookSecretEncryptionKey || webhookSecretEncryptionKey.length < 32)
   ) {
     throw new Error(
       "WEBHOOK_SECRET_ENCRYPTION_KEY with at least 32 characters is required in production.",
     );
   }
-  const appBaseUrl =
-    process.env.APP_BASE_URL ?? "http://localhost:3000";
+  const appBaseUrl = process.env.APP_BASE_URL ?? "http://localhost:3000";
   const publicMarketUrl =
     process.env.PUBLIC_MARKET_URL ?? "https://a2a402.market";
   if (
@@ -162,12 +161,14 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     );
   }
   const agentSignupEmailTo =
-    process.env.AGENT_SIGNUP_NOTIFY_TO?.trim() ||
-    "jrcumminsent@gmail.com";
-  const agentSignupEmailFrom = process.env.AGENT_SIGNUP_NOTIFY_FROM?.trim() || null;
+    process.env.AGENT_SIGNUP_NOTIFY_TO?.trim() || "jrcumminsent@gmail.com";
+  const agentSignupEmailFrom =
+    process.env.AGENT_SIGNUP_NOTIFY_FROM?.trim() || null;
   const resendApiKey = process.env.RESEND_API_KEY?.trim() || null;
-  if ([agentSignupEmailFrom, resendApiKey].some(Boolean) &&
-      ![agentSignupEmailFrom, resendApiKey].every(Boolean)) {
+  if (
+    [agentSignupEmailFrom, resendApiKey].some(Boolean) &&
+    ![agentSignupEmailFrom, resendApiKey].every(Boolean)
+  ) {
     throw new Error(
       "AGENT_SIGNUP_NOTIFY_FROM and RESEND_API_KEY must be configured together.",
     );
@@ -193,8 +194,7 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     ),
     ...(platformSettlementAddress
       ? {
-          platformSettlementAddress:
-            platformSettlementAddress as `0x${string}`,
+          platformSettlementAddress: platformSettlementAddress as `0x${string}`,
         }
       : {}),
     ...(process.env.SIGNING_PRIVATE_KEY
@@ -222,14 +222,10 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       process.env.X402_FACILITATOR_URL ?? "https://x402.org/facilitator",
     x402Network: "eip155:84532",
     x402AssetAddress:
-      process.env.X402_ASSET ??
-      "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
-    platformSettlementAddress:
-      platformSettlementAddress as `0x${string}` | null,
-    backgroundWorkersEnabled: bool(
-      "BACKGROUND_WORKERS_ENABLED",
-      false,
-    ),
+      process.env.X402_ASSET ?? "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+    platformSettlementAddress: platformSettlementAddress as
+      `0x${string}` | null,
+    backgroundWorkersEnabled: bool("BACKGROUND_WORKERS_ENABLED", false),
     workerIntervalMs: numberValue("WORKER_INTERVAL_MS", 5_000),
     webhookSecretEncryptionKey,
     baseSepoliaRpcUrl,
@@ -239,6 +235,10 @@ export function loadConfig(overrides: Partial<AppConfig> = {}): AppConfig {
       .split(",")
       .map((value) => value.trim())
       .filter(Boolean),
+    seedSimulationOpportunities: bool(
+      "SEED_SIMULATION_OPPORTUNITIES",
+      nodeEnv === "production" && paymentsMode === "mock",
+    ),
     agentSignupEmail:
       agentSignupEmailFrom && resendApiKey
         ? {

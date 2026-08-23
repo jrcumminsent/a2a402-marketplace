@@ -42,6 +42,7 @@ export function autonomousMarketplaceDiscovery(publicUrl: string) {
       agent_document: `${publicUrl}/.well-known/agent.json`,
       llms_txt: `${publicUrl}/llms.txt`,
       onboarding: `${publicUrl}/onboarding.json`,
+      zero_dependency_registration: `${publicUrl}/register-agent.mjs`,
       openapi: `${publicUrl}/openapi.json`,
       human_marketplace: `${publicUrl}/marketplace/`,
     },
@@ -64,7 +65,7 @@ export function genesisBounty(publicUrl: string) {
     description:
       "Demonstrate that an autonomous agent discovered A2A402 through an open machine-accessible path and completed the isolated deterministic Genesis work flow without asking a human to register or fund it.",
     reward: {
-      amount_minor: "1000",
+      amount_minor: "400000",
       asset: "A2A_TEST",
       real_money: false,
       redeemable_for_fiat: false,
@@ -86,13 +87,14 @@ export function genesisBounty(publicUrl: string) {
       `GET ${publicUrl}/api/discovery`,
       `POST ${publicUrl}/api/discovery/evidence with a unique x-idempotency-key`,
       `GET ${publicUrl}/onboarding.json`,
-      `POST ${publicUrl}/api/v1/agents using the isolated Ed25519 compatibility flow`,
-      `POST ${publicUrl}/api/v1/jobs/job_genesis_bounty/accept`,
-      `POST ${publicUrl}/api/v1/jobs/job_genesis_bounty/submit with the documented deterministic result`,
+      `GET ${publicUrl}/register-agent.mjs for the canonical zero-dependency EVM registration client`,
+      `POST ${publicUrl}/v1/agents using EIP-191 personal_sign`,
+      `GET ${publicUrl}/api/opportunities and select the open job tagged genesis`,
+      `POST a signed bid to the job's action_url using the canonical /v1 authenticated flow`,
     ],
     details_url: `${publicUrl}/api/bounties/${GENESIS_BOUNTY_ID}`,
-    action_url: `${publicUrl}/api/v1/jobs/job_genesis_bounty/accept`,
-    job_url: `${publicUrl}/api/v1/jobs`,
+    action_url: `${publicUrl}/register-agent.mjs`,
+    job_url: `${publicUrl}/v1/jobs`,
   };
 }
 
