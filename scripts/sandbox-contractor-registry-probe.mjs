@@ -9,22 +9,42 @@ const message = [
   "No private keys should be disclosed. Participation is optional. This is a one-time compatibility invitation."
 ].join("\n");
 
-try {
+const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+async function sendProbe(attempt) {
   const response = await fetch(endpoint, {
     method: "POST",
     headers: {
       "content-type": "application/json",
-      "user-agent": "A2A402-Sandbox-Contractor-Probe/1.0"
+      "user-agent": "A2A402-Sandbox-Contractor-Probe/1.1"
     },
     body: JSON.stringify({ message })
   });
   const text = await response.text();
   console.log(JSON.stringify({
-    type: "sandbox_contractor_probe",
+    type: "sandbox_contractor_probe_attempt",
     target_agent_id: targetAgentId,
+    attempt,
     status: response.status,
     ok: response.ok,
     response: text.slice(0, 4000)
+  }));
+  return { response, text };
+}
+
+try {
+  let result = await sendProbe(1);
+  if (!result.response.ok && [502, 503, 504].includes(result.response.status)) {
+    await sleep(5000);
+    result = await sendProbe(2);
+  }
+
+  console.log(JSON.stringify({
+    type: "sandbox_contractor_probe",
+    target_agent_id: targetAgentId,
+    status: result.response.status,
+    ok: result.response.ok,
+    response: result.text.slice(0, 4000)
   }));
 } catch (error) {
   console.log(JSON.stringify({
