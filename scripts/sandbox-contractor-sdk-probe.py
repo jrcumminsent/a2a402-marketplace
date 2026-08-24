@@ -1,7 +1,8 @@
 import asyncio
 import json
 
-from a2a_registry import AsyncRegistry
+import aiohttp
+from a2a_registry.models import Agent
 
 AGENT_ID = "010b4bb0-98bf-45fc-9945-1d31e4f319a5"
 REGISTRY_URL = "https://a2aregistry.org/api/agents?limit=200"
@@ -16,18 +17,25 @@ MESSAGE = "\n".join([
 
 async def main():
     try:
-        async with AsyncRegistry(registry_url=REGISTRY_URL) as registry:
-            agent = await registry.get_by_id(AGENT_ID)
-            if agent is None:
-                print(json.dumps({
-                    "type": "sandbox_contractor_sdk_probe",
-                    "ok": False,
-                    "stage": "resolve",
-                    "registry_url": REGISTRY_URL,
-                    "error": "agent_not_found",
-                }))
-                return
+        async with aiohttp.ClientSession() as session:
+            async with session.get(REGISTRY_URL, timeout=aiohttp.ClientTimeout(total=15)) as response:
+                response.raise_for_status()
+                payload = await response.json(content_type=None)
 
+        records = payload.get("agents", [])
+        raw = next((item for item in records if str(item.get("id")) == AGENT_ID), None)
+        if raw is None:
+            print(json.dumps({
+                "type": "sandbox_contractor_sdk_probe",
+                "ok": False,
+                "stage": "resolve",
+                "registry_url": REGISTRY_URL,
+                "error": "agent_not_found",
+                "agents_seen": len(records),
+            }))
+            return
+
+        agent = Agent.model_validate(raw)
         client = await agent.async_connect()
         response = await client.message.send(
             skill_id="chat",
@@ -39,8 +47,8 @@ async def main():
             "stage": "send",
             "registry_url": REGISTRY_URL,
             "agent_id": AGENT_ID,
-            "agent_name": getattr(agent, "name", None),
-            "well_known_uri": getattr(agent, "wellKnownURI", None),
+            "agent_name": agent.name,
+            "well_known_uri": str(agent.wellKnownURI),
             "response": str(response)[:4000],
         }))
     except Exception as exc:
