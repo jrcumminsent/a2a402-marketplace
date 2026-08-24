@@ -1,7 +1,7 @@
 [build]
+  # Prepare machine-facing durable /v1 onboarding before compiling the deploy.
   # Drizzle records applied migrations, so this is safe to repeat on deploy.
-  # Netlify Database gives preview deploys isolated database branches.
-  command = "pnpm db:migrate && pnpm build"
+  command = "node scripts/prepare-persistent-agent-funnel.mjs && pnpm db:migrate && pnpm build"
   publish = "public"
   functions = "netlify/functions"
 
