@@ -1,0 +1,193 @@
+name: Upgrade MVP agent loop
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/upgrade-mvp-agent-loop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.21.0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - name: Patch isolated TEST agent loop
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          mvp_path = Path('packages/marketplace/src/mvp.ts')
+          mvp = mvp_path.read_text()
+
+          old = '  private treasury = 1_000n;'
+          new = '  private treasury = 2_500n;'
+          if old not in mvp:
+              raise SystemExit('Expected MVP treasury marker not found')
+          mvp = mvp.replace(old, new, 1)
+
+          old = '    this.createGenesisBounty();\n  }'
+          new = '    this.createGenesisBounty();\n    this.createStarterJobs();\n  }'
+          if old not in mvp:
+              raise SystemExit('Expected MVP constructor marker not found')
+          mvp = mvp.replace(old, new, 1)
+
+          marker = '  registerAgent(input: Omit<MvpAgent, "agent_id" | "status" | "created_at" | "updated_at"> & { registration_signature: string }): MvpAgent {'
+          if marker not in mvp:
+              raise SystemExit('Expected registerAgent marker not found')
+
+          starter_method = '''  private createStarterJobs(): void {
+    const created = this.now();
+    const expiresAt = new Date(Date.parse(created) + 86_400_000).toISOString();
+    const starterJobs: MvpJob[] = [
+      {
+        job_id: "job_starter_uppercase",
+        creator_agent_id: null,
+        title: "Starter: uppercase a short phrase",
+        description:
+          "Return one JSON object containing the uppercase version of the supplied phrase: hello agents.",
+        reward: 100n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { text: "HELLO AGENTS" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_classify_test_asset",
+        creator_agent_id: null,
+        title: "Starter: classify the test asset",
+        description:
+          "Classify the statement 'A2A_TEST has no real-world monetary value' using the requested JSON label.",
+        reward: 100n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { classification: "TEST_ONLY" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_sum_42",
+        creator_agent_id: null,
+        title: "Starter: sum three integers",
+        description:
+          "Add 7, 11, and 24 and return the deterministic JSON result.",
+        reward: 150n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { sum: 42 },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_extract_fields",
+        creator_agent_id: null,
+        title: "Starter: extract two JSON fields",
+        description:
+          "From {agent:'worker', task:'extract', ignore:'x'}, return only agent and task as JSON.",
+        reward: 200n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { agent: "worker", task: "extract" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+    ];
+    for (const job of starterJobs) {
+      if (!this.jobs.has(job.job_id)) this.jobs.set(job.job_id, job);
+    }
+  }
+
+'''
+          mvp = mvp.replace(marker, starter_method + marker, 1)
+
+          old = '"Genesis treasury is exhausted."'
+          new = '"Platform TEST treasury is exhausted."'
+          if old not in mvp:
+              raise SystemExit('Expected treasury error marker not found')
+          mvp = mvp.replace(old, new, 1)
+          mvp_path.write_text(mvp)
+
+          app_path = Path('apps/api/src/app.ts')
+          app = app_path.read_text()
+          old = '''      reply.status(201);
+      return agent;
+    },
+  );
+  server.get("/api/v1/agents/:agent_id", async (request) =>
+    mvp.getAgent(params(request).agent_id as string),
+  );'''
+          new = '''      const openJobs = mvp.listJobs().filter((job) => job.status === "OPEN");
+      reply.status(201);
+      return {
+        ...agent,
+        next_action: {
+          action: "search_jobs",
+          method: "GET",
+          url: `${config.engine.publicMarketUrl}/api/v1/jobs`,
+          open_jobs: openJobs.length,
+          instructions: [
+            "Choose an OPEN job.",
+            "POST /api/v1/jobs/{job_id}/accept with your signed agent headers and a unique x-idempotency-key.",
+            "Produce exactly the deterministic expected_result for a starter job.",
+            "POST /api/v1/jobs/{job_id}/submit with {payload: ...} and fresh signed headers.",
+            "After earning A2A_TEST, you may POST /api/v1/jobs to fund a job for another agent using only your earned available balance.",
+          ],
+        },
+      };
+    },
+  );
+  server.get("/api/v1/agents/:agent_id", async (request) =>
+    mvp.getAgent(params(request).agent_id as string),
+  );'''
+          if old not in app:
+              raise SystemExit('Expected MVP registration response block not found')
+          app = app.replace(old, new, 1)
+          app_path.write_text(app)
+
+          test_path = Path('tests/mvp-starter-loop.test.ts')
+          test_path.write_text('''import { describe, expect, it } from "vitest";\n\nimport { MvpMarketplace } from "@a2a402/marketplace";\n\ndescribe("MVP starter agent loop", () => {\n  it("seeds Genesis plus four easy deterministic starter jobs", () => {\n    const market = new MvpMarketplace({ now: () => "2026-08-24T15:00:00.000Z" });\n    const jobs = market.listJobs();\n\n    expect(jobs).toHaveLength(5);\n    expect(jobs.map((job) => job.job_id)).toEqual([\n      "job_genesis_bounty",\n      "job_starter_uppercase",\n      "job_starter_classify_test_asset",\n      "job_starter_sum_42",\n      "job_starter_extract_fields",\n    ]);\n    expect(jobs.every((job) => job.status === "OPEN")).toBe(true);\n    expect(jobs.reduce((sum, job) => sum + job.reward, 0n)).toBe(1550n);\n    expect(jobs.find((job) => job.job_id === "job_starter_sum_42")?.expected_result).toEqual({ sum: 42 });\n  });\n});\n''')
+          PY
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Verify type safety
+        run: pnpm typecheck
+
+      - name: Verify starter loop
+        run: pnpm vitest run tests/mvp-starter-loop.test.ts
+
+      - name: Commit upgrade
+        shell: bash
+        run: |
+          if git diff --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add packages/marketplace/src/mvp.ts apps/api/src/app.ts tests/mvp-starter-loop.test.ts
+          git commit -m "Improve MVP starter jobs and agent next actions"
+          git push origin HEAD:main
