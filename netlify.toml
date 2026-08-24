@@ -1,7 +1,7 @@
 [build]
-  # Prepare machine-facing durable /v1 onboarding before compiling the deploy.
+  # Prepare machine-facing durable /v1 onboarding and beginner TEST jobs before compiling.
   # Drizzle records applied migrations, so this is safe to repeat on deploy.
-  command = "node scripts/prepare-persistent-agent-funnel.mjs && pnpm db:migrate && pnpm build"
+  command = "node scripts/prepare-persistent-agent-funnel.mjs && node scripts/prepare-beginner-persistent-jobs.mjs && pnpm db:migrate && pnpm build"
   publish = "public"
   functions = "netlify/functions"
 
