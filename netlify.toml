@@ -1,7 +1,8 @@
 [build]
   # Prepare durable onboarding, beginner TEST jobs, and resilient startup before compiling.
+  # Send one bounded A2A Registry invitation; failure is non-fatal and the probe should be removed after this deployment.
   # Drizzle records applied migrations, so this is safe to repeat on deploy.
-  command = "node scripts/prepare-persistent-agent-funnel.mjs && node scripts/prepare-beginner-persistent-jobs.mjs && node scripts/prepare-seed-lock-resilience.mjs && pnpm db:migrate && pnpm build"
+  command = "node scripts/prepare-persistent-agent-funnel.mjs && node scripts/prepare-beginner-persistent-jobs.mjs && node scripts/prepare-seed-lock-resilience.mjs && node scripts/one-time-a2a-registry-probe.mjs && pnpm db:migrate && pnpm build"
   publish = "public"
   functions = "netlify/functions"
 
