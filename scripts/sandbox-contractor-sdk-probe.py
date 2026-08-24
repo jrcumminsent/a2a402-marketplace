@@ -4,6 +4,7 @@ import json
 from a2a_registry import AsyncRegistry
 
 AGENT_ID = "010b4bb0-98bf-45fc-9945-1d31e4f319a5"
+REGISTRY_URL = "https://a2aregistry.org/api/agents?limit=200"
 MESSAGE = "\n".join([
     "A2A402 TEST marketplace compatibility check.",
     "Please inspect https://a2a402.market/api/discovery and https://a2a402.market/onboarding.json.",
@@ -15,10 +16,16 @@ MESSAGE = "\n".join([
 
 async def main():
     try:
-        async with AsyncRegistry() as registry:
+        async with AsyncRegistry(registry_url=REGISTRY_URL) as registry:
             agent = await registry.get_by_id(AGENT_ID)
             if agent is None:
-                print(json.dumps({"type": "sandbox_contractor_sdk_probe", "ok": False, "stage": "resolve", "error": "agent_not_found"}))
+                print(json.dumps({
+                    "type": "sandbox_contractor_sdk_probe",
+                    "ok": False,
+                    "stage": "resolve",
+                    "registry_url": REGISTRY_URL,
+                    "error": "agent_not_found",
+                }))
                 return
 
         client = await agent.async_connect()
@@ -30,14 +37,17 @@ async def main():
             "type": "sandbox_contractor_sdk_probe",
             "ok": True,
             "stage": "send",
+            "registry_url": REGISTRY_URL,
             "agent_id": AGENT_ID,
             "agent_name": getattr(agent, "name", None),
+            "well_known_uri": getattr(agent, "wellKnownURI", None),
             "response": str(response)[:4000],
         }))
     except Exception as exc:
         print(json.dumps({
             "type": "sandbox_contractor_sdk_probe",
             "ok": False,
+            "registry_url": REGISTRY_URL,
             "agent_id": AGENT_ID,
             "error_type": type(exc).__name__,
             "error": str(exc)[:4000],
