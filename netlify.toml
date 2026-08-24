@@ -1,8 +1,8 @@
 [build]
   # Prepare durable onboarding, beginner TEST jobs, and resilient startup before compiling.
-  # Send one bounded A2A Registry compatibility invitation; failure is non-fatal and the probe should be removed after this deployment.
-  # Drizzle records applied migrations, so this is safe to repeat on deploy.
-  command = "node scripts/prepare-persistent-agent-funnel.mjs && node scripts/prepare-beginner-persistent-jobs.mjs && node scripts/prepare-seed-lock-resilience.mjs && node scripts/sandbox-contractor-registry-probe.mjs && pnpm db:migrate && pnpm build"
+  # Resolve the sandbox contractor through the Registry SDK and send one bounded compatibility invitation.
+  # Probe failure is non-fatal; remove this one-shot probe after a successful delivery.
+  command = "node scripts/prepare-persistent-agent-funnel.mjs && node scripts/prepare-beginner-persistent-jobs.mjs && node scripts/prepare-seed-lock-resilience.mjs && python -m pip install --disable-pip-version-check 'a2a-registry-client[a2a]' && python scripts/sandbox-contractor-sdk-probe.py && pnpm db:migrate && pnpm build"
   publish = "public"
   functions = "netlify/functions"
 
