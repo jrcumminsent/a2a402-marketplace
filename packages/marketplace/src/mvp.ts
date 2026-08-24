@@ -158,7 +158,7 @@ export class MvpMarketplace {
   private readonly nonces = new Set<string>();
   private readonly idempotency = new Map<string, { hash: string; value: unknown }>();
   private readonly ledger: Array<{ transaction_id: string; account: string; side: "DEBIT" | "CREDIT"; amount: bigint; created_at: string }> = [];
-  private treasury = 1_000n;
+  private treasury = 2_500n;
 
   constructor(options: MvpMarketplaceOptions = {}) {
     const keys = options.signingPrivateKey && options.signingPublicKey
@@ -170,6 +170,7 @@ export class MvpMarketplace {
     this.now = options.now ?? nowIso;
     this.nonceTtlMs = options.nonceTtlMs ?? 300_000;
     this.createGenesisBounty();
+    this.createStarterJobs();
   }
 
   marketplacePublicKey(): string {
@@ -177,7 +178,7 @@ export class MvpMarketplace {
   }
 
   createGenesisBounty(): MvpJob {
-    const existing = [...this.jobs.values()].find((job) => job.creator_agent_id === null);
+    const existing = this.jobs.get("job_genesis_bounty");
     if (existing) return existing;
     const created = this.now();
     const job: MvpJob = {
@@ -195,6 +196,68 @@ export class MvpMarketplace {
     };
     this.jobs.set(job.job_id, job);
     return job;
+  }
+
+  private createStarterJobs(): void {
+    const created = this.now();
+    const expiresAt = new Date(Date.parse(created) + 86_400_000).toISOString();
+    const starterJobs: MvpJob[] = [
+      {
+        job_id: "job_starter_uppercase",
+        creator_agent_id: null,
+        title: "Starter: uppercase a short phrase",
+        description: "Return one JSON object containing the uppercase version of the supplied phrase: hello agents.",
+        reward: 100n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { text: "HELLO AGENTS" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_classify_test_asset",
+        creator_agent_id: null,
+        title: "Starter: classify the test asset",
+        description: "Classify the statement 'A2A_TEST has no real-world monetary value' using the requested JSON label.",
+        reward: 100n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { classification: "TEST_ONLY" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_sum_42",
+        creator_agent_id: null,
+        title: "Starter: sum three integers",
+        description: "Add 7, 11, and 24 and return the deterministic JSON result.",
+        reward: 150n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { sum: 42 },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+      {
+        job_id: "job_starter_extract_fields",
+        creator_agent_id: null,
+        title: "Starter: extract two JSON fields",
+        description: "From {agent:'worker', task:'extract', ignore:'x'}, return only agent and task as JSON.",
+        reward: 200n,
+        currency: MVP_CURRENCY,
+        status: "OPEN",
+        expected_result: { agent: "worker", task: "extract" },
+        accepting_agent_id: null,
+        created_at: created,
+        expires_at: expiresAt,
+      },
+    ];
+    for (const job of starterJobs) {
+      if (!this.jobs.has(job.job_id)) this.jobs.set(job.job_id, job);
+    }
   }
 
   registerAgent(input: Omit<MvpAgent, "agent_id" | "status" | "created_at" | "updated_at"> & { registration_signature: string }): MvpAgent {
@@ -275,7 +338,7 @@ export class MvpMarketplace {
     if (job.status !== "COMPLETED" || !job.accepting_agent_id) throw new MarketplaceError("INVALID_STATE_TRANSITION", "Only completed jobs can settle.", 409);
     const payer = job.creator_agent_id ? { type: "agent" as const, id: job.creator_agent_id } : { type: "platform" as const, id: "a2a402.market" };
     const provenance = job.creator_agent_id ? this.releaseReservation(job.job_id) : [];
-    if (!job.creator_agent_id) { if (this.treasury < job.reward) throw new MarketplaceError("INSUFFICIENT_ELIGIBLE_CAPITAL", "Genesis treasury is exhausted.", 409); this.treasury -= job.reward; }
+    if (!job.creator_agent_id) { if (this.treasury < job.reward) throw new MarketplaceError("INSUFFICIENT_ELIGIBLE_CAPITAL", "Platform TEST treasury is exhausted.", 409); this.treasury -= job.reward; }
     const settlementId = id("set"); const earnedAt = this.now(); const proofId = id("poe");
     const unsigned: Omit<MvpProofOfEarn, "signature"> = { proof_id: proofId, version: MVP_PROOF_VERSION, agent_id: job.accepting_agent_id, job_id: job.job_id, settlement_id: settlementId, amount: job.reward.toString(), currency: MVP_CURRENCY, classification: "EARNED", payer, reason: "JOB_COMPLETION", earned_at: earnedAt, provenance_references: provenance, marketplace: "a2a402.market", signature_algorithm: "Ed25519", key_id: this.keyId };
     const proof: MvpProofOfEarn = { ...unsigned, signature: sign(null, Buffer.from(mvpProofPayload(unsigned)), this.privateKey).toString("base64") };
