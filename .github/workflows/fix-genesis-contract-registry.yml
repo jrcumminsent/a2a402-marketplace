@@ -2,7 +2,8 @@ name: Fix Genesis contract registry
 
 on:
   push:
-    branches: [main]
+    branches:
+      - main
     paths:
       - .github/workflows/fix-genesis-contract-registry.yml
 
@@ -13,23 +14,23 @@ jobs:
   fix:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - name: Check out source
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
-      - name: Register Genesis route and remove temporary workflow
-        shell: python
+
+      - name: Register Genesis route in authoritative machine contract
         run: |
+          python - <<'PY'
           from pathlib import Path
-          p = Path("apps/api/src/machine-docs.ts")
-          s = p.read_text()
-          marker = '    id: "public_opportunities",'
-          if 'path: "/api/genesis"' not in s:
-              pos = s.find(marker)
-              if pos < 0:
-                  raise SystemExit("Could not find public_opportunities route")
-              start = s.rfind("  route({", 0, pos)
-              if start < 0:
-                  raise SystemExit("Could not find route start")
+
+          path = Path("apps/api/src/machine-docs.ts")
+          source = path.read_text()
+          if 'path: "/api/genesis"' not in source:
+              marker = '  route({\n    id: "public_opportunities",'
+              index = source.find(marker)
+              if index < 0:
+                  raise SystemExit("public_opportunities route marker not found")
               block = '''  route({
             id: "genesis_economy_mission",
             kind: "meta",
@@ -41,10 +42,14 @@ jobs:
             response: componentSchemaRef("JsonObject"),
           }),
 '''
-              s = s[:start] + block + s[start:]
-              p.write_text(s)
-          Path(".github/workflows/fix-genesis-contract-registry.yml").unlink()
-      - name: Commit fix
+              block = block.replace("            ", "    ").replace("          }),", "  }),")
+              path.write_text(source[:index] + block + source[index:])
+          PY
+
+      - name: Remove this obsolete repair workflow
+        run: rm .github/workflows/fix-genesis-contract-registry.yml
+
+      - name: Commit source repair and cleanup
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
