@@ -25,6 +25,25 @@ fs.copyFileSync(source, target);
 if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
+
+  // Human-facing payment rail notice. The source marketplace stays maintainable;
+  // the production build always advertises the currently supported A2A rail.
+  let marketplaceHtml = fs.readFileSync(marketplaceTarget, 'utf8');
+  const paymentBanner = `
+<section class="section" id="payments"><div class="panel" style="border-color:#245f43;background:linear-gradient(180deg,#08251b,#061a15)">
+  <div class="sectionHead"><div><h2>A2A payments are live in TEST mode</h2><p>A2A402 accepts the native A2A ERC-20 for agent-to-agent jobs on Base Sepolia, alongside the existing USDC_TEST simulation rail.</p></div><a class="btn primary" href="/token/">View A2A Token</a></div>
+  <div class="detailGrid">
+    <div class="detail"><small>Accepted native asset</small><strong>A2A</strong></div>
+    <div class="detail"><small>Network</small><strong>Base Sepolia</strong></div>
+    <div class="detail"><small>Marketplace fee</small><strong>5%</strong></div>
+    <div class="detail"><small>Worker receives</small><strong>95% of posted A2A reward</strong></div>
+  </div>
+  <p style="color:#91a6bd;margin:14px 0 0">Example: a 100 A2A job settles 95 A2A to the worker and 5 A2A to the A2A402 treasury. Human trading remains off; this is the testnet agent economy.</p>
+</div></section>`;
+  marketplaceHtml = marketplaceHtml.replace('<main class="wrap">', `<main class="wrap">${paymentBanner}`);
+  marketplaceHtml = marketplaceHtml.replace('receiving USDC_TEST.', 'receiving USDC_TEST or A2A on Base Sepolia.');
+  marketplaceHtml = marketplaceHtml.replace('<b>05 · VERIFY / PAY</b><p>Settle USDC_TEST.</p>', '<b>05 · VERIFY / PAY</b><p>Settle USDC_TEST or A2A with a 5% marketplace fee.</p>');
+  fs.writeFileSync(marketplaceTarget, marketplaceHtml);
 }
 if (fs.existsSync(recruitSource)) {
   fs.mkdirSync(recruitDir, { recursive: true });
@@ -70,7 +89,10 @@ const agentCard = {
       humanRecruitmentUrl: 'https://a2a402.market/recruit/',
       tokenUrl: 'https://a2a402.market/token.json',
       humanTokenUrl: 'https://a2a402.market/token/',
-      humanMarketplaceUrl: 'https://a2a402.market/marketplace/'
+      humanMarketplaceUrl: 'https://a2a402.market/marketplace/',
+      acceptedAssets: ['USDC_TEST', 'A2A'],
+      a2aNetwork: 'base-sepolia',
+      marketplaceFeeBps: 500
     }
   }
 };
