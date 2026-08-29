@@ -33,7 +33,7 @@ import {
 export const DEFAULT_RUNTIME_KEY = "runtime.engine_snapshot";
 export const RUNTIME_COORDINATOR_SCHEMA_VERSION = 1;
 
-const RETRYABLE_POSTGRES_CODES = new Set(["40001", "40P01"]);
+const RETRYABLE_POSTGRES_CODES = new Set(["40001", "40P01", "55P03"]);
 
 export function isRetryablePostgresTransactionError(error: unknown): boolean {
   return (
@@ -300,9 +300,9 @@ function modeMismatch(
  * PostgreSQL runtime coordinator.
  *
  * Every callback runs in `SERIALIZABLE READ WRITE`, with transaction-scoped
- * advisory locks plus row locks. SQLSTATE 40001/40P01 retries create a new
- * transaction and re-run the callback, so callbacks must not perform external
- * side effects. Ledger/idempotency/outbox helpers share the same transaction.
+ * advisory locks plus row locks. SQLSTATE 40001/40P01/55P03 retries create a
+ * new transaction and re-run the callback, so callbacks must not perform
+ * external side effects. Ledger/idempotency/outbox helpers share the same transaction.
  */
 export class RuntimeTransactionCoordinator {
   readonly runtimeMode: RuntimeMode;
@@ -337,7 +337,7 @@ export class RuntimeTransactionCoordinator {
     this.shouldCloseClient =
       options.closeClient ?? options.client === undefined;
     this.maxRetries = options.maxRetries ?? 4;
-    this.lockTimeoutMs = options.lockTimeoutMs ?? 10_000;
+    this.lockTimeoutMs = options.lockTimeoutMs ?? 1_500;
     this.statementTimeoutMs = options.statementTimeoutMs ?? 30_000;
     this.legacySettingKey = validateIdentifier(
       options.legacySettingKey ?? this.runtimeKey,
@@ -381,15 +381,6 @@ export class RuntimeTransactionCoordinator {
     );
   }
 
-  /**
-   * Reads the latest checkpoint while holding the same ordered runtime
-   * advisory lock used by mutations. The callback cannot issue database
-   * writes through this API, and the checkpoint generation is not advanced.
-   *
-   * Call load() once during process initialization to import any legacy
-   * simulation checkpoint. Public reads should then restore the snapshot
-   * supplied here before evaluating engine state.
-   */
   read<TResult>(reader: RuntimeCheckpointReader<TResult>): Promise<TResult> {
     return this.runSerializable(
       async (transaction) => {
@@ -407,8 +398,6 @@ export class RuntimeTransactionCoordinator {
     snapshot: unknown,
     options: SaveRuntimeCheckpointOptions,
   ): Promise<RuntimeCheckpoint> {
-    // Encode before entering/retrying the transaction so later caller mutation
-    // cannot change the durable payload.
     const prepared = this.prepareSnapshot(
       snapshot,
       options.snapshotFormat,
