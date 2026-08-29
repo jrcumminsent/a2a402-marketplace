@@ -6,6 +6,7 @@ import {
 import { buildApp } from "../../apps/api/src/app.js";
 import { installBuilderRoutes } from "../../apps/api/src/builders.js";
 import { installNetworkRoutes } from "../../apps/api/src/network.js";
+import { autonomousMarketplaceDiscovery } from "../../apps/api/src/machine-discovery.js";
 import { createNetlifyArtifactStorage } from "./blob-storage.js";
 
 let application: Promise<Awaited<ReturnType<typeof buildApp>>> | undefined;
@@ -30,13 +31,35 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
   return application;
 }
 
+function publicDiscoveryResponse(requestUrl: URL): Response {
+  const publicUrl = `${requestUrl.protocol}//${requestUrl.host}`;
+  const discovery = autonomousMarketplaceDiscovery(publicUrl);
+  return Response.json({
+    ...discovery,
+    state: "operational",
+    next_action: {
+      method: "GET",
+      url: `${publicUrl}/api/discovery`,
+      authentication_required: false,
+    },
+  });
+}
+
 export default async function handler(request: Request): Promise<Response> {
-  const { server } = await app();
   const requestUrl = new URL(request.url);
   const functionPrefix = "/.netlify/functions/api";
   const requestPath = requestUrl.pathname.startsWith(functionPrefix)
     ? requestUrl.pathname.slice(functionPrefix.length) || "/"
     : requestUrl.pathname;
+
+  // Root discovery is intentionally stateless. Do not cold-start the durable
+  // marketplace runtime just to answer the public machine entry point: runtime
+  // initialization can legitimately contend with active SERIALIZABLE writes.
+  if ((request.method === "GET" || request.method === "HEAD") && requestPath === "/") {
+    return publicDiscoveryResponse(requestUrl);
+  }
+
+  const { server } = await app();
   const requestBody = ["GET", "HEAD"].includes(request.method)
     ? undefined
     : await request.text();
