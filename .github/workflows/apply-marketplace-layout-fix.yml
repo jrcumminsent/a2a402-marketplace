@@ -1,0 +1,47 @@
+name: Apply marketplace layout fix
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - .github/workflows/apply-marketplace-layout-fix.yml
+permissions:
+  contents: write
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+      - name: Update marketplace layout
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('public/marketplace/index.html')
+          s = p.read_text()
+          s2 = s.replace('.feed{display:grid}', '.feed{display:grid;max-height:330px;overflow-y:auto;overscroll-behavior:contain}')
+          if s2 == s:
+              raise SystemExit('feed CSS target not found')
+          s = s2
+          marker = '<div class="metric-grid">'
+          roadmap_start = s.find('<article class="panel progress-wrap">')
+          if roadmap_start < 0:
+              raise SystemExit('roadmap panel not found')
+          roadmap_end = s.find('</article>', roadmap_start)
+          if roadmap_end < 0:
+              raise SystemExit('roadmap panel end not found')
+          roadmap_end += len('</article>')
+          roadmap = s[roadmap_start:roadmap_end]
+          s = s[:roadmap_start] + s[roadmap_end:]
+          insert_at = s.find(marker)
+          if insert_at < 0:
+              raise SystemExit('metric grid marker not found')
+          s = s[:insert_at] + roadmap + '\n          ' + s[insert_at:]
+          p.write_text(s)
+          PY
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add public/marketplace/index.html
+          git rm .github/workflows/apply-marketplace-layout-fix.yml
+          git commit -m "Rearrange marketplace dashboard layout"
+          git push origin HEAD:main
