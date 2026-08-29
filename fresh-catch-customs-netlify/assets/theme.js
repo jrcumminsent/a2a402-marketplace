@@ -1,7 +1,0 @@
-document.documentElement.classList.remove('no-js');
-const toggle=document.querySelector('[data-menu-toggle]');
-const drawer=document.querySelector('[data-mobile-drawer]');
-if(toggle&&drawer){toggle.addEventListener('click',()=>{const open=drawer.hasAttribute('open');drawer.toggleAttribute('open');toggle.setAttribute('aria-expanded',String(!open));document.body.style.overflow=open?'':'hidden'})}
-document.querySelectorAll('[data-model-select]').forEach(select=>{const sync=()=>{const form=select.closest('form');if(!form)return;form.querySelectorAll('[data-colors-for]').forEach(group=>{const active=group.dataset.colorsFor===select.value;group.hidden=!active;group.querySelectorAll('select,input').forEach(el=>el.disabled=!active)})};select.addEventListener('change',sync);sync()});
-document.querySelectorAll('form.js-loading-form').forEach(form=>form.addEventListener('submit',()=>{const button=form.querySelector('[type=submit]');if(button){button.disabled=true;button.dataset.label=button.textContent;button.textContent='Sending…'}}));
-if(!matchMedia('(prefers-reduced-motion: reduce)').matches&&'IntersectionObserver'in window){const io=new IntersectionObserver(entries=>entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('is-visible');io.unobserve(e.target)}}),{threshold:.08});document.querySelectorAll('.reveal').forEach(el=>io.observe(el))}else{document.querySelectorAll('.reveal').forEach(el=>el.classList.add('is-visible'))}

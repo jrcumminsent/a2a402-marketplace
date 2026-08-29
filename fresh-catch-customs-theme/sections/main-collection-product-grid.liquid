@@ -1,9 +1,0 @@
-{% assign source_collection = collection | default: section.settings.collection %}
-{% paginate source_collection.products by section.settings.products_per_page %}
-<section class="section"><div class="container">{% render 'breadcrumbs' %}<div class="collection-toolbar"><div><h1>{{ source_collection.title | default: page.title }}</h1><p>{{ source_collection.products_count }} products</p></div>
-{% if collection %}<form><label for="SortBy">Sort by</label><select id="SortBy" name="sort_by" onchange="this.form.submit()">{% assign sort_by = collection.sort_by | default: collection.default_sort_by %}{% for option in collection.sort_options %}<option value="{{ option.value | escape }}" {% if option.value == sort_by %}selected{% endif %}>{{ option.name | escape }}</option>{% endfor %}</select></form>{% endif %}</div>
-{% if collection.filters.size > 0 %}<form class="fine-border" style="padding:1rem;margin-bottom:2rem"><strong>Filters</strong>{% for filter in collection.filters %}<details><summary>{{ filter.label }}</summary>{% for value in filter.values %}<label><input type="checkbox" name="{{ value.param_name }}" value="{{ value.value }}" {% if value.active %}checked{% endif %}> {{ value.label }} ({{ value.count }})</label>{% endfor %}</details>{% endfor %}<button class="button" type="submit">Apply filters</button></form>{% endif %}
-<div class="product-grid">{% for product in source_collection.products %}{% render 'product-card', product: product %}{% else %}<p>Select a ready-to-ship collection in the theme editor.</p>{% endfor %}</div>
-{% if paginate.pages > 1 %}<nav aria-label="Pagination">{{ paginate | default_pagination }}</nav>{% endif %}</div></section>
-{% endpaginate %}
-{% schema %}{"name":"Collection product grid","settings":[{"type":"collection","id":"collection","label":"Collection (used on page templates)"},{"type":"range","id":"products_per_page","label":"Products per page","min":8,"max":32,"step":4,"default":16}]}{% endschema %}

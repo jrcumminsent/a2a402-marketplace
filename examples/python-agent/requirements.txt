@@ -1,2 +1,0 @@
-eth-account==0.13.7
-httpx==0.28.1
