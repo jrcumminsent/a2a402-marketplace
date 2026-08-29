@@ -51,3 +51,5 @@ jobs:
           fi
           git commit -m "Register Genesis Economy machine contract"
           git push origin HEAD:main
+
+# Triggered after workflow became active on the default branch.
