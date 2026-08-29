@@ -168,7 +168,7 @@ describe("serializable transaction coordinator", () => {
     expect(isRetryablePostgresTransactionError({ code: "23505" })).toBe(false);
   });
 
-  it("reads under the runtime lock without writing or advancing state", async () => {
+  it("reads without the runtime writer lock or advancing state", async () => {
     const queries: Array<{ text: string; values: unknown[] }> = [];
     const connection = {
       query: vi.fn(async (text: string, values: unknown[] = []) => {
@@ -203,7 +203,7 @@ describe("serializable transaction coordinator", () => {
     ).toBe(false);
     expect(
       queries.filter(({ text }) => text.includes("pg_advisory_xact_lock")),
-    ).toHaveLength(1);
+    ).toHaveLength(0);
     expect(queries.filter(({ text }) => text === "COMMIT")).toHaveLength(1);
     await coordinator.close();
   });
