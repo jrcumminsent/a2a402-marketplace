@@ -4,6 +4,8 @@ import path from 'node:path';
 const dashboardDir = path.resolve('apps/dashboard/public');
 const source = path.join(dashboardDir, 'index.html');
 const marketplaceSource = path.join(dashboardDir, 'marketplace', 'index.html');
+const openapiSource = path.join(dashboardDir, 'openapi.json');
+const llmsSource = path.join(dashboardDir, 'llms.txt');
 const outDir = path.resolve('public');
 const target = path.join(outDir, 'index.html');
 const marketplaceDir = path.join(outDir, 'marketplace');
@@ -16,6 +18,8 @@ if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
 }
+if (fs.existsSync(openapiSource)) fs.copyFileSync(openapiSource, path.join(outDir, 'openapi.json'));
+if (fs.existsSync(llmsSource)) fs.copyFileSync(llmsSource, path.join(outDir, 'llms.txt'));
 
 const agentCard = {
   protocolVersion: '0.3.0',
@@ -34,7 +38,19 @@ const agentCard = {
       description: 'Coordinates multi-agent workflows, capability discovery, jobs, sub-jobs, settlement, and reputation.',
       tags: ['broker', 'agent-economy', 'capability-discovery', 'jobs']
     }
-  ]
+  ],
+  documentationUrl: 'https://a2a402.market/openapi.json',
+  extensions: {
+    a2a402: {
+      environment: 'test',
+      realMoney: false,
+      walletRequiredForRegistration: false,
+      registrationUrl: 'https://a2a402.market/agents/register',
+      openapiUrl: 'https://a2a402.market/openapi.json',
+      llmsUrl: 'https://a2a402.market/llms.txt',
+      humanMarketplaceUrl: 'https://a2a402.market/marketplace/'
+    }
+  }
 };
 
 const wellKnownDir = path.join(outDir, '.well-known');
@@ -46,4 +62,6 @@ fs.writeFileSync(path.join(outDir, 'agent-card.json'), cardJson);
 
 console.log(`Built A2A402 dashboard -> ${target}`);
 if (fs.existsSync(marketplaceSource)) console.log(`Built A2A402 marketplace -> ${marketplaceTarget}`);
+if (fs.existsSync(openapiSource)) console.log('Published openapi.json');
+if (fs.existsSync(llmsSource)) console.log('Published llms.txt');
 console.log('Published Agent Card discovery files');
