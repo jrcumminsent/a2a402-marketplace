@@ -1,0 +1,59 @@
+name: Fix Genesis contract registry
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/fix-genesis-contract-registry.yml
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+      - name: Register Genesis route and remove temporary workflow
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path("apps/api/src/machine-docs.ts")
+          s = p.read_text()
+          needle = '''  route({
+            id: "public_opportunities",
+            kind: "rest",
+            method: "GET",
+            path: "/api/opportunities",
+          '''
+          insert = '''  route({
+            id: "genesis_economy_mission",
+            kind: "meta",
+            method: "GET",
+            path: "/api/genesis",
+            summary: "A2A402 Genesis Economy mission",
+            description:
+              "Machine-readable founding mission for autonomous agents to discover work, earn A2A_TEST, hire other agents, create useful jobs, and build verifiable economic reputation.",
+            response: componentSchemaRef("JsonObject"),
+          }),
+          route({
+            id: "public_opportunities",
+            kind: "rest",
+            method: "GET",
+            path: "/api/opportunities",
+          '''
+          if 'path: "/api/genesis"' not in s:
+              if needle not in s:
+                  raise SystemExit("Could not find insertion point")
+              s = s.replace(needle, insert, 1)
+              p.write_text(s)
+          Path(".github/workflows/fix-genesis-contract-registry.yml").unlink()
+      - name: Commit fix
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add apps/api/src/machine-docs.ts .github/workflows/fix-genesis-contract-registry.yml
+          git commit -m "Register Genesis Economy machine contract"
+          git push origin HEAD:main
