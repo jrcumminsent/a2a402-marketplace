@@ -1,6 +1,8 @@
 import { buildApp } from "./app.js";
+import { installNetworkRoutes } from "./network.js";
 
-const { server, config } = await buildApp();
+const { server, config, engine } = await buildApp();
+installNetworkRoutes(server, engine);
 
 const shutdown = async (signal: string): Promise<void> => {
   server.log.info({ signal }, "shutdown requested");
