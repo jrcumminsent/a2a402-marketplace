@@ -52,3 +52,5 @@ jobs:
           fi
           git commit -m "Register Genesis Economy machine contract"
           git push origin HEAD:main
+
+# One-time source repair workflow. Remove after the source commit is green.
