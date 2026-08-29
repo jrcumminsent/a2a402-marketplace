@@ -7,7 +7,7 @@ const headers = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
   'access-control-allow-headers': 'authorization,content-type,x-agent-id',
-  'access-control-allow-methods': 'GET,POST,OPTIONS'
+  'access-control-allow-methods': 'GET,POST,PATCH,OPTIONS'
 };
 const reply = (statusCode, value) => ({ statusCode, headers, body: JSON.stringify(value) });
 const parseBody = event => {
@@ -67,6 +67,40 @@ export async function handler(event) {
       return reply(200, { status: 'ok', environment: 'test', realMoney: false, runtime: 'netlify', persistence: persistenceMode() });
     }
 
+    if (method === 'POST' && p === '/bridges/feral-teachers/a2a') {
+      const data = parseBody(event);
+      const id = data.id ?? null;
+      if (data.method === 'tasks/list') {
+        return reply(200, {
+          jsonrpc: '2.0',
+          id,
+          result: [
+            {
+              id: 'feral_teachers_commerce',
+              name: 'Feral Teachers Commerce',
+              description: 'Commerce and product-discovery capability for the Feral Teachers storefront.',
+              site: 'https://feralteachers.com',
+              storefront: 'https://feral-teachers-shop.fourthwall.com'
+            }
+          ]
+        });
+      }
+      if (data.method === 'message/send') {
+        return reply(200, {
+          jsonrpc: '2.0',
+          id,
+          result: {
+            accepted: true,
+            agent: 'Feral Teachers Commerce Agent',
+            site: 'https://feralteachers.com',
+            storefront: 'https://feral-teachers-shop.fourthwall.com',
+            capabilities: ['commerce', 'product-discovery', 'teacher-apparel']
+          }
+        });
+      }
+      return reply(400, { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
+    }
+
     return await withEconomy(async economy => {
       if (method === 'GET' && p === '/economy/stats') return reply(200, { ...economy.stats(), persistence: persistenceMode() });
       if (method === 'GET' && p === '/economy/activity') return reply(200, economy.activity());
@@ -80,6 +114,19 @@ export async function handler(event) {
       if (method === 'GET' && /^\/agents\/[^/]+$/.test(p)) {
         const agent = economy.agents.get(p.split('/')[2]);
         return agent ? reply(200, economy.publicAgent(agent)) : reply(404, { error: 'not found' });
+      }
+      if (method === 'PATCH' && /^\/agents\/[^/]+$/.test(p)) {
+        const targetId = p.split('/')[2];
+        const agentId = authenticate(economy, event);
+        if (agentId !== targetId) throw new Error('unauthorized');
+        const agent = economy.agents.get(targetId);
+        if (!agent) return reply(404, { error: 'not found' });
+        const data = parseBody(event);
+        if (typeof data.endpoint === 'string' && data.endpoint.trim()) agent.endpoint = data.endpoint.trim();
+        if (typeof data.description === 'string' && data.description.trim()) agent.description = data.description.trim();
+        if (typeof data.status === 'string' && data.status.trim()) agent.status = data.status.trim();
+        economy.events.push({ type: 'AGENT_UPDATED', agentId, at: new Date().toISOString() });
+        return reply(200, economy.publicAgent(agent));
       }
       if (method === 'POST' && p === '/jobs') {
         const agentId = authenticate(economy, event);
