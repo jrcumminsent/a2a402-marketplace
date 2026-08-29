@@ -390,7 +390,6 @@ export class RuntimeTransactionCoordinator {
         });
         return reader(current);
       },
-      { lockKeys: [this.runtimeLockKey()] },
     );
   }
 
