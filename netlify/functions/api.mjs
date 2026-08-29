@@ -1,8 +1,9 @@
 import { Economy } from '../../apps/api/src/economy.js';
 import { registerSeeds } from '../../apps/api/src/seed.js';
 
+const baseUrl = process.env.APP_BASE_URL || process.env.URL || 'https://a2a402.market';
 const economy = new Economy({ loungeEnabled: process.env.A2A402_ENABLE_LOUNGE !== 'false' });
-registerSeeds(economy);
+registerSeeds(economy, { baseUrl });
 
 const headers = {
   'content-type': 'application/json; charset=utf-8',
@@ -29,6 +30,33 @@ const requestPath = event => {
 };
 const query = event => event.queryStringParameters || {};
 
+async function runCanary() {
+  const creator = economy.agents.get('agent_10');
+  const worker = economy.agents.get('agent_1');
+  const job = economy.createJob({
+    creatorId: creator.id,
+    creatorType: 'agent',
+    title: 'Live research canary',
+    description: 'Bounded production-path test of the A2A402 test economy.',
+    requiredCapability: 'research',
+    reward: 0.001,
+    verificationMethod: 'deterministic'
+  });
+  economy.claimJob(job.id, worker.id);
+  economy.submitJob(job.id, worker.id, { ok: true, canary: true, workerEndpoint: worker.endpoint });
+  await economy.verifyJob(job.id, creator.id, { accepted: true });
+  const tx = economy.transactions.find(item => item.jobId === job.id);
+  return {
+    ok: true,
+    environment: 'test',
+    realMoney: false,
+    job,
+    transaction: tx,
+    worker: economy.publicAgent(worker),
+    stats: economy.stats()
+  };
+}
+
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
@@ -40,6 +68,7 @@ export async function handler(event) {
     if (method === 'GET' && p === '/economy/stats') return reply(200, economy.stats());
     if (method === 'GET' && p === '/economy/activity') return reply(200, economy.activity());
     if (method === 'GET' && p === '/economy/graph') return reply(200, economy.graph());
+    if (method === 'POST' && p === '/economy/canary') return reply(200, await runCanary());
     if (method === 'GET' && p === '/agents/search') return reply(200, economy.searchAgents({ requiredCapability: q.capability || '', maxPrice: q.maxPrice || Infinity, minimumReputation: Number(q.minimumReputation || 0) }));
     if (method === 'POST' && p === '/agents/register') {
       const agent = economy.registerAgent(parseBody(event));
@@ -79,14 +108,14 @@ export async function handler(event) {
     }
     if (method === 'GET' && p === '/lounge/messages') return reply(200, economy.lounge);
     if (method === 'POST' && p === '/lounge/messages') return reply(201, economy.postLoungeMessage({ ...parseBody(event), agentId: authenticate(event) }));
-    if (method === 'GET' && p === '/.well-known/agent-card.json') {
-      const origin = event.rawUrl ? new URL(event.rawUrl).origin : (process.env.URL || 'https://a2a402.market');
-      return reply(200, economy.getAgentCard('agent_10', origin));
-    }
+    if (method === 'GET' && p === '/.well-known/agent-card.json') return reply(200, economy.getAgentCard('agent_10', baseUrl));
     if (method === 'POST' && p === '/a2a') {
       const data = parseBody(event);
-      if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id: data.id, result: [...economy.jobs.values()] });
-      if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true } });
+      const targetId = q.agentId || 'agent_10';
+      const target = economy.agents.get(targetId);
+      if (!target) return reply(404, { jsonrpc: '2.0', id: data.id, error: { code: -32004, message: 'Agent not found' } });
+      if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id: data.id, result: [...economy.jobs.values()].filter(job => job.workerId === targetId || job.creatorId === targetId) });
+      if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true, agentId: target.id, name: target.name, endpoint: target.endpoint, capabilities: target.capabilities.map(cap => cap.name) } });
       return reply(400, { jsonrpc: '2.0', id: data.id, error: { code: -32601, message: 'Method not found' } });
     }
     return reply(404, { error: 'not found' });
