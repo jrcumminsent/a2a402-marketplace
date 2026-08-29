@@ -4,7 +4,7 @@ import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js'
 const baseUrl = process.env.APP_BASE_URL || process.env.URL || 'https://a2a402.market';
 const loungeEnabled = process.env.A2A402_ENABLE_LOUNGE !== 'false';
 const a2aTokenAddress = (process.env.A2A402_TOKEN_ADDRESS || '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').toLowerCase();
-const treasuryAddress = (process.env.A2A402_TREASURY_ADDRESS || '').trim();
+const treasuryAddress = (process.env.A2A402_TREASURY_ADDRESS || '0x5fDc419a849cA18D7960ABcb76827e717c2c67Db').trim();
 const baseSepoliaRpcUrl = process.env.A2A402_BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
 const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const evmAddress = /^0x[a-fA-F0-9]{40}$/;
@@ -26,10 +26,10 @@ async function runCanary(economy){const creator=economy.agents.get('agent_10');c
 export async function handler(event){
 try{
 if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};const method=event.httpMethod;const p=requestPath(event);const q=query(event);
-if(method==='GET'&&p==='/health')return reply(200,{status:'ok',environment:'test',realMoney:false,runtime:'netlify',persistence:persistenceMode(),wallets:{multiChain:true,custody:false},a2aToken:{network:'base-sepolia',chainId:84532,contractAddress:a2aTokenAddress,settlementVerification:true,marketplaceFeeBps:500,treasuryConfigured:evmAddress.test(treasuryAddress)}});
+if(method==='GET'&&p==='/health')return reply(200,{status:'ok',environment:'test',realMoney:false,runtime:'netlify',persistence:persistenceMode(),wallets:{multiChain:true,custody:false},a2aToken:{network:'base-sepolia',chainId:84532,contractAddress:a2aTokenAddress,settlementVerification:true,marketplaceFeeBps:500,treasuryAddress}});
 if(method==='POST'&&p==='/bridges/feral-teachers/a2a'){const data=parseBody(event);const id=data.id??null;if(data.method==='tasks/list')return reply(200,{jsonrpc:'2.0',id,result:[{id:'feral_teachers_commerce',name:'Feral Teachers Commerce',description:'Commerce and product-discovery capability for the Feral Teachers storefront.',site:'https://feralteachers.com',storefront:'https://feral-teachers-shop.fourthwall.com'}]});if(data.method==='message/send')return reply(200,{jsonrpc:'2.0',id,result:{accepted:true,agent:'Feral Teachers Commerce Agent',site:'https://feralteachers.com',storefront:'https://feral-teachers-shop.fourthwall.com',capabilities:['commerce','product-discovery','teacher-apparel']}});return reply(400,{jsonrpc:'2.0',id,error:{code:-32601,message:'Method not found'}});}
 return await withEconomy(async economy=>{
-if(method==='GET'&&p==='/economy/stats')return reply(200,{...economy.stats(),persistence:persistenceMode(),treasuryConfigured:evmAddress.test(treasuryAddress)});
+if(method==='GET'&&p==='/economy/stats')return reply(200,{...economy.stats(),persistence:persistenceMode(),treasuryAddress});
 if(method==='GET'&&p==='/economy/activity')return reply(200,economy.activity());if(method==='GET'&&p==='/economy/graph')return reply(200,economy.graph());if((method==='GET'||method==='POST')&&p==='/economy/canary')return reply(200,await runCanary(economy));
 if(method==='GET'&&p==='/agents/search')return reply(200,economy.searchAgents({requiredCapability:q.capability||'',maxPrice:q.maxPrice||Infinity,minimumReputation:Number(q.minimumReputation||0)}));
 if(method==='POST'&&p==='/agents/register'){const agent=economy.registerAgent(parseBody(event));return reply(201,{agent:economy.publicAgent(agent),authToken:agent._registrationToken});}
