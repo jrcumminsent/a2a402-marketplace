@@ -2,6 +2,11 @@ import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js'
 
 const baseUrl = process.env.APP_BASE_URL || process.env.URL || 'https://a2a402.market';
 const loungeEnabled = process.env.A2A402_ENABLE_LOUNGE !== 'false';
+const a2aTokenAddress = (process.env.A2A402_TOKEN_ADDRESS || '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').toLowerCase();
+const baseSepoliaRpcUrl = process.env.A2A402_BASE_SEPOLIA_RPC_URL || 'https://sepolia.base.org';
+const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+const evmAddress = /^0x[a-fA-F0-9]{40}$/;
+const txHashPattern = /^0x[a-fA-F0-9]{64}$/;
 
 const headers = {
   'content-type': 'application/json; charset=utf-8',
@@ -27,33 +32,57 @@ const requestPath = event => {
   return raw.replace(/^\/\.netlify\/functions\/api/, '') || '/';
 };
 const query = event => event.queryStringParameters || {};
+const topicAddress = topic => `0x${String(topic || '').slice(-40)}`.toLowerCase();
+
+async function rpc(method, params = []) {
+  const response = await fetch(baseSepoliaRpcUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
+  });
+  if (!response.ok) throw new Error(`Base Sepolia RPC HTTP ${response.status}`);
+  const body = await response.json();
+  if (body.error) throw new Error(`Base Sepolia RPC error: ${body.error.message || 'unknown error'}`);
+  return body.result;
+}
+
+async function verifyA2ATransfer({ txHash, expectedFrom, expectedTo, amountUnits }) {
+  if (!txHashPattern.test(txHash || '')) throw new Error('valid Base Sepolia transaction hash required');
+  if (!evmAddress.test(expectedFrom || '') || !evmAddress.test(expectedTo || '')) throw new Error('valid payer and payee wallets required');
+  const receipt = await rpc('eth_getTransactionReceipt', [txHash]);
+  if (!receipt) throw new Error('transaction is not mined yet');
+  if (receipt.status !== '0x1') throw new Error('transaction failed on Base Sepolia');
+  const latestHex = await rpc('eth_blockNumber');
+  const confirmations = BigInt(latestHex) - BigInt(receipt.blockNumber) + 1n;
+  if (confirmations < 1n) throw new Error('transaction has no confirmations');
+  const matching = (receipt.logs || []).find(log => {
+    if (String(log.address || '').toLowerCase() !== a2aTokenAddress) return false;
+    if (String(log.topics?.[0] || '').toLowerCase() !== transferTopic) return false;
+    if (topicAddress(log.topics?.[1]) !== expectedFrom.toLowerCase()) return false;
+    if (topicAddress(log.topics?.[2]) !== expectedTo.toLowerCase()) return false;
+    try { return BigInt(log.data || '0x0').toString() === String(amountUnits); } catch { return false; }
+  });
+  if (!matching) throw new Error('transaction does not contain the required A2A transfer');
+  return {
+    txHash,
+    from: expectedFrom,
+    to: expectedTo,
+    amountUnits: String(amountUnits),
+    blockNumber: Number(BigInt(receipt.blockNumber)),
+    confirmations: Number(confirmations),
+    tokenAddress: a2aTokenAddress
+  };
+}
 
 async function runCanary(economy) {
   const creator = economy.agents.get('agent_10');
   const worker = economy.agents.get('agent_1');
-  const job = economy.createJob({
-    creatorId: creator.id,
-    creatorType: 'agent',
-    title: 'Live research canary',
-    description: 'Bounded production-path test of the A2A402 test economy.',
-    requiredCapability: 'research',
-    reward: 0.001,
-    verificationMethod: 'deterministic'
-  });
+  const job = economy.createJob({ creatorId: creator.id, creatorType: 'agent', title: 'Live research canary', description: 'Bounded production-path test of the A2A402 test economy.', requiredCapability: 'research', reward: 0.001, verificationMethod: 'deterministic' });
   economy.claimJob(job.id, worker.id);
   economy.submitJob(job.id, worker.id, { ok: true, canary: true, workerEndpoint: worker.endpoint });
   await economy.verifyJob(job.id, creator.id, { accepted: true });
   const tx = economy.transactions.find(item => item.jobId === job.id);
-  return {
-    ok: true,
-    environment: 'test',
-    realMoney: false,
-    persistence: persistenceMode(),
-    job,
-    transaction: tx,
-    worker: economy.publicAgent(worker),
-    stats: economy.stats()
-  };
+  return { ok: true, environment: 'test', realMoney: false, persistence: persistenceMode(), job, transaction: tx, worker: economy.publicAgent(worker), stats: economy.stats() };
 }
 
 export async function handler(event) {
@@ -63,41 +92,12 @@ export async function handler(event) {
     const p = requestPath(event);
     const q = query(event);
 
-    if (method === 'GET' && p === '/health') {
-      return reply(200, { status: 'ok', environment: 'test', realMoney: false, runtime: 'netlify', persistence: persistenceMode() });
-    }
+    if (method === 'GET' && p === '/health') return reply(200, { status: 'ok', environment: 'test', realMoney: false, runtime: 'netlify', persistence: persistenceMode(), a2aToken: { network: 'base-sepolia', chainId: 84532, contractAddress: a2aTokenAddress, settlementVerification: true } });
 
     if (method === 'POST' && p === '/bridges/feral-teachers/a2a') {
-      const data = parseBody(event);
-      const id = data.id ?? null;
-      if (data.method === 'tasks/list') {
-        return reply(200, {
-          jsonrpc: '2.0',
-          id,
-          result: [
-            {
-              id: 'feral_teachers_commerce',
-              name: 'Feral Teachers Commerce',
-              description: 'Commerce and product-discovery capability for the Feral Teachers storefront.',
-              site: 'https://feralteachers.com',
-              storefront: 'https://feral-teachers-shop.fourthwall.com'
-            }
-          ]
-        });
-      }
-      if (data.method === 'message/send') {
-        return reply(200, {
-          jsonrpc: '2.0',
-          id,
-          result: {
-            accepted: true,
-            agent: 'Feral Teachers Commerce Agent',
-            site: 'https://feralteachers.com',
-            storefront: 'https://feral-teachers-shop.fourthwall.com',
-            capabilities: ['commerce', 'product-discovery', 'teacher-apparel']
-          }
-        });
-      }
+      const data = parseBody(event); const id = data.id ?? null;
+      if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id, result: [{ id: 'feral_teachers_commerce', name: 'Feral Teachers Commerce', description: 'Commerce and product-discovery capability for the Feral Teachers storefront.', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com' }] });
+      if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id, result: { accepted: true, agent: 'Feral Teachers Commerce Agent', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com', capabilities: ['commerce', 'product-discovery', 'teacher-apparel'] } });
       return reply(400, { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
     }
 
@@ -116,56 +116,49 @@ export async function handler(event) {
         return agent ? reply(200, economy.publicAgent(agent)) : reply(404, { error: 'not found' });
       }
       if (method === 'PATCH' && /^\/agents\/[^/]+$/.test(p)) {
-        const targetId = p.split('/')[2];
-        const agentId = authenticate(economy, event);
+        const targetId = p.split('/')[2]; const agentId = authenticate(economy, event);
         if (agentId !== targetId) throw new Error('unauthorized');
-        const agent = economy.agents.get(targetId);
-        if (!agent) return reply(404, { error: 'not found' });
+        const agent = economy.agents.get(targetId); if (!agent) return reply(404, { error: 'not found' });
         const data = parseBody(event);
         if (typeof data.endpoint === 'string' && data.endpoint.trim()) agent.endpoint = data.endpoint.trim();
         if (typeof data.description === 'string' && data.description.trim()) agent.description = data.description.trim();
         if (typeof data.status === 'string' && data.status.trim()) agent.status = data.status.trim();
+        if (typeof data.paymentAddress === 'string' && data.paymentAddress.trim()) {
+          if (!evmAddress.test(data.paymentAddress.trim())) throw new Error('paymentAddress must be an EVM address');
+          agent.paymentAddress = data.paymentAddress.trim();
+          const payments = Array.isArray(agent.supportedPayments) ? agent.supportedPayments : [];
+          if (!payments.some(item => item.asset === 'A2A' && item.network === 'eip155:84532')) payments.push({ network: 'eip155:84532', asset: 'A2A', contractAddress: a2aTokenAddress });
+          agent.supportedPayments = payments;
+        }
         economy.events.push({ type: 'AGENT_UPDATED', agentId, at: new Date().toISOString() });
         return reply(200, economy.publicAgent(agent));
       }
-      if (method === 'POST' && p === '/jobs') {
-        const agentId = authenticate(economy, event);
-        return reply(201, economy.createJob({ ...parseBody(event), creatorId: agentId, creatorType: 'agent' }));
-      }
+      if (method === 'POST' && p === '/jobs') return reply(201, economy.createJob({ ...parseBody(event), creatorId: authenticate(economy, event), creatorType: 'agent' }));
       if (method === 'GET' && p === '/jobs') return reply(200, [...economy.jobs.values()]);
-      if (method === 'GET' && /^\/jobs\/[^/]+$/.test(p)) {
-        const job = economy.jobs.get(p.split('/')[2]);
-        return job ? reply(200, job) : reply(404, { error: 'not found' });
-      }
+      if (method === 'GET' && /^\/jobs\/[^/]+$/.test(p)) { const job = economy.jobs.get(p.split('/')[2]); return job ? reply(200, job) : reply(404, { error: 'not found' }); }
       if (method === 'POST' && /\/jobs\/[^/]+\/claim$/.test(p)) return reply(200, economy.claimJob(p.split('/')[2], authenticate(economy, event)));
-      if (method === 'POST' && /\/jobs\/[^/]+\/submit$/.test(p)) {
-        const agentId = authenticate(economy, event); const data = parseBody(event);
-        return reply(200, economy.submitJob(p.split('/')[2], agentId, data.result));
-      }
-      if (method === 'POST' && /\/jobs\/[^/]+\/verify$/.test(p)) {
-        const agentId = authenticate(economy, event); const data = parseBody(event);
-        return reply(200, await economy.verifyJob(p.split('/')[2], agentId, { accepted: data.accepted !== false }));
+      if (method === 'POST' && /\/jobs\/[^/]+\/submit$/.test(p)) { const agentId = authenticate(economy, event); const data = parseBody(event); return reply(200, economy.submitJob(p.split('/')[2], agentId, data.result)); }
+      if (method === 'POST' && /\/jobs\/[^/]+\/verify$/.test(p)) { const agentId = authenticate(economy, event); const data = parseBody(event); return reply(200, await economy.verifyJob(p.split('/')[2], agentId, { accepted: data.accepted !== false })); }
+      if (method === 'POST' && /\/jobs\/[^/]+\/settle$/.test(p)) {
+        const agentId = authenticate(economy, event); const jobId = p.split('/')[2]; const job = economy.jobs.get(jobId);
+        if (!job) return reply(404, { error: 'not found' });
+        if (job.creatorId !== agentId) throw new Error('only creator may settle');
+        const creator = economy.agents.get(job.creatorId); const worker = economy.agents.get(job.workerId); const data = parseBody(event);
+        const verified = await verifyA2ATransfer({ txHash: data.txHash, expectedFrom: creator?.paymentAddress, expectedTo: worker?.paymentAddress, amountUnits: job.paymentAmountUnits });
+        return reply(200, economy.settleA2AJob(jobId, agentId, verified));
       }
       if (method === 'POST' && /\/jobs\/[^/]+\/cancel$/.test(p)) return reply(200, economy.cancelJob(p.split('/')[2], authenticate(economy, event)));
       if (method === 'GET' && p === '/services') return reply(200, [...economy.services.values()]);
-      if (method === 'POST' && p === '/services') {
-        const agentId = authenticate(economy, event);
-        return reply(201, economy.createService({ ...parseBody(event), ownerAgentId: agentId }));
-      }
-      if (method === 'GET' && /^\/reputation\/[^/]+$/.test(p)) {
-        const reputation = economy.reputations.get(p.split('/')[2]);
-        return reputation ? reply(200, reputation) : reply(404, { error: 'not found' });
-      }
+      if (method === 'POST' && p === '/services') return reply(201, economy.createService({ ...parseBody(event), ownerAgentId: authenticate(economy, event) }));
+      if (method === 'GET' && /^\/reputation\/[^/]+$/.test(p)) { const reputation = economy.reputations.get(p.split('/')[2]); return reputation ? reply(200, reputation) : reply(404, { error: 'not found' }); }
       if (method === 'GET' && p === '/lounge/messages') return reply(200, economy.lounge);
       if (method === 'POST' && p === '/lounge/messages') return reply(201, economy.postLoungeMessage({ ...parseBody(event), agentId: authenticate(economy, event) }));
       if (method === 'GET' && p === '/.well-known/agent-card.json') return reply(200, economy.getAgentCard('agent_10', baseUrl));
       if (method === 'POST' && p === '/a2a') {
-        const data = parseBody(event);
-        const targetId = q.agentId || 'agent_10';
-        const target = economy.agents.get(targetId);
+        const data = parseBody(event); const targetId = q.agentId || 'agent_10'; const target = economy.agents.get(targetId);
         if (!target) return reply(404, { jsonrpc: '2.0', id: data.id, error: { code: -32004, message: 'Agent not found' } });
         if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id: data.id, result: [...economy.jobs.values()].filter(job => job.workerId === targetId || job.creatorId === targetId) });
-        if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true, agentId: target.id, name: target.name, endpoint: target.endpoint, capabilities: target.capabilities.map(cap => cap.name) } });
+        if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true, agentId: target.id, name: target.name, endpoint: target.endpoint, capabilities: target.capabilities.map(cap => cap.name), paymentAddress: target.paymentAddress, supportedPayments: target.supportedPayments } });
         return reply(400, { jsonrpc: '2.0', id: data.id, error: { code: -32601, message: 'Method not found' } });
       }
       return reply(404, { error: 'not found' });
