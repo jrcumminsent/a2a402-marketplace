@@ -4,6 +4,7 @@ import {
 } from "@netlify/database";
 
 import { buildApp } from "../../apps/api/src/app.js";
+import { installBuilderRoutes } from "../../apps/api/src/builders.js";
 import { installNetworkRoutes } from "../../apps/api/src/network.js";
 import { createNetlifyArtifactStorage } from "./blob-storage.js";
 
@@ -23,6 +24,7 @@ function app(): Promise<Awaited<ReturnType<typeof buildApp>>> {
     artifactStorage: createNetlifyArtifactStorage(10_000_000),
   }).then((context) => {
     installNetworkRoutes(context.server, context.engine);
+    installBuilderRoutes(context.server, context.engine);
     return context;
   });
   return application;
