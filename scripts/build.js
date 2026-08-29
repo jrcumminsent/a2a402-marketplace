@@ -6,6 +6,7 @@ const source = path.join(dashboardDir, 'index.html');
 const marketplaceSource = path.join(dashboardDir, 'marketplace', 'index.html');
 const recruitSource = path.join(dashboardDir, 'recruit', 'index.html');
 const tokenSource = path.join(dashboardDir, 'token', 'index.html');
+const settlementTestSource = path.join(dashboardDir, 'settlement-test', 'index.html');
 const recruitJsonSource = path.join(dashboardDir, 'recruit.json');
 const tokenJsonSource = path.join(dashboardDir, 'token.json');
 const openapiSource = path.join(dashboardDir, 'openapi.json');
@@ -18,6 +19,8 @@ const recruitDir = path.join(outDir, 'recruit');
 const recruitTarget = path.join(recruitDir, 'index.html');
 const tokenDir = path.join(outDir, 'token');
 const tokenTarget = path.join(tokenDir, 'index.html');
+const settlementTestDir = path.join(outDir, 'settlement-test');
+const settlementTestTarget = path.join(settlementTestDir, 'index.html');
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.copyFileSync(source, target);
@@ -25,9 +28,6 @@ fs.copyFileSync(source, target);
 if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
-
-  // Human-facing payment rail notice. The source marketplace stays maintainable;
-  // the production build always advertises the currently supported A2A rail.
   let marketplaceHtml = fs.readFileSync(marketplaceTarget, 'utf8');
   const paymentBanner = `
 <section class="section" id="payments"><div class="panel" style="border-color:#245f43;background:linear-gradient(180deg,#08251b,#061a15)">
@@ -53,6 +53,10 @@ if (fs.existsSync(tokenSource)) {
   fs.mkdirSync(tokenDir, { recursive: true });
   fs.copyFileSync(tokenSource, tokenTarget);
 }
+if (fs.existsSync(settlementTestSource)) {
+  fs.mkdirSync(settlementTestDir, { recursive: true });
+  fs.copyFileSync(settlementTestSource, settlementTestTarget);
+}
 if (fs.existsSync(recruitJsonSource)) fs.copyFileSync(recruitJsonSource, path.join(outDir, 'recruit.json'));
 if (fs.existsSync(tokenJsonSource)) fs.copyFileSync(tokenJsonSource, path.join(outDir, 'token.json'));
 if (fs.existsSync(openapiSource)) fs.copyFileSync(openapiSource, path.join(outDir, 'openapi.json'));
@@ -64,37 +68,16 @@ const agentCard = {
   description: 'Economic coordination and capability discovery for autonomous AI agents on A2A402.',
   url: 'https://a2a402.market/a2a',
   preferredTransport: 'JSONRPC',
-  capabilities: {
-    streaming: false,
-    pushNotifications: false
-  },
-  skills: [
-    {
-      id: 'cap_10_broker',
-      name: 'broker',
-      description: 'Coordinates multi-agent workflows, capability discovery, jobs, sub-jobs, settlement, and reputation.',
-      tags: ['broker', 'agent-economy', 'capability-discovery', 'jobs']
-    }
-  ],
+  capabilities: { streaming: false, pushNotifications: false },
+  skills: [{ id: 'cap_10_broker', name: 'broker', description: 'Coordinates multi-agent workflows, capability discovery, jobs, sub-jobs, settlement, and reputation.', tags: ['broker', 'agent-economy', 'capability-discovery', 'jobs'] }],
   documentationUrl: 'https://a2a402.market/openapi.json',
-  extensions: {
-    a2a402: {
-      environment: 'test',
-      realMoney: false,
-      walletRequiredForRegistration: false,
-      registrationUrl: 'https://a2a402.market/agents/register',
-      openapiUrl: 'https://a2a402.market/openapi.json',
-      llmsUrl: 'https://a2a402.market/llms.txt',
-      recruitmentUrl: 'https://a2a402.market/recruit.json',
-      humanRecruitmentUrl: 'https://a2a402.market/recruit/',
-      tokenUrl: 'https://a2a402.market/token.json',
-      humanTokenUrl: 'https://a2a402.market/token/',
-      humanMarketplaceUrl: 'https://a2a402.market/marketplace/',
-      acceptedAssets: ['USDC_TEST', 'A2A'],
-      a2aNetwork: 'base-sepolia',
-      marketplaceFeeBps: 500
-    }
-  }
+  extensions: { a2a402: {
+    environment: 'test', realMoney: false, walletRequiredForRegistration: false,
+    registrationUrl: 'https://a2a402.market/agents/register', openapiUrl: 'https://a2a402.market/openapi.json', llmsUrl: 'https://a2a402.market/llms.txt',
+    recruitmentUrl: 'https://a2a402.market/recruit.json', humanRecruitmentUrl: 'https://a2a402.market/recruit/', tokenUrl: 'https://a2a402.market/token.json',
+    humanTokenUrl: 'https://a2a402.market/token/', humanMarketplaceUrl: 'https://a2a402.market/marketplace/', acceptedAssets: ['USDC_TEST', 'A2A'],
+    a2aNetwork: 'base-sepolia', marketplaceFeeBps: 500
+  }}
 };
 
 const wellKnownDir = path.join(outDir, '.well-known');
@@ -108,6 +91,7 @@ console.log(`Built A2A402 dashboard -> ${target}`);
 if (fs.existsSync(marketplaceSource)) console.log(`Built A2A402 marketplace -> ${marketplaceTarget}`);
 if (fs.existsSync(recruitSource)) console.log(`Built A2A402 recruitment page -> ${recruitTarget}`);
 if (fs.existsSync(tokenSource)) console.log(`Built A2A402 token page -> ${tokenTarget}`);
+if (fs.existsSync(settlementTestSource)) console.log(`Built A2A402 settlement test -> ${settlementTestTarget}`);
 if (fs.existsSync(recruitJsonSource)) console.log('Published recruit.json');
 if (fs.existsSync(tokenJsonSource)) console.log('Published token.json');
 if (fs.existsSync(openapiSource)) console.log('Published openapi.json');
