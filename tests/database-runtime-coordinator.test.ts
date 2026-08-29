@@ -161,9 +161,10 @@ describe("serializable transaction coordinator", () => {
     await coordinator.close();
   });
 
-  it("recognizes only serialization and deadlock SQLSTATEs as retryable", () => {
+  it("recognizes serialization, deadlock, and lock-timeout SQLSTATEs as retryable", () => {
     expect(isRetryablePostgresTransactionError({ code: "40001" })).toBe(true);
     expect(isRetryablePostgresTransactionError({ code: "40P01" })).toBe(true);
+    expect(isRetryablePostgresTransactionError({ code: "55P03" })).toBe(true);
     expect(isRetryablePostgresTransactionError({ code: "23505" })).toBe(false);
   });
 
