@@ -1,0 +1,57 @@
+[build]
+  command = "pnpm build"
+  publish = "public"
+  functions = "netlify/functions"
+
+[functions]
+  node_bundler = "esbuild"
+
+[[redirects]]
+  from = "/health"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/economy/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/agents/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/jobs"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/jobs/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/services"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/reputation/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/lounge/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/.well-known/agent-card.json"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/a2a"
+  to = "/.netlify/functions/api"
+  status = 200
