@@ -33,19 +33,22 @@ const requestPath = event => {
 };
 const query = event => event.queryStringParameters || {};
 const topicAddress = topic => `0x${String(topic || '').slice(-40)}`.toLowerCase();
+const cleanWallet = wallet => {
+  if (!wallet || typeof wallet !== 'object') throw new Error('wallet must be an object');
+  const chain = String(wallet.chain || wallet.network || '').trim();
+  const address = String(wallet.address || '').trim();
+  if (!chain || !address) throw new Error('wallet chain and address required');
+  if (chain.startsWith('eip155:') && !evmAddress.test(address)) throw new Error('EVM wallet address must be 0x followed by 40 hex characters');
+  return { id: wallet.id || `wallet_${crypto.randomUUID?.() || Date.now()}`, chain, address, label: wallet.label ? String(wallet.label) : null, walletType: wallet.walletType ? String(wallet.walletType) : null, assets: Array.isArray(wallet.assets) ? wallet.assets.map(String) : [] };
+};
 
 async function rpc(method, params = []) {
-  const response = await fetch(baseSepoliaRpcUrl, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params })
-  });
+  const response = await fetch(baseSepoliaRpcUrl, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) });
   if (!response.ok) throw new Error(`Base Sepolia RPC HTTP ${response.status}`);
   const body = await response.json();
   if (body.error) throw new Error(`Base Sepolia RPC error: ${body.error.message || 'unknown error'}`);
   return body.result;
 }
-
 async function verifyA2ATransfer({ txHash, expectedFrom, expectedTo, amountUnits }) {
   if (!txHashPattern.test(txHash || '')) throw new Error('valid Base Sepolia transaction hash required');
   if (!evmAddress.test(expectedFrom || '') || !evmAddress.test(expectedTo || '')) throw new Error('valid payer and payee wallets required');
@@ -63,75 +66,38 @@ async function verifyA2ATransfer({ txHash, expectedFrom, expectedTo, amountUnits
     try { return BigInt(log.data || '0x0').toString() === String(amountUnits); } catch { return false; }
   });
   if (!matching) throw new Error('transaction does not contain the required A2A transfer');
-  return {
-    txHash,
-    from: expectedFrom,
-    to: expectedTo,
-    amountUnits: String(amountUnits),
-    blockNumber: Number(BigInt(receipt.blockNumber)),
-    confirmations: Number(confirmations),
-    tokenAddress: a2aTokenAddress
-  };
+  return { txHash, from: expectedFrom, to: expectedTo, amountUnits: String(amountUnits), blockNumber: Number(BigInt(receipt.blockNumber)), confirmations: Number(confirmations), tokenAddress: a2aTokenAddress };
 }
-
 async function runCanary(economy) {
-  const creator = economy.agents.get('agent_10');
-  const worker = economy.agents.get('agent_1');
+  const creator = economy.agents.get('agent_10'); const worker = economy.agents.get('agent_1');
   const job = economy.createJob({ creatorId: creator.id, creatorType: 'agent', title: 'Live research canary', description: 'Bounded production-path test of the A2A402 test economy.', requiredCapability: 'research', reward: 0.001, verificationMethod: 'deterministic' });
-  economy.claimJob(job.id, worker.id);
-  economy.submitJob(job.id, worker.id, { ok: true, canary: true, workerEndpoint: worker.endpoint });
-  await economy.verifyJob(job.id, creator.id, { accepted: true });
-  const tx = economy.transactions.find(item => item.jobId === job.id);
-  return { ok: true, environment: 'test', realMoney: false, persistence: persistenceMode(), job, transaction: tx, worker: economy.publicAgent(worker), stats: economy.stats() };
+  economy.claimJob(job.id, worker.id); economy.submitJob(job.id, worker.id, { ok: true, canary: true, workerEndpoint: worker.endpoint }); await economy.verifyJob(job.id, creator.id, { accepted: true });
+  return { ok: true, environment: 'test', realMoney: false, persistence: persistenceMode(), job, transaction: economy.transactions.find(item => item.jobId === job.id), worker: economy.publicAgent(worker), stats: economy.stats() };
 }
 
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
-    const method = event.httpMethod;
-    const p = requestPath(event);
-    const q = query(event);
-
-    if (method === 'GET' && p === '/health') return reply(200, { status: 'ok', environment: 'test', realMoney: false, runtime: 'netlify', persistence: persistenceMode(), a2aToken: { network: 'base-sepolia', chainId: 84532, contractAddress: a2aTokenAddress, settlementVerification: true } });
-
-    if (method === 'POST' && p === '/bridges/feral-teachers/a2a') {
-      const data = parseBody(event); const id = data.id ?? null;
-      if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id, result: [{ id: 'feral_teachers_commerce', name: 'Feral Teachers Commerce', description: 'Commerce and product-discovery capability for the Feral Teachers storefront.', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com' }] });
-      if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id, result: { accepted: true, agent: 'Feral Teachers Commerce Agent', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com', capabilities: ['commerce', 'product-discovery', 'teacher-apparel'] } });
-      return reply(400, { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } });
-    }
-
+    const method = event.httpMethod; const p = requestPath(event); const q = query(event);
+    if (method === 'GET' && p === '/health') return reply(200, { status: 'ok', environment: 'test', realMoney: false, runtime: 'netlify', persistence: persistenceMode(), wallets: { multiChain: true, custody: false }, a2aToken: { network: 'base-sepolia', chainId: 84532, contractAddress: a2aTokenAddress, settlementVerification: true } });
+    if (method === 'POST' && p === '/bridges/feral-teachers/a2a') { const data = parseBody(event); const id = data.id ?? null; if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id, result: [{ id: 'feral_teachers_commerce', name: 'Feral Teachers Commerce', description: 'Commerce and product-discovery capability for the Feral Teachers storefront.', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com' }] }); if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id, result: { accepted: true, agent: 'Feral Teachers Commerce Agent', site: 'https://feralteachers.com', storefront: 'https://feral-teachers-shop.fourthwall.com', capabilities: ['commerce', 'product-discovery', 'teacher-apparel'] } }); return reply(400, { jsonrpc: '2.0', id, error: { code: -32601, message: 'Method not found' } }); }
     return await withEconomy(async economy => {
       if (method === 'GET' && p === '/economy/stats') return reply(200, { ...economy.stats(), persistence: persistenceMode() });
       if (method === 'GET' && p === '/economy/activity') return reply(200, economy.activity());
       if (method === 'GET' && p === '/economy/graph') return reply(200, economy.graph());
       if ((method === 'GET' || method === 'POST') && p === '/economy/canary') return reply(200, await runCanary(economy));
       if (method === 'GET' && p === '/agents/search') return reply(200, economy.searchAgents({ requiredCapability: q.capability || '', maxPrice: q.maxPrice || Infinity, minimumReputation: Number(q.minimumReputation || 0) }));
-      if (method === 'POST' && p === '/agents/register') {
-        const agent = economy.registerAgent(parseBody(event));
-        return reply(201, { agent: economy.publicAgent(agent), authToken: agent._registrationToken });
-      }
-      if (method === 'GET' && /^\/agents\/[^/]+$/.test(p)) {
-        const agent = economy.agents.get(p.split('/')[2]);
-        return agent ? reply(200, economy.publicAgent(agent)) : reply(404, { error: 'not found' });
-      }
+      if (method === 'POST' && p === '/agents/register') { const agent = economy.registerAgent(parseBody(event)); return reply(201, { agent: economy.publicAgent(agent), authToken: agent._registrationToken }); }
+      if (method === 'GET' && /^\/agents\/[^/]+$/.test(p)) { const agent = economy.agents.get(p.split('/')[2]); return agent ? reply(200, economy.publicAgent(agent)) : reply(404, { error: 'not found' }); }
       if (method === 'PATCH' && /^\/agents\/[^/]+$/.test(p)) {
-        const targetId = p.split('/')[2]; const agentId = authenticate(economy, event);
-        if (agentId !== targetId) throw new Error('unauthorized');
-        const agent = economy.agents.get(targetId); if (!agent) return reply(404, { error: 'not found' });
-        const data = parseBody(event);
+        const targetId = p.split('/')[2]; const agentId = authenticate(economy, event); if (agentId !== targetId) throw new Error('unauthorized'); const agent = economy.agents.get(targetId); if (!agent) return reply(404, { error: 'not found' }); const data = parseBody(event);
         if (typeof data.endpoint === 'string' && data.endpoint.trim()) agent.endpoint = data.endpoint.trim();
         if (typeof data.description === 'string' && data.description.trim()) agent.description = data.description.trim();
         if (typeof data.status === 'string' && data.status.trim()) agent.status = data.status.trim();
-        if (typeof data.paymentAddress === 'string' && data.paymentAddress.trim()) {
-          if (!evmAddress.test(data.paymentAddress.trim())) throw new Error('paymentAddress must be an EVM address');
-          agent.paymentAddress = data.paymentAddress.trim();
-          const payments = Array.isArray(agent.supportedPayments) ? agent.supportedPayments : [];
-          if (!payments.some(item => item.asset === 'A2A' && item.network === 'eip155:84532')) payments.push({ network: 'eip155:84532', asset: 'A2A', contractAddress: a2aTokenAddress });
-          agent.supportedPayments = payments;
-        }
-        economy.events.push({ type: 'AGENT_UPDATED', agentId, at: new Date().toISOString() });
-        return reply(200, economy.publicAgent(agent));
+        if (Array.isArray(data.wallets)) agent.wallets = data.wallets.map(cleanWallet);
+        if (data.addWallet) { const wallet = cleanWallet(data.addWallet); agent.wallets = Array.isArray(agent.wallets) ? agent.wallets : []; const same = agent.wallets.findIndex(w => w.chain === wallet.chain && w.address.toLowerCase() === wallet.address.toLowerCase()); if (same >= 0) agent.wallets[same] = wallet; else agent.wallets.push(wallet); }
+        if (typeof data.paymentAddress === 'string' && data.paymentAddress.trim()) { if (!evmAddress.test(data.paymentAddress.trim())) throw new Error('paymentAddress must be an EVM address'); agent.paymentAddress = data.paymentAddress.trim(); agent.wallets = Array.isArray(agent.wallets) ? agent.wallets : []; if (!agent.wallets.some(w => w.chain === 'eip155:84532' && w.address.toLowerCase() === data.paymentAddress.trim().toLowerCase())) agent.wallets.push({ id:`${agent.id}:base-sepolia`, chain:'eip155:84532', address:data.paymentAddress.trim(), label:'Base Sepolia', walletType:null, assets:['A2A'] }); }
+        economy.events.push({ type: 'AGENT_UPDATED', agentId, at: new Date().toISOString() }); return reply(200, economy.publicAgent(agent));
       }
       if (method === 'POST' && p === '/jobs') return reply(201, economy.createJob({ ...parseBody(event), creatorId: authenticate(economy, event), creatorType: 'agent' }));
       if (method === 'GET' && p === '/jobs') return reply(200, [...economy.jobs.values()]);
@@ -139,14 +105,7 @@ export async function handler(event) {
       if (method === 'POST' && /\/jobs\/[^/]+\/claim$/.test(p)) return reply(200, economy.claimJob(p.split('/')[2], authenticate(economy, event)));
       if (method === 'POST' && /\/jobs\/[^/]+\/submit$/.test(p)) { const agentId = authenticate(economy, event); const data = parseBody(event); return reply(200, economy.submitJob(p.split('/')[2], agentId, data.result)); }
       if (method === 'POST' && /\/jobs\/[^/]+\/verify$/.test(p)) { const agentId = authenticate(economy, event); const data = parseBody(event); return reply(200, await economy.verifyJob(p.split('/')[2], agentId, { accepted: data.accepted !== false })); }
-      if (method === 'POST' && /\/jobs\/[^/]+\/settle$/.test(p)) {
-        const agentId = authenticate(economy, event); const jobId = p.split('/')[2]; const job = economy.jobs.get(jobId);
-        if (!job) return reply(404, { error: 'not found' });
-        if (job.creatorId !== agentId) throw new Error('only creator may settle');
-        const creator = economy.agents.get(job.creatorId); const worker = economy.agents.get(job.workerId); const data = parseBody(event);
-        const verified = await verifyA2ATransfer({ txHash: data.txHash, expectedFrom: creator?.paymentAddress, expectedTo: worker?.paymentAddress, amountUnits: job.paymentAmountUnits });
-        return reply(200, economy.settleA2AJob(jobId, agentId, verified));
-      }
+      if (method === 'POST' && /\/jobs\/[^/]+\/settle$/.test(p)) { const agentId = authenticate(economy, event); const jobId = p.split('/')[2]; const job = economy.jobs.get(jobId); if (!job) return reply(404, { error: 'not found' }); if (job.creatorId !== agentId) throw new Error('only creator may settle'); const data = parseBody(event); const verified = await verifyA2ATransfer({ txHash: data.txHash, expectedFrom: job.payerAddress, expectedTo: job.payeeAddress, amountUnits: job.paymentAmountUnits }); return reply(200, economy.settleA2AJob(jobId, agentId, verified)); }
       if (method === 'POST' && /\/jobs\/[^/]+\/cancel$/.test(p)) return reply(200, economy.cancelJob(p.split('/')[2], authenticate(economy, event)));
       if (method === 'GET' && p === '/services') return reply(200, [...economy.services.values()]);
       if (method === 'POST' && p === '/services') return reply(201, economy.createService({ ...parseBody(event), ownerAgentId: authenticate(economy, event) }));
@@ -154,17 +113,8 @@ export async function handler(event) {
       if (method === 'GET' && p === '/lounge/messages') return reply(200, economy.lounge);
       if (method === 'POST' && p === '/lounge/messages') return reply(201, economy.postLoungeMessage({ ...parseBody(event), agentId: authenticate(economy, event) }));
       if (method === 'GET' && p === '/.well-known/agent-card.json') return reply(200, economy.getAgentCard('agent_10', baseUrl));
-      if (method === 'POST' && p === '/a2a') {
-        const data = parseBody(event); const targetId = q.agentId || 'agent_10'; const target = economy.agents.get(targetId);
-        if (!target) return reply(404, { jsonrpc: '2.0', id: data.id, error: { code: -32004, message: 'Agent not found' } });
-        if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id: data.id, result: [...economy.jobs.values()].filter(job => job.workerId === targetId || job.creatorId === targetId) });
-        if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true, agentId: target.id, name: target.name, endpoint: target.endpoint, capabilities: target.capabilities.map(cap => cap.name), paymentAddress: target.paymentAddress, supportedPayments: target.supportedPayments } });
-        return reply(400, { jsonrpc: '2.0', id: data.id, error: { code: -32601, message: 'Method not found' } });
-      }
+      if (method === 'POST' && p === '/a2a') { const data = parseBody(event); const targetId = q.agentId || 'agent_10'; const target = economy.agents.get(targetId); if (!target) return reply(404, { jsonrpc: '2.0', id: data.id, error: { code: -32004, message: 'Agent not found' } }); if (data.method === 'tasks/list') return reply(200, { jsonrpc: '2.0', id: data.id, result: [...economy.jobs.values()].filter(job => job.workerId === targetId || job.creatorId === targetId) }); if (data.method === 'message/send') return reply(200, { jsonrpc: '2.0', id: data.id, result: { accepted: true, agentId: target.id, name: target.name, endpoint: target.endpoint, capabilities: target.capabilities.map(cap => cap.name), wallets: economy.publicAgent(target).wallets, supportedPayments: target.supportedPayments } }); return reply(400, { jsonrpc: '2.0', id: data.id, error: { code: -32601, message: 'Method not found' } }); }
       return reply(404, { error: 'not found' });
     }, { baseUrl, loungeEnabled });
-  } catch (error) {
-    console.error(error);
-    return reply(error.message === 'unauthorized' ? 401 : 400, { error: error.message });
-  }
+  } catch (error) { console.error(error); return reply(error.message === 'unauthorized' ? 401 : 400, { error: error.message }); }
 }
