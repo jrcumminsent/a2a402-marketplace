@@ -4,12 +4,30 @@ import { MockTestProvider } from '../../../packages/payments/src/index.js';
 import { emptyReputation, recordSuccess, recordFailure } from '../../../packages/reputation/src/index.js';
 
 const ETH_ADDRESS = /^0x[a-fA-F0-9]{40}$/;
+const NETWORK_CAIP = { 'base-sepolia': 'eip155:84532', 'base': 'eip155:8453', 'ethereum': 'eip155:1', 'solana': 'solana:mainnet', 'bitcoin': 'bip122:bitcoin' };
 function decimalToUnits(value, decimals = 18) {
   const raw = String(value);
   assert(/^\d+(\.\d+)?$/.test(raw), 'reward must be a plain positive decimal');
   const [whole, fraction = ''] = raw.split('.');
   assert(fraction.length <= decimals, `reward supports at most ${decimals} decimals`);
   return (BigInt(whole) * (10n ** BigInt(decimals)) + BigInt((fraction + '0'.repeat(decimals)).slice(0, decimals))).toString();
+}
+function normalizeWallet(wallet) {
+  assert(wallet && typeof wallet === 'object', 'wallet must be an object');
+  const chain = String(wallet.chain || wallet.network || '').trim();
+  const address = String(wallet.address || '').trim();
+  assert(chain && address, 'wallet chain and address required');
+  return { id: wallet.id || id('wallet'), chain, address, label: wallet.label ? String(wallet.label) : null, walletType: wallet.walletType ? String(wallet.walletType) : null, assets: Array.isArray(wallet.assets) ? wallet.assets.map(String) : [] };
+}
+function walletsFor(agent) {
+  const wallets = Array.isArray(agent?.wallets) ? agent.wallets : [];
+  if (wallets.length) return wallets;
+  if (ETH_ADDRESS.test(agent?.paymentAddress || '')) return [{ id: `${agent.id}:legacy-wallet`, chain: 'eip155:84532', address: agent.paymentAddress, label: 'Legacy Base Sepolia wallet', walletType: null, assets: ['A2A'] }];
+  return [];
+}
+function walletFor(agent, paymentNetwork, asset) {
+  const chain = NETWORK_CAIP[paymentNetwork] || paymentNetwork;
+  return walletsFor(agent).find(wallet => wallet.chain === chain && (!wallet.assets?.length || wallet.assets.includes(asset))) || walletsFor(agent).find(wallet => wallet.chain === chain) || null;
 }
 
 export class Economy {
@@ -21,49 +39,46 @@ export class Economy {
   registerAgent(input) {
     assert(input?.name && input?.description && input?.endpoint, 'name, description, endpoint required');
     assert(Array.isArray(input.capabilities) && input.capabilities.length, 'capabilities required');
-    if (input.paymentAddress) assert(ETH_ADDRESS.test(input.paymentAddress), 'paymentAddress must be an EVM address');
     const agentId = input.id ?? id('agent');
     const capabilities = input.capabilities.map((c,i) => typeof c === 'string' ? ({ id: `${agentId}:cap:${i}`, name: normalizeCapability(c), description: c, inputTypes:['application/json'], outputTypes:['application/json'], pricingModel:'fixed', price:0.001, providerAgent:agentId, availability:true }) : ({...c, name: normalizeCapability(c.name), providerAgent: agentId, availability: c.availability !== false }));
     const authToken = input.authToken ?? crypto.randomBytes(24).toString('base64url');
-    const agent = { id: agentId, name: input.name, description: input.description, endpoint: input.endpoint, capabilities, paymentAddress: input.paymentAddress ?? `test:${agentId}`, supportedPayments: input.supportedPayments ?? [{network:'eip155:84532',asset:'USDC_TEST'}], status:'ACTIVE', createdAt: now(), balance: Number(input.balance ?? 0), authTokenHash: crypto.createHash('sha256').update(authToken).digest('hex') };
+    const wallets = Array.isArray(input.wallets) ? input.wallets.map(normalizeWallet) : [];
+    if (input.paymentAddress && !wallets.some(w => w.chain === 'eip155:84532' && w.address.toLowerCase() === String(input.paymentAddress).toLowerCase())) {
+      assert(ETH_ADDRESS.test(input.paymentAddress), 'legacy paymentAddress must be an EVM address');
+      wallets.push(normalizeWallet({ chain:'eip155:84532', address:input.paymentAddress, label:'Base Sepolia', assets:['A2A'] }));
+    }
+    const agent = { id: agentId, name: input.name, description: input.description, endpoint: input.endpoint, capabilities, wallets, paymentAddress: input.paymentAddress ?? (wallets.find(w=>w.chain==='eip155:84532')?.address || `test:${agentId}`), supportedPayments: input.supportedPayments ?? [{network:'eip155:84532',asset:'USDC_TEST'}], status:'ACTIVE', createdAt: now(), balance: Number(input.balance ?? 0), authTokenHash: crypto.createHash('sha256').update(authToken).digest('hex') };
     Object.defineProperty(agent, '_registrationToken', { value: authToken, enumerable: false, writable: false });
     this.agents.set(agent.id, agent); this.reputations.set(agent.id, emptyReputation(agent.id)); this.event('AGENT_REGISTERED',{agentId:agent.id}); return agent;
   }
   authenticate(agentId, token) { const agent=this.agents.get(agentId); if(!agent||!token)return false; const hash=crypto.createHash('sha256').update(token).digest('hex'); try{return crypto.timingSafeEqual(Buffer.from(hash),Buffer.from(agent.authTokenHash));}catch{return false;} }
-  publicAgent(agent) { if(!agent)return null; const { authTokenHash, ...safe }=agent; return safe; }
+  publicAgent(agent) { if(!agent)return null; const { authTokenHash, ...safe }=agent; return { ...safe, wallets: walletsFor(agent) }; }
   searchAgents({ requiredCapability, maxPrice = Infinity, minimumReputation = 0 }={}) {
     const cap = normalizeCapability(requiredCapability);
-    return [...this.agents.values()].map(agent => ({ agent: this.publicAgent(agent), capability: agent.capabilities.find(c => c.name === cap && c.availability && Number(c.price)<=Number(maxPrice)), reputation: this.reputations.get(agent.id) })).filter(x => x.agent.status==='ACTIVE' && x.capability && x.reputation.successRate >= minimumReputation).sort((a,b) => Number(a.capability.price)-Number(b.capability.price) || b.reputation.successRate-a.reputation.successRate).map(x => ({agentId:x.agent.id,name:x.agent.name,endpoint:x.agent.endpoint,capability:x.capability,reputation:x.reputation}));
+    return [...this.agents.values()].map(agent => ({ agent: this.publicAgent(agent), capability: agent.capabilities.find(c => c.name === cap && c.availability && Number(c.price)<=Number(maxPrice)), reputation: this.reputations.get(agent.id) })).filter(x => x.agent.status==='ACTIVE' && x.capability && x.reputation.successRate >= minimumReputation).sort((a,b) => Number(a.capability.price)-Number(b.capability.price) || b.reputation.successRate-a.reputation.successRate).map(x => ({agentId:x.agent.id,name:x.agent.name,endpoint:x.agent.endpoint,capability:x.capability,reputation:x.reputation,wallets:x.agent.wallets}));
   }
   createJob(input) {
     assert(input?.creatorId && this.agents.has(input.creatorId), 'valid creatorId required'); assert(input?.title && input?.description && input?.requiredCapability, 'title, description, requiredCapability required'); assert(Number(input.reward)>0, 'reward must be positive');
     const parent = input.parentJobId ? this.jobs.get(input.parentJobId) : null; if (input.parentJobId) assert(parent, 'parentJobId not found');
-    const paymentAsset = input.paymentAsset ?? 'USDC_TEST';
-    const paymentNetwork = input.paymentNetwork ?? 'base-sepolia';
-    if (paymentAsset === 'A2A') {
-      assert(paymentNetwork === 'base-sepolia', 'A2A token jobs currently require base-sepolia');
-      const creator = this.agents.get(input.creatorId);
-      assert(ETH_ADDRESS.test(creator.paymentAddress || ''), 'creator must register an EVM paymentAddress before creating A2A jobs');
-    }
-    const job = { id:id('job'), creatorId:input.creatorId, creatorType:input.creatorType ?? 'agent', title:input.title, description:input.description, input:input.input ?? {}, requiredCapability:normalizeCapability(input.requiredCapability), reward:Number(input.reward), paymentAsset, paymentNetwork, paymentAmountUnits:paymentAsset==='A2A'?decimalToUnits(input.reward):null, deadline:input.deadline ?? new Date(Date.now()+3600000).toISOString(), verificationMethod:input.verificationMethod ?? 'deterministic', status:'OPEN', workerId:null, result:null, parentJobId:input.parentJobId ?? null, rootJobId:parent?.rootJobId ?? parent?.id ?? null, spawnedByJobId:input.spawnedByJobId ?? input.parentJobId ?? null, createdAt:now(), updatedAt:now(), claimedAt:null, submittedAt:null, completedAt:null, paidAt:null, settlementTxHash:null };
+    const paymentAsset = input.paymentAsset ?? 'USDC_TEST'; const paymentNetwork = input.paymentNetwork ?? 'base-sepolia';
+    const creator = this.agents.get(input.creatorId); const payerWallet = paymentAsset==='A2A' ? walletFor(creator,paymentNetwork,paymentAsset) : null;
+    if (paymentAsset === 'A2A') { assert(paymentNetwork === 'base-sepolia', 'A2A token is currently deployed on base-sepolia'); assert(payerWallet && ETH_ADDRESS.test(payerWallet.address), 'creator needs a Base Sepolia-compatible wallet for A2A jobs'); }
+    const job = { id:id('job'), creatorId:input.creatorId, creatorType:input.creatorType ?? 'agent', title:input.title, description:input.description, input:input.input ?? {}, requiredCapability:normalizeCapability(input.requiredCapability), reward:Number(input.reward), paymentAsset, paymentNetwork, payerAddress:payerWallet?.address||null, payeeAddress:null, paymentAmountUnits:paymentAsset==='A2A'?decimalToUnits(input.reward):null, deadline:input.deadline ?? new Date(Date.now()+3600000).toISOString(), verificationMethod:input.verificationMethod ?? 'deterministic', status:'OPEN', workerId:null, result:null, parentJobId:input.parentJobId ?? null, rootJobId:parent?.rootJobId ?? parent?.id ?? null, spawnedByJobId:input.spawnedByJobId ?? input.parentJobId ?? null, createdAt:now(), updatedAt:now(), claimedAt:null, submittedAt:null, completedAt:null, paidAt:null, settlementTxHash:null };
     this.jobs.set(job.id, job); this.event('JOB_CREATED',{jobId:job.id,creatorId:job.creatorId,parentJobId:job.parentJobId,paymentAsset:job.paymentAsset}); return job;
   }
-  claimJob(jobId, agentId) { const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.status==='OPEN','job not open'); assert(agentId!==job.creatorId,'creator cannot claim own job'); const agent=this.agents.get(agentId); assert(agent,'agent not found'); assert(agent.capabilities.some(c=>c.name===job.requiredCapability && c.availability),'agent lacks capability'); if(job.paymentAsset==='A2A') assert(ETH_ADDRESS.test(agent.paymentAddress||''),'worker must register an EVM paymentAddress before claiming A2A jobs'); job.workerId=agentId; job.status='IN_PROGRESS'; job.claimedAt=now(); job.updatedAt=now(); this.event('JOB_CLAIMED',{jobId,agentId}); return job; }
+  claimJob(jobId, agentId) { const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.status==='OPEN','job not open'); assert(agentId!==job.creatorId,'creator cannot claim own job'); const agent=this.agents.get(agentId); assert(agent,'agent not found'); assert(agent.capabilities.some(c=>c.name===job.requiredCapability && c.availability),'agent lacks capability'); if(job.paymentAsset==='A2A'){const wallet=walletFor(agent,job.paymentNetwork,job.paymentAsset);assert(wallet&&ETH_ADDRESS.test(wallet.address),'worker needs a Base Sepolia-compatible wallet for A2A jobs');job.payeeAddress=wallet.address;} job.workerId=agentId; job.status='IN_PROGRESS'; job.claimedAt=now(); job.updatedAt=now(); this.event('JOB_CLAIMED',{jobId,agentId}); return job; }
   submitJob(jobId, agentId, result) { const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.workerId===agentId,'only worker may submit'); assert(job.status==='IN_PROGRESS','job not in progress'); job.result=result; job.status='SUBMITTED'; job.submittedAt=now(); job.updatedAt=now(); this.event('JOB_SUBMITTED',{jobId,agentId}); return job; }
   async verifyJob(jobId, creatorId, { accepted=true }={}) { const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.creatorId===creatorId,'only creator may verify'); assert(job.status==='SUBMITTED','job not submitted'); job.status='VERIFYING'; if (!accepted) { job.status='FAILED'; recordFailure(this.reputations.get(job.workerId),{capability:job.requiredCapability}); this.event('JOB_FAILED',{jobId}); return job; }
     job.completedAt=now();
-    if (job.paymentAsset === 'A2A') { job.status='AWAITING_PAYMENT'; job.updatedAt=now(); this.event('JOB_AWAITING_PAYMENT',{jobId,asset:'A2A',amount:job.reward,payer:this.agents.get(job.creatorId)?.paymentAddress,payee:this.agents.get(job.workerId)?.paymentAddress}); return job; }
+    if (job.paymentAsset === 'A2A') { job.status='AWAITING_PAYMENT'; job.updatedAt=now(); this.event('JOB_AWAITING_PAYMENT',{jobId,asset:'A2A',amount:job.reward,payer:job.payerAddress,payee:job.payeeAddress}); return job; }
     job.status='COMPLETED'; const worker=this.agents.get(job.workerId); const creator=this.agents.get(job.creatorId); assert(creator.balance >= job.reward, 'creator has insufficient simulated balance'); const tx=await this.paymentProvider.settle({idempotencyKey:`job:${job.id}:settlement`,jobId:job.id,payer:creator.id,payee:worker.id,amount:job.reward,asset:job.paymentAsset,network:job.paymentNetwork}); if (!this.transactions.find(t=>t.id===tx.id)) { creator.balance-=job.reward; worker.balance+=job.reward; this.transactions.push(tx); recordSuccess(this.reputations.get(worker.id),{capability:job.requiredCapability,amount:job.reward,durationMs:Math.max(1,new Date(job.completedAt)-new Date(job.claimedAt)),customerId:creator.id}); }
     job.status='PAID'; job.paidAt=now(); job.updatedAt=now(); this.event('JOB_PAID',{jobId,transactionId:tx.id}); return job; }
   settleA2AJob(jobId, creatorId, chainPayment) {
     const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.creatorId===creatorId,'only creator may settle'); assert(job.paymentAsset==='A2A','job is not an A2A token job'); assert(job.status==='AWAITING_PAYMENT','job not awaiting payment');
     const worker=this.agents.get(job.workerId); const creator=this.agents.get(job.creatorId); assert(worker&&creator,'job agents not found');
     assert(chainPayment?.txHash && chainPayment?.from && chainPayment?.to && chainPayment?.amountUnits, 'verified chain payment required');
-    assert(chainPayment.from.toLowerCase()===creator.paymentAddress.toLowerCase(),'payment sender does not match creator wallet');
-    assert(chainPayment.to.toLowerCase()===worker.paymentAddress.toLowerCase(),'payment recipient does not match worker wallet');
-    assert(String(chainPayment.amountUnits)===String(job.paymentAmountUnits),'payment amount does not match job reward');
-    assert(!this.transactions.some(t=>String(t.reference).toLowerCase()===String(chainPayment.txHash).toLowerCase()),'transaction already used');
-    const tx={id:id('tx'),jobId:job.id,payer:creator.id,payee:worker.id,payerAddress:creator.paymentAddress,payeeAddress:worker.paymentAddress,amount:job.reward,amountUnits:job.paymentAmountUnits,asset:'A2A',network:'base-sepolia',status:'SETTLED',provider:'base-sepolia-erc20',reference:chainPayment.txHash,blockNumber:chainPayment.blockNumber,timestamp:now()};
+    assert(chainPayment.from.toLowerCase()===job.payerAddress.toLowerCase(),'payment sender does not match job payer wallet'); assert(chainPayment.to.toLowerCase()===job.payeeAddress.toLowerCase(),'payment recipient does not match job payee wallet'); assert(String(chainPayment.amountUnits)===String(job.paymentAmountUnits),'payment amount does not match job reward'); assert(!this.transactions.some(t=>String(t.reference).toLowerCase()===String(chainPayment.txHash).toLowerCase()),'transaction already used');
+    const tx={id:id('tx'),jobId:job.id,payer:creator.id,payee:worker.id,payerAddress:job.payerAddress,payeeAddress:job.payeeAddress,amount:job.reward,amountUnits:job.paymentAmountUnits,asset:'A2A',network:'base-sepolia',status:'SETTLED',provider:'base-sepolia-erc20',reference:chainPayment.txHash,blockNumber:chainPayment.blockNumber,timestamp:now()};
     this.transactions.push(tx); recordSuccess(this.reputations.get(worker.id),{capability:job.requiredCapability,amount:job.reward,durationMs:Math.max(1,new Date(job.completedAt)-new Date(job.claimedAt)),customerId:creator.id}); job.status='PAID'; job.paidAt=now(); job.settlementTxHash=chainPayment.txHash; job.updatedAt=now(); this.event('JOB_PAID',{jobId,transactionId:tx.id,txHash:chainPayment.txHash,asset:'A2A'}); return {job,transaction:tx};
   }
   cancelJob(jobId, creatorId) { const job=this.jobs.get(jobId); assert(job,'job not found'); assert(job.creatorId===creatorId,'only creator may cancel'); assert(job.status==='OPEN','only open jobs may be cancelled'); job.status='CANCELLED'; job.updatedAt=now(); this.event('JOB_CANCELLED',{jobId}); return job; }
