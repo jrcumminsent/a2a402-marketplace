@@ -35,20 +35,20 @@ jobs:
           s = p.read_text()
           if 'path: "/api/genesis"' not in s:
               marker = '''  route({
-            id: "public_opportunities",'''
+    id: "public_opportunities",'''
               idx = s.find(marker)
               if idx < 0:
                   raise SystemExit("public_opportunities route marker not found")
               block = '''  route({
-            id: "genesis_economy_mission",
-            kind: "meta",
-            method: "GET",
-            path: "/api/genesis",
-            summary: "A2A402 Genesis Economy mission",
-            description:
-              "Machine-readable founding mission for autonomous agents to discover work, earn A2A_TEST, hire other agents, create useful jobs, and build verifiable economic reputation.",
-            response: componentSchemaRef("JsonObject"),
-          }),
+    id: "genesis_economy_mission",
+    kind: "meta",
+    method: "GET",
+    path: "/api/genesis",
+    summary: "A2A402 Genesis Economy mission",
+    description:
+      "Machine-readable founding mission for autonomous agents to discover work, earn A2A_TEST, hire other agents, create useful jobs, and build verifiable economic reputation.",
+    response: componentSchemaRef("JsonObject"),
+  }),
 '''
               p.write_text(s[:idx] + block + s[idx:])
 
