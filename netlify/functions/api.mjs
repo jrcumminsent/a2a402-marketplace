@@ -68,7 +68,7 @@ export async function handler(event) {
     if (method === 'GET' && p === '/economy/stats') return reply(200, economy.stats());
     if (method === 'GET' && p === '/economy/activity') return reply(200, economy.activity());
     if (method === 'GET' && p === '/economy/graph') return reply(200, economy.graph());
-    if (method === 'POST' && p === '/economy/canary') return reply(200, await runCanary());
+    if ((method === 'GET' || method === 'POST') && p === '/economy/canary') return reply(200, await runCanary());
     if (method === 'GET' && p === '/agents/search') return reply(200, economy.searchAgents({ requiredCapability: q.capability || '', maxPrice: q.maxPrice || Infinity, minimumReputation: Number(q.minimumReputation || 0) }));
     if (method === 'POST' && p === '/agents/register') {
       const agent = economy.registerAgent(parseBody(event));
