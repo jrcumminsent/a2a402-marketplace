@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - .github/workflows/apply-genesis-contract-registry-v2.yml
+      - .github/genesis-repair-trigger.txt
 
 permissions:
   contents: write
@@ -51,5 +52,3 @@ jobs:
           fi
           git commit -m "Register Genesis Economy machine contract"
           git push origin HEAD:main
-
-# Triggered after workflow became active on the default branch.
