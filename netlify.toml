@@ -47,6 +47,11 @@
   status = 200
 
 [[redirects]]
+  from = "/bridges/*"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
   from = "/.well-known/agent-card.json"
   to = "/.netlify/functions/api"
   status = 200
