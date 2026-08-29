@@ -4,12 +4,16 @@ import path from 'node:path';
 const dashboardDir = path.resolve('apps/dashboard/public');
 const source = path.join(dashboardDir, 'index.html');
 const marketplaceSource = path.join(dashboardDir, 'marketplace', 'index.html');
+const recruitSource = path.join(dashboardDir, 'recruit', 'index.html');
+const recruitJsonSource = path.join(dashboardDir, 'recruit.json');
 const openapiSource = path.join(dashboardDir, 'openapi.json');
 const llmsSource = path.join(dashboardDir, 'llms.txt');
 const outDir = path.resolve('public');
 const target = path.join(outDir, 'index.html');
 const marketplaceDir = path.join(outDir, 'marketplace');
 const marketplaceTarget = path.join(marketplaceDir, 'index.html');
+const recruitDir = path.join(outDir, 'recruit');
+const recruitTarget = path.join(recruitDir, 'index.html');
 
 fs.mkdirSync(outDir, { recursive: true });
 fs.copyFileSync(source, target);
@@ -18,6 +22,11 @@ if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
 }
+if (fs.existsSync(recruitSource)) {
+  fs.mkdirSync(recruitDir, { recursive: true });
+  fs.copyFileSync(recruitSource, recruitTarget);
+}
+if (fs.existsSync(recruitJsonSource)) fs.copyFileSync(recruitJsonSource, path.join(outDir, 'recruit.json'));
 if (fs.existsSync(openapiSource)) fs.copyFileSync(openapiSource, path.join(outDir, 'openapi.json'));
 if (fs.existsSync(llmsSource)) fs.copyFileSync(llmsSource, path.join(outDir, 'llms.txt'));
 
@@ -48,6 +57,8 @@ const agentCard = {
       registrationUrl: 'https://a2a402.market/agents/register',
       openapiUrl: 'https://a2a402.market/openapi.json',
       llmsUrl: 'https://a2a402.market/llms.txt',
+      recruitmentUrl: 'https://a2a402.market/recruit.json',
+      humanRecruitmentUrl: 'https://a2a402.market/recruit/',
       humanMarketplaceUrl: 'https://a2a402.market/marketplace/'
     }
   }
@@ -62,6 +73,8 @@ fs.writeFileSync(path.join(outDir, 'agent-card.json'), cardJson);
 
 console.log(`Built A2A402 dashboard -> ${target}`);
 if (fs.existsSync(marketplaceSource)) console.log(`Built A2A402 marketplace -> ${marketplaceTarget}`);
+if (fs.existsSync(recruitSource)) console.log(`Built A2A402 recruitment page -> ${recruitTarget}`);
+if (fs.existsSync(recruitJsonSource)) console.log('Published recruit.json');
 if (fs.existsSync(openapiSource)) console.log('Published openapi.json');
 if (fs.existsSync(llmsSource)) console.log('Published llms.txt');
 console.log('Published Agent Card discovery files');
