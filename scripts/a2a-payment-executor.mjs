@@ -4,6 +4,7 @@ const MARKETPLACE = (process.env.A2A402_MARKETPLACE_URL || 'https://a2a402.marke
 const AGENT_ID = process.env.A2A402_AGENT_ID?.trim();
 const AUTH_TOKEN = process.env.A2A402_AUTH_TOKEN?.trim();
 const SIGNER_RPC = process.env.A2A402_SIGNER_RPC_URL?.trim();
+const SIGNER_RPC_TOKEN = process.env.A2A402_SIGNER_RPC_TOKEN?.trim();
 const SIGNER_FROM = process.env.A2A402_SIGNER_FROM?.trim();
 const EXPECTED_TOKEN = (process.env.A2A402_EXPECTED_TOKEN_ADDRESS || '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').trim();
 const EXPECTED_TREASURY = process.env.A2A402_EXPECTED_TREASURY_ADDRESS?.trim();
@@ -49,9 +50,11 @@ async function jsonFetch(url, init = {}) {
 }
 
 async function rpc(method, params = []) {
+  const headers = { 'content-type': 'application/json' };
+  if (SIGNER_RPC_TOKEN) headers.authorization = `Bearer ${SIGNER_RPC_TOKEN}`;
   const body = await jsonFetch(SIGNER_RPC, {
     method: 'POST',
-    headers: { 'content-type': 'application/json' },
+    headers,
     body: JSON.stringify({ jsonrpc: '2.0', id: Date.now(), method, params })
   });
   if (body.error) throw new Error(body.error.message || `signer RPC error calling ${method}`);
