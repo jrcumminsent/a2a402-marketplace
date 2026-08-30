@@ -7,7 +7,8 @@
     "build": "node scripts/build.js",
     "start": "node apps/api/src/server.js",
     "test": "node --test tests/*.test.js",
-    "canary:a2a-settlement": "node scripts/a2a-settlement-canary.mjs"
+    "canary:a2a-settlement": "node scripts/a2a-settlement-canary.mjs",
+    "moltbook:recruit": "node scripts/moltbook-recruit.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"
