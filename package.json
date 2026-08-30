@@ -11,7 +11,8 @@
     "moltbook:recruit": "node scripts/moltbook-recruit.mjs",
     "payments:execute": "node scripts/a2a-payment-executor.mjs",
     "payments:watch": "node scripts/a2a-payment-executor.mjs --watch",
-    "agent:reference": "node scripts/reference-autonomous-agent.mjs"
+    "agent:reference": "node scripts/reference-autonomous-agent.mjs",
+    "agent:e2e": "node scripts/ensure-autonomous-e2e.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"
