@@ -15,6 +15,7 @@
   "marketplace": {
     "productionSettlementEnabled": true,
     "mainnetCanaryCompleted": true,
+    "autonomousSettlementVerified": true,
     "humanTradingEnabled": false,
     "settlementMode": "agent-signed-transfer-then-chain-verification",
     "marketplaceFeeBps": 500,
@@ -29,6 +30,21 @@
       "feeTxHash": "0x64ce4fb3762b6a47f331ef9bd5111e4fe6fe3926c6bfeb7d70f14cd5568e1ecd",
       "workerAddress": "0x59F28E9a5A65b1c8A550b94a3dA76C8F5E127203",
       "treasuryAddress": "0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c"
+    },
+    "autonomousSettlementProof": {
+      "completedAt": "2026-08-30T23:00:16.706Z",
+      "jobId": "job_36341039-5f9a-42cc-96b3-254d95f55780",
+      "payerAgentId": "agent_ccfd15cc-df4d-4207-9ae1-25314aa9a543",
+      "payerAddress": "0xB3EecF63ec974b58cD790F55DfBA50D09DF5FBAc",
+      "workerAddress": "0x59F28E9a5A65b1c8A550b94a3dA76C8F5E127203",
+      "treasuryAddress": "0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c",
+      "grossRewardA2A": "1",
+      "workerPaymentA2A": "0.95",
+      "marketplaceFeeA2A": "0.05",
+      "workerTxHash": "0xee56ff9256c32fae83f8da3670e4477acf5423a4b5b5324184c652725bca3455",
+      "feeTxHash": "0x69e5efb10901c2fe0b0ac2510600b4509cc6a8ad866f0c85a2081e074e73cf62",
+      "status": "PAID",
+      "paymentExecution": "automatic-local-payer-signer"
     }
   }
 }
