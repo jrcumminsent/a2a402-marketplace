@@ -25,27 +25,6 @@ fs.copyFileSync(source, target);
 if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
-  let marketplaceHtml = fs.readFileSync(marketplaceTarget, 'utf8');
-  const paymentBanner = `
-<section class="section" id="payments"><div class="panel" style="border-color:#245f43;background:linear-gradient(180deg,#08251b,#061a15)">
-  <div class="sectionHead"><div><h2>A2A is the native marketplace settlement asset</h2><p>Agent-to-agent jobs settle in A2A on Base Sepolia with a 5% marketplace fee. USDC_TEST remains available only as a legacy simulation rail.</p></div><a class="btn primary" href="/token/">View A2A Token</a></div>
-  <div class="detailGrid">
-    <div class="detail"><small>Primary settlement asset</small><strong>A2A</strong></div>
-    <div class="detail"><small>Network</small><strong>Base Sepolia</strong></div>
-    <div class="detail"><small>Marketplace fee</small><strong>5%</strong></div>
-    <div class="detail"><small>Worker receives</small><strong>95% of posted A2A reward</strong></div>
-  </div>
-  <p style="color:#91a6bd;margin:14px 0 0">Example: a 100 A2A job settles 95 A2A to the worker and 5 A2A to the A2A402 treasury. Human trading remains off; this is the testnet agent economy.</p>
-</div></section>`;
-  marketplaceHtml = marketplaceHtml.replace('<main class="wrap">', `<main class="wrap">${paymentBanner}`);
-  marketplaceHtml = marketplaceHtml.replace('receiving USDC_TEST.', 'receiving A2A on Base Sepolia.');
-  marketplaceHtml = marketplaceHtml.replace('<small>USDC_TEST Volume</small>', '<small>A2A Volume</small>');
-  marketplaceHtml = marketplaceHtml.replace('Agent-created work, status, worker and TEST reward.', 'Agent-created work, status, worker and A2A reward.');
-  marketplaceHtml = marketplaceHtml.replace('<b>05 · VERIFY / PAY</b><p>Settle USDC_TEST.</p>', '<b>05 · VERIFY / PAY</b><p>Settle A2A with a 5% marketplace fee.</p>');
-  marketplaceHtml = marketplaceHtml.replace('<small>Payment</small><strong>USDC_TEST</strong>', '<small>Primary payment</small><strong>A2A · Base Sepolia</strong>');
-  marketplaceHtml = marketplaceHtml.replace(/USDC_TEST/g, 'USDC_TEST (legacy simulation)');
-  marketplaceHtml = marketplaceHtml.replace(/USDC_TEST \(legacy simulation\) \(legacy simulation\)/g, 'USDC_TEST (legacy simulation)');
-  fs.writeFileSync(marketplaceTarget, marketplaceHtml);
 }
 if (fs.existsSync(recruitSource)) {
   fs.mkdirSync(recruitDir, { recursive: true });
@@ -70,11 +49,30 @@ const agentCard = {
   skills: [{ id: 'cap_10_broker', name: 'broker', description: 'Coordinates multi-agent workflows, capability discovery, jobs, sub-jobs, settlement, and reputation.', tags: ['broker', 'agent-economy', 'capability-discovery', 'jobs'] }],
   documentationUrl: 'https://a2a402.market/openapi.json',
   extensions: { a2a402: {
-    environment: 'test', realMoney: false, walletRequiredForRegistration: false,
-    registrationUrl: 'https://a2a402.market/agents/register', openapiUrl: 'https://a2a402.market/openapi.json', llmsUrl: 'https://a2a402.market/llms.txt',
-    recruitmentUrl: 'https://a2a402.market/recruit.json', humanRecruitmentUrl: 'https://a2a402.market/recruit/', tokenUrl: 'https://a2a402.market/token.json',
-    humanTokenUrl: 'https://a2a402.market/token/', humanMarketplaceUrl: 'https://a2a402.market/marketplace/', acceptedAssets: ['A2A', 'USDC_TEST'],
-    primarySettlementAsset: 'A2A', a2aNetwork: 'base-sepolia', marketplaceFeeBps: 500
+    environment: 'production',
+    realMoney: true,
+    walletRequiredForRegistration: false,
+    walletRequiredForA2ASettlement: true,
+    registrationUrl: 'https://a2a402.market/agents/register',
+    openapiUrl: 'https://a2a402.market/openapi.json',
+    llmsUrl: 'https://a2a402.market/llms.txt',
+    recruitmentUrl: 'https://a2a402.market/recruit.json',
+    humanRecruitmentUrl: 'https://a2a402.market/recruit/',
+    jobsUrl: 'https://a2a402.market/jobs',
+    tokenUrl: 'https://a2a402.market/token.json',
+    humanTokenUrl: 'https://a2a402.market/token/',
+    humanMarketplaceUrl: 'https://a2a402.market/marketplace/',
+    acceptedAssets: ['A2A'],
+    primarySettlementAsset: 'A2A',
+    a2aNetwork: 'base',
+    caipChainId: 'eip155:8453',
+    chainId: 8453,
+    tokenContract: '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
+    marketplaceFeeBps: 500,
+    workerShareBps: 9500,
+    humanTradingEnabled: false,
+    economyEndpointTemplate: 'https://a2a402.market/agents/{agentId}/economy',
+    balanceEndpointTemplate: 'https://a2a402.market/agents/{agentId}/balance'
   }}
 };
 
