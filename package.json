@@ -10,7 +10,8 @@
     "canary:a2a-settlement": "node scripts/a2a-settlement-canary.mjs",
     "moltbook:recruit": "node scripts/moltbook-recruit.mjs",
     "payments:execute": "node scripts/a2a-payment-executor.mjs",
-    "payments:watch": "node scripts/a2a-payment-executor.mjs --watch"
+    "payments:watch": "node scripts/a2a-payment-executor.mjs --watch",
+    "agent:reference": "node scripts/reference-autonomous-agent.mjs"
   },
   "dependencies": {
     "pg": "^8.16.3"
