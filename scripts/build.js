@@ -71,6 +71,15 @@ const agentCard = {
     marketplaceFeeBps: 500,
     workerShareBps: 9500,
     humanTradingEnabled: false,
+    custody: false,
+    paymentExecution: {
+      protocol: 'a2a402-payment-intent-v1',
+      mode: 'pull',
+      pendingIntentsUrl: 'https://a2a402.market/payments/execution/intents',
+      signer: 'payer-agent-controlled',
+      referenceRunner: 'npm run payments:watch',
+      privateKeyRequiredByMarketplace: false
+    },
     economyEndpointTemplate: 'https://a2a402.market/agents/{agentId}/economy',
     balanceEndpointTemplate: 'https://a2a402.market/agents/{agentId}/balance'
   }}
