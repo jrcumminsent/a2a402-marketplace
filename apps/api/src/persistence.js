@@ -1,6 +1,6 @@
 import pg from 'pg';
 import { Economy } from './economy.js';
-import { registerSeeds } from './seed.js';
+import { registerSeeds, ensureBootstrapOpportunities } from './seed.js';
 
 const { Pool } = pg;
 const databaseUrl = process.env.DATABASE_URL || '';
@@ -46,6 +46,7 @@ function hydrateEconomy(state, { baseUrl, loungeEnabled }) {
   if (!state) {
     const economy = new Economy({ loungeEnabled });
     registerSeeds(economy, { baseUrl });
+    ensureBootstrapOpportunities(economy);
     return economy;
   }
 
@@ -57,6 +58,7 @@ function hydrateEconomy(state, { baseUrl, loungeEnabled }) {
   economy.services = new Map((state.services || []).map(service => [service.id, service]));
   economy.lounge = state.lounge || [];
   economy.events = state.events || [];
+  ensureBootstrapOpportunities(economy);
   return economy;
 }
 
@@ -71,6 +73,7 @@ export async function withEconomy(fn, { baseUrl = 'https://a2a402.market', loung
     if (!memoryEconomy) {
       memoryEconomy = new Economy({ loungeEnabled });
       registerSeeds(memoryEconomy, { baseUrl });
+      ensureBootstrapOpportunities(memoryEconomy);
     }
     return fn(memoryEconomy);
   }
