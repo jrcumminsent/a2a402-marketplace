@@ -14,6 +14,8 @@ const NETWORK_CAIP = {
 const CAIP_NETWORK = Object.fromEntries(Object.entries(NETWORK_CAIP).map(([name, caip]) => [caip, name]));
 const A2A_FEE_BPS = 500n;
 const BPS_DENOMINATOR = 10000n;
+const A2A_MAINNET_CHAIN = 'eip155:8453';
+const A2A_MAINNET_NETWORK = 'base';
 
 function normalizeAsset(value='') { return String(value).trim().toUpperCase(); }
 function normalizeChain(value='') { return NETWORK_CAIP[String(value).trim().toLowerCase()] || String(value).trim(); }
@@ -48,9 +50,9 @@ function walletsFor(agent) {
   if (ETH_ADDRESS.test(agent?.paymentAddress || '')) {
     return [{
       id: `${agent.id}:legacy-wallet`,
-      chain: 'eip155:84532',
+      chain: A2A_MAINNET_CHAIN,
       address: agent.paymentAddress,
-      label: 'Legacy Base Sepolia wallet',
+      label: 'Base Mainnet wallet',
       walletType: null,
       assets: ['A2A']
     }];
@@ -85,15 +87,15 @@ function declaredWalletAssets(agent) {
 }
 
 function builtInRouteSupport(route) {
-  if (route.kind === 'direct' && route.chain === 'eip155:84532' && route.asset === 'A2A') {
-    return { available: true, settlementSupport: 'verified', adapter: 'base-sepolia-a2a-erc20' };
+  if (route.kind === 'direct' && route.chain === A2A_MAINNET_CHAIN && route.asset === 'A2A') {
+    return { available: true, settlementSupport: 'verified', adapter: 'base-mainnet-a2a-erc20' };
   }
   return { available: false, settlementSupport: 'adapter-required', adapter: null };
 }
 
 function routeSort(a, b) {
   const score = route => {
-    if (route.available && route.asset === 'A2A' && route.chain === 'eip155:84532') return 0;
+    if (route.available && route.asset === 'A2A' && route.chain === A2A_MAINNET_CHAIN) return 0;
     if (route.available && route.kind === 'direct') return 1;
     if (route.kind === 'direct') return 2;
     return 3;
@@ -115,11 +117,7 @@ export class Economy {
     this.events = [];
   }
 
-  event(type, data={}) {
-    const e = { id: id('evt'), type, at: now(), ...data };
-    this.events.push(e);
-    return e;
-  }
+  event(type, data={}) { const e = { id: id('evt'), type, at: now(), ...data }; this.events.push(e); return e; }
 
   registerAgent(input) {
     assert(input?.name && input?.description && input?.endpoint, 'name, description, endpoint required');
@@ -130,14 +128,14 @@ export class Economy {
       : ({...c, name: normalizeCapability(c.name), providerAgent: agentId, availability: c.availability !== false }));
     const authToken = input.authToken ?? crypto.randomBytes(24).toString('base64url');
     const wallets = Array.isArray(input.wallets) ? input.wallets.map(normalizeWallet) : [];
-    if (input.paymentAddress && !wallets.some(w => w.chain === 'eip155:84532' && w.address.toLowerCase() === String(input.paymentAddress).toLowerCase())) {
+    if (input.paymentAddress && !wallets.some(w => w.chain === A2A_MAINNET_CHAIN && w.address.toLowerCase() === String(input.paymentAddress).toLowerCase())) {
       assert(ETH_ADDRESS.test(input.paymentAddress), 'legacy paymentAddress must be an EVM address');
-      wallets.push(normalizeWallet({ chain:'eip155:84532', address:input.paymentAddress, label:'Base Sepolia', assets:['A2A'] }));
+      wallets.push(normalizeWallet({ chain:A2A_MAINNET_CHAIN, address:input.paymentAddress, label:'Base Mainnet', assets:['A2A'] }));
     }
     const walletPayments = declaredWalletAssets({ id:agentId, wallets }).map(item => ({ network:item.chain, asset:item.asset }));
-    const hasA2AWallet = walletPayments.some(p => p.network === 'eip155:84532' && p.asset === 'A2A');
+    const hasA2AWallet = walletPayments.some(p => p.network === A2A_MAINNET_CHAIN && p.asset === 'A2A');
     const defaultPayments = hasA2AWallet
-      ? [{network:'eip155:84532',asset:'A2A',primary:true,marketplaceFeeBps:Number(A2A_FEE_BPS)}, ...walletPayments.filter(p => !(p.network==='eip155:84532'&&p.asset==='A2A'))]
+      ? [{network:A2A_MAINNET_CHAIN,asset:'A2A',primary:true,marketplaceFeeBps:Number(A2A_FEE_BPS)}, ...walletPayments.filter(p => !(p.network===A2A_MAINNET_CHAIN&&p.asset==='A2A'))]
       : walletPayments;
     const agent = {
       id: agentId,
@@ -146,7 +144,7 @@ export class Economy {
       endpoint: input.endpoint,
       capabilities,
       wallets,
-      paymentAddress: input.paymentAddress ?? (wallets.find(w=>w.chain==='eip155:84532')?.address || `walletless:${agentId}`),
+      paymentAddress: input.paymentAddress ?? (wallets.find(w=>w.chain===A2A_MAINNET_CHAIN)?.address || `walletless:${agentId}`),
       supportedPayments: input.supportedPayments ?? defaultPayments,
       status:'ACTIVE',
       createdAt: now(),
@@ -175,7 +173,7 @@ export class Economy {
       wallets: walletsFor(agent),
       assets: declaredWalletAssets(agent),
       preferredSettlementAsset: 'A2A',
-      preferredSettlementNetwork: 'base-sepolia'
+      preferredSettlementNetwork: A2A_MAINNET_NETWORK
     };
   }
 
@@ -271,15 +269,15 @@ export class Economy {
     const parent = input.parentJobId ? this.jobs.get(input.parentJobId) : null;
     if (input.parentJobId) assert(parent, 'parentJobId not found');
     const creator = this.agents.get(input.creatorId);
-    const creatorA2AWallet = walletFor(creator,'base-sepolia','A2A');
+    const creatorA2AWallet = walletFor(creator,A2A_MAINNET_NETWORK,'A2A');
     const explicitAsset = input.paymentAsset ? normalizeAsset(input.paymentAsset) : null;
     const paymentAsset = explicitAsset ?? (creatorA2AWallet && ETH_ADDRESS.test(creatorA2AWallet.address) ? 'A2A' : null);
-    const paymentNetwork = input.paymentNetwork ?? (paymentAsset==='A2A' ? 'base-sepolia' : null);
+    const paymentNetwork = input.paymentNetwork ?? (paymentAsset==='A2A' ? A2A_MAINNET_NETWORK : null);
     const paymentMode = paymentAsset ? 'FIXED' : 'NEGOTIATE_ON_CLAIM';
     const payerWallet = paymentAsset ? walletFor(creator,paymentNetwork,paymentAsset) : null;
     if (paymentAsset === 'A2A') {
-      assert(paymentNetwork === 'base-sepolia', 'A2A token is currently deployed on base-sepolia');
-      assert(payerWallet && ETH_ADDRESS.test(payerWallet.address), 'creator needs a Base Sepolia-compatible wallet for A2A jobs');
+      assert(normalizeChain(paymentNetwork) === A2A_MAINNET_CHAIN, 'A2A production settlement uses Base mainnet');
+      assert(payerWallet && ETH_ADDRESS.test(payerWallet.address), 'creator needs a Base Mainnet-compatible wallet for A2A jobs');
     }
     if (paymentAsset && paymentAsset !== 'USDC_TEST') assert(payerWallet, 'creator needs a compatible wallet for the requested payment asset');
     const paymentAmountUnits = paymentAsset==='A2A'?decimalToUnits(input.reward):null;
@@ -316,7 +314,7 @@ export class Economy {
       job.paymentNetwork = route.network || route.destination?.network || null;
       job.payerAddress = route.payerAddress || route.source?.address || null;
       job.payeeAddress = route.payeeAddress || route.destination?.address || null;
-      if (job.paymentAsset === 'A2A' && job.paymentNetwork === 'base-sepolia') {
+      if (job.paymentAsset === 'A2A' && normalizeChain(job.paymentNetwork) === A2A_MAINNET_CHAIN) {
         job.paymentAmountUnits = decimalToUnits(job.reward);
         const split=feeSplit(job.paymentAmountUnits);
         job.workerPaymentUnits=split.workerUnits;
@@ -326,9 +324,9 @@ export class Economy {
       this.event('PAYMENT_ROUTE_SELECTED',{jobId,route});
     } else if(job.paymentAsset==='A2A') {
       const wallet=walletFor(agent,job.paymentNetwork,job.paymentAsset);
-      assert(wallet&&ETH_ADDRESS.test(wallet.address),'worker needs a Base Sepolia-compatible wallet for A2A jobs');
+      assert(wallet&&ETH_ADDRESS.test(wallet.address),'worker needs a Base Mainnet-compatible wallet for A2A jobs');
       job.payeeAddress=wallet.address;
-      job.paymentRoute={kind:'direct',chain:'eip155:84532',network:'base-sepolia',asset:'A2A',payerAddress:job.payerAddress,payeeAddress:wallet.address,available:true,settlementSupport:'verified',adapter:'base-sepolia-a2a-erc20',marketplaceFeeBps:Number(A2A_FEE_BPS)};
+      job.paymentRoute={kind:'direct',chain:A2A_MAINNET_CHAIN,network:A2A_MAINNET_NETWORK,asset:'A2A',payerAddress:job.payerAddress,payeeAddress:wallet.address,available:true,settlementSupport:'verified',adapter:'base-mainnet-a2a-erc20',marketplaceFeeBps:Number(A2A_FEE_BPS)};
     } else if(job.paymentAsset && job.paymentAsset!=='USDC_TEST') {
       const wallet=walletFor(agent,job.paymentNetwork,job.paymentAsset);
       assert(wallet,'worker needs a compatible wallet for this payment asset');
@@ -403,6 +401,7 @@ export class Economy {
     assert(job,'job not found');
     assert(job.creatorId===creatorId,'only creator may settle');
     assert(job.paymentAsset==='A2A','job is not an A2A token job');
+    assert(normalizeChain(job.paymentNetwork)===A2A_MAINNET_CHAIN,'job is not a Base mainnet A2A job');
     assert(job.status==='AWAITING_PAYMENT','job not awaiting payment');
     const worker=this.agents.get(job.workerId);
     const creator=this.agents.get(job.creatorId);
@@ -415,7 +414,7 @@ export class Economy {
     const refs=[chainPayment.worker.txHash,chainPayment.fee.txHash].map(x=>String(x).toLowerCase());
     assert(refs[0]!==refs[1],'worker and fee transactions must be distinct');
     assert(!this.transactions.some(t=>refs.includes(String(t.reference).toLowerCase())),'transaction already used');
-    const tx={id:id('tx'),jobId:job.id,payer:creator.id,payee:worker.id,payerAddress:job.payerAddress,payeeAddress:job.payeeAddress,amount:Number(job.reward)*0.95,amountUnits:job.workerPaymentUnits,feeAmount:Number(job.reward)*0.05,feeUnits:job.marketplaceFeeUnits,asset:'A2A',network:'base-sepolia',status:'SETTLED',provider:'base-sepolia-erc20',reference:chainPayment.worker.txHash,feeReference:chainPayment.fee.txHash,treasuryAddress:chainPayment.fee.to,blockNumber:chainPayment.worker.blockNumber,feeBlockNumber:chainPayment.fee.blockNumber,timestamp:now()};
+    const tx={id:id('tx'),jobId:job.id,payer:creator.id,payee:worker.id,payerAddress:job.payerAddress,payeeAddress:job.payeeAddress,amount:Number(job.reward)*0.95,amountUnits:job.workerPaymentUnits,feeAmount:Number(job.reward)*0.05,feeUnits:job.marketplaceFeeUnits,asset:'A2A',network:A2A_MAINNET_NETWORK,status:'SETTLED',provider:'base-mainnet-erc20',reference:chainPayment.worker.txHash,feeReference:chainPayment.fee.txHash,treasuryAddress:chainPayment.fee.to,blockNumber:chainPayment.worker.blockNumber,feeBlockNumber:chainPayment.fee.blockNumber,timestamp:now()};
     this.transactions.push(tx);
     recordSuccess(this.reputations.get(worker.id),{capability:job.requiredCapability,amount:Number(job.reward)*0.95,durationMs:Math.max(1,new Date(job.completedAt)-new Date(job.claimedAt)),customerId:creator.id});
     job.status='PAID';
@@ -423,7 +422,7 @@ export class Economy {
     job.settlementTxHash=chainPayment.worker.txHash;
     job.feeTxHash=chainPayment.fee.txHash;
     job.updatedAt=now();
-    this.event('JOB_PAID',{jobId,transactionId:tx.id,txHash:chainPayment.worker.txHash,feeTxHash:chainPayment.fee.txHash,asset:'A2A',marketplaceFeeBps:job.marketplaceFeeBps});
+    this.event('JOB_PAID',{jobId,transactionId:tx.id,txHash:chainPayment.worker.txHash,feeTxHash:chainPayment.fee.txHash,asset:'A2A',network:A2A_MAINNET_NETWORK,marketplaceFeeBps:job.marketplaceFeeBps});
     return {job,transaction:tx};
   }
 
