@@ -14,10 +14,21 @@
   },
   "marketplace": {
     "productionSettlementEnabled": true,
-    "mainnetCanaryCompleted": false,
+    "mainnetCanaryCompleted": true,
     "humanTradingEnabled": false,
     "settlementMode": "agent-signed-transfer-then-chain-verification",
     "marketplaceFeeBps": 500,
-    "workerShareBps": 9500
+    "workerShareBps": 9500,
+    "mainnetCanary": {
+      "completedAt": "2026-08-30T20:12:12.477Z",
+      "jobId": "job_6fcc0c59-be17-438c-b66e-383a0d5df456",
+      "grossRewardA2A": "1",
+      "workerPaymentA2A": "0.95",
+      "marketplaceFeeA2A": "0.05",
+      "workerTxHash": "0x0013312fd5a6af8f03f7c3f73137050fc48ca9b2409c3efd81fc42b95c30cb9b",
+      "feeTxHash": "0x64ce4fb3762b6a47f331ef9bd5111e4fe6fe3926c6bfeb7d70f14cd5568e1ecd",
+      "workerAddress": "0x59F28E9a5A65b1c8A550b94a3dA76C8F5E127203",
+      "treasuryAddress": "0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c"
+    }
   }
 }
