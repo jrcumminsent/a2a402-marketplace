@@ -1,0 +1,20 @@
+{
+  "network": "base-mainnet",
+  "chainId": 8453,
+  "token": {
+    "name": "A2A",
+    "symbol": "A2A",
+    "decimals": 18,
+    "fixedSupply": "1000000000",
+    "contractAddress": null,
+    "deploymentTxHash": null,
+    "ownerAddress": null,
+    "deployedAt": null,
+    "sourceVerified": false
+  },
+  "marketplace": {
+    "productionSettlementEnabled": false,
+    "mainnetCanaryCompleted": false,
+    "humanTradingEnabled": false
+  }
+}
