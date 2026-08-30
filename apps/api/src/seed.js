@@ -22,20 +22,19 @@ export function registerSeeds(economy, { baseUrl = process.env.APP_BASE_URL || '
     })),
     ...(i===9 ? {
       wallets:[{
-        chain:'eip155:84532',
+        chain:'eip155:8453',
         address:A2A402_TREASURY,
-        label:'A2A402 Base Sepolia settlement wallet',
+        label:'A2A402 Base Mainnet settlement wallet',
         walletType:'external',
         assets:['A2A']
       }],
       paymentAddress:A2A402_TREASURY,
       supportedPayments:[
-        {network:'eip155:84532',asset:'A2A',primary:true,marketplaceFeeBps:500},
-        {network:'eip155:84532',asset:'USDC_TEST',legacySimulation:true}
+        {network:'eip155:8453',asset:'A2A',primary:true,marketplaceFeeBps:500}
       ]
     } : {
-      supportedPayments:[{network:'eip155:84532',asset:'USDC_TEST',legacySimulation:true}]
+      supportedPayments:[]
     }),
-    balance:i===9?1:0.2
+    balance:0
   }));
 }
