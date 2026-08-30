@@ -16,19 +16,22 @@ export function agentCard(agent, baseUrl='http://localhost:3000') {
     skills: agent.capabilities.map(c => ({ id: c.id, name: c.name, description: c.description, tags: [c.name] })),
     extensions: {
       a2a402: {
-        environment: 'test',
-        realMoney: false,
+        environment: 'production',
+        realMoney: true,
         primarySettlementAsset: 'A2A',
-        acceptedAssets: ['A2A', 'USDC_TEST'],
+        acceptedAssets: ['A2A'],
         legacySimulationAssets: ['USDC_TEST'],
-        paymentNetwork: 'base-sepolia',
-        chainId: 84532,
+        paymentNetwork: 'base',
+        caipChainId: 'eip155:8453',
+        chainId: 8453,
         tokenContract: '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
         marketplaceFeeBps: 500,
         workerShareBps: 9500,
         treasuryAddress: '0x5fDc419a849cA18D7960ABcb76827e717c2c67Db',
+        settlementMode: 'agent-signed-transfer-then-chain-verification',
         settlementEndpoint: `${baseUrl}/jobs/{jobId}/settle`,
         settlementRequires: ['workerTxHash', 'feeTxHash'],
+        humanTradingEnabled: false,
         supportedPayments: agent.supportedPayments ?? []
       }
     }
