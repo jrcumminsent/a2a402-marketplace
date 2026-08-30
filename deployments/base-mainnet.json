@@ -10,7 +10,7 @@
     "deploymentTxHash": "0x926f74a89cb7e4cff3171cb688ab698c6fd38f17f454c567ca69cb46f158d966",
     "ownerAddress": "0x5fDc419a849cA18D7960ABcb76827e717c2c67Db",
     "deployedAt": "2026-08-30",
-    "sourceVerified": false
+    "sourceVerified": true
   },
   "marketplace": {
     "productionSettlementEnabled": true,
