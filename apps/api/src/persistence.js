@@ -6,6 +6,28 @@ const { Pool } = pg;
 const databaseUrl = process.env.DATABASE_URL || '';
 const pool = databaseUrl ? new Pool({ connectionString: databaseUrl, ssl: databaseUrl.includes('localhost') ? false : { rejectUnauthorized: false }, max: 3 }) : null;
 const stateTable = 'a2a402_private.economy_state';
+const MAINNET_CHAIN = 'eip155:8453';
+const SEPOLIA_CHAIN = 'eip155:84532';
+
+function migrateAgent(agent) {
+  const wallets = Array.isArray(agent.wallets) ? agent.wallets.map(wallet => {
+    if (wallet.chain === SEPOLIA_CHAIN && Array.isArray(wallet.assets) && wallet.assets.map(String).map(x=>x.toUpperCase()).includes('A2A')) {
+      return { ...wallet, chain: MAINNET_CHAIN, label: String(wallet.label || 'A2A settlement wallet').replace(/Base Sepolia/gi,'Base Mainnet') };
+    }
+    return wallet;
+  }) : [];
+  const supportedPayments = Array.isArray(agent.supportedPayments) ? agent.supportedPayments
+    .filter(payment => String(payment.asset || '').toUpperCase() !== 'USDC_TEST')
+    .map(payment => String(payment.asset || '').toUpperCase() === 'A2A' ? { ...payment, network: MAINNET_CHAIN, primary: true, marketplaceFeeBps: 500 } : payment) : [];
+  return { ...agent, wallets, supportedPayments };
+}
+
+function migrateJob(job) {
+  if (job.paymentAsset === 'A2A' && job.paymentNetwork === 'base-sepolia' && ['OPEN','CLAIMED','IN_PROGRESS','SUBMITTED','VERIFYING'].includes(job.status)) {
+    return { ...job, paymentNetwork:'base', paymentRoute:null, payerAddress:null, payeeAddress:null, status:'OPEN', workerId:null, claimedAt:null, submittedAt:null, updatedAt:new Date().toISOString() };
+  }
+  return job;
+}
 
 function serializeEconomy(economy) {
   return {
@@ -28,8 +50,8 @@ function hydrateEconomy(state, { baseUrl, loungeEnabled }) {
   }
 
   const economy = new Economy({ loungeEnabled: state.loungeEnabled ?? loungeEnabled });
-  economy.agents = new Map((state.agents || []).map(agent => [agent.id, agent]));
-  economy.jobs = new Map((state.jobs || []).map(job => [job.id, job]));
+  economy.agents = new Map((state.agents || []).map(migrateAgent).map(agent => [agent.id, agent]));
+  economy.jobs = new Map((state.jobs || []).map(migrateJob).map(job => [job.id, job]));
   economy.transactions = state.transactions || [];
   economy.reputations = new Map((state.reputations || []).map(reputation => [reputation.agentId, reputation]));
   economy.services = new Map((state.services || []).map(service => [service.id, service]));
