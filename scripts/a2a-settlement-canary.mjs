@@ -31,7 +31,7 @@ async function register(name, capability, address) {
       description: 'Internal A2A402 live settlement canary agent',
       endpoint: `${baseUrl}/a2a`,
       capabilities: [capability],
-      wallets: [{ chain: 'eip155:84532', address, assets: ['A2A'], walletType: 'external' }]
+      wallets: [{ chain: 'eip155:8453', address, assets: ['A2A'], walletType: 'external' }]
     })
   });
   return { ...response.agent, authToken: response.authToken };
@@ -42,7 +42,7 @@ if (fs.existsSync(statePath)) state = JSON.parse(fs.readFileSync(statePath, 'utf
 
 if (!state) {
   if (!creatorWallet || !workerWallet) {
-    console.error('Set A2A402_CANARY_CREATOR_WALLET and A2A402_CANARY_WORKER_WALLET to public Base Sepolia addresses.');
+    console.error('Set A2A402_CANARY_CREATOR_WALLET and A2A402_CANARY_WORKER_WALLET to public Base Mainnet addresses.');
     process.exit(1);
   }
 
@@ -54,12 +54,12 @@ if (!state) {
     method: 'POST',
     headers: auth(creator),
     body: JSON.stringify({
-      title: 'Internal first A2A settlement canary',
-      description: 'Real Base Sepolia A2A 95/5 settlement verification.',
+      title: 'Internal first A2A mainnet settlement canary',
+      description: 'Controlled Base Mainnet A2A 95/5 settlement verification.',
       requiredCapability: 'research',
       reward: '1',
       paymentAsset: 'A2A',
-      paymentNetwork: 'base-sepolia'
+      paymentNetwork: 'base'
     })
   });
 
@@ -67,7 +67,7 @@ if (!state) {
   job = await request(`/jobs/${job.id}/submit`, {
     method: 'POST',
     headers: auth(worker),
-    body: JSON.stringify({ result: { ok: true, note: 'Internal A2A canary completed' } })
+    body: JSON.stringify({ result: { ok: true, note: 'Internal A2A mainnet canary completed' } })
   });
   job = await request(`/jobs/${job.id}/verify`, {
     method: 'POST',
@@ -80,6 +80,8 @@ if (!state) {
 
   console.log(JSON.stringify({
     phase: 'awaiting_onchain_payment',
+    network: 'Base Mainnet',
+    chainId: 8453,
     jobId: job.id,
     status: job.status,
     creatorAgentId: creator.id,
@@ -91,7 +93,7 @@ if (!state) {
     marketplaceFeeUnits: job.marketplaceFeeUnits,
     marketplaceFeeBps: job.marketplaceFeeBps,
     stateFile: statePath,
-    next: 'Send the exact worker and treasury A2A transfers on Base Sepolia, then rerun with A2A402_CANARY_WORKER_TX_HASH and A2A402_CANARY_FEE_TX_HASH.'
+    next: 'Send the exact worker and treasury A2A transfers on Base Mainnet, then rerun with A2A402_CANARY_WORKER_TX_HASH and A2A402_CANARY_FEE_TX_HASH.'
   }, null, 2));
   process.exit(0);
 }
@@ -99,6 +101,8 @@ if (!state) {
 if (!workerTxHash || !feeTxHash) {
   console.log(JSON.stringify({
     phase: 'awaiting_onchain_payment',
+    network: 'Base Mainnet',
+    chainId: 8453,
     jobId: state.jobId,
     creatorWallet: state.creatorWallet,
     workerWallet: state.workerWallet,
@@ -114,5 +118,5 @@ const settled = await request(`/jobs/${state.jobId}/settle`, {
   body: JSON.stringify({ workerTxHash, feeTxHash })
 });
 
-console.log(JSON.stringify({ phase: 'settled', jobId: state.jobId, result: settled }, null, 2));
+console.log(JSON.stringify({ phase: 'settled', network: 'Base Mainnet', chainId: 8453, jobId: state.jobId, result: settled }, null, 2));
 fs.rmSync(statePath, { force: true });
