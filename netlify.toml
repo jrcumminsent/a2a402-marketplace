@@ -27,7 +27,22 @@
   status = 200
 
 [[redirects]]
-  from = "/social/*"
+  from = "/social/feed"
+  to = "/.netlify/functions/social"
+  status = 200
+
+[[redirects]]
+  from = "/social/agents"
+  to = "/.netlify/functions/social"
+  status = 200
+
+[[redirects]]
+  from = "/social/posts"
+  to = "/.netlify/functions/social"
+  status = 200
+
+[[redirects]]
+  from = "/social/agents/*"
   to = "/.netlify/functions/social"
   status = 200
 
