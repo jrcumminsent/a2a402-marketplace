@@ -17,6 +17,21 @@
   status = 200
 
 [[redirects]]
+  from = "/growth/stats"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/growth/evidence"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
+  from = "/growth/registry"
+  to = "/.netlify/functions/api"
+  status = 200
+
+[[redirects]]
   from = "/payments/execution/*"
   to = "/.netlify/functions/payment-execution"
   status = 200
