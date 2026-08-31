@@ -4,6 +4,7 @@ import path from 'node:path';
 const dashboardDir = path.resolve('apps/dashboard/public');
 const source = path.join(dashboardDir, 'index.html');
 const marketplaceSource = path.join(dashboardDir, 'marketplace', 'index.html');
+const socialSource = path.join(dashboardDir, 'social', 'index.html');
 const recruitSource = path.join(dashboardDir, 'recruit', 'index.html');
 const tokenSource = path.join(dashboardDir, 'token', 'index.html');
 const recruitJsonSource = path.join(dashboardDir, 'recruit.json');
@@ -14,17 +15,26 @@ const outDir = path.resolve('public');
 const target = path.join(outDir, 'index.html');
 const marketplaceDir = path.join(outDir, 'marketplace');
 const marketplaceTarget = path.join(marketplaceDir, 'index.html');
+const socialDir = path.join(outDir, 'social');
+const socialTarget = path.join(socialDir, 'index.html');
 const recruitDir = path.join(outDir, 'recruit');
 const recruitTarget = path.join(recruitDir, 'index.html');
 const tokenDir = path.join(outDir, 'token');
 const tokenTarget = path.join(tokenDir, 'index.html');
 
+// Netlify publishes only ./public. Always rebuild it from the current dashboard source
+// so a deploy cannot accidentally serve stale generated pages from an older build.
+fs.rmSync(outDir, { recursive: true, force: true });
 fs.mkdirSync(outDir, { recursive: true });
 fs.copyFileSync(source, target);
 
 if (fs.existsSync(marketplaceSource)) {
   fs.mkdirSync(marketplaceDir, { recursive: true });
   fs.copyFileSync(marketplaceSource, marketplaceTarget);
+}
+if (fs.existsSync(socialSource)) {
+  fs.mkdirSync(socialDir, { recursive: true });
+  fs.copyFileSync(socialSource, socialTarget);
 }
 if (fs.existsSync(recruitSource)) {
   fs.mkdirSync(recruitDir, { recursive: true });
@@ -62,6 +72,9 @@ const agentCard = {
     tokenUrl: 'https://a2a402.market/token.json',
     humanTokenUrl: 'https://a2a402.market/token/',
     humanMarketplaceUrl: 'https://a2a402.market/marketplace/',
+    humanSocialUrl: 'https://a2a402.market/social/',
+    socialFeedUrl: 'https://a2a402.market/social/feed',
+    socialAgentsUrl: 'https://a2a402.market/social/agents',
     acceptedAssets: ['A2A'],
     primarySettlementAsset: 'A2A',
     a2aNetwork: 'base',
@@ -91,9 +104,11 @@ const cardJson = `${JSON.stringify(agentCard, null, 2)}\n`;
 fs.writeFileSync(path.join(wellKnownDir, 'agent-card.json'), cardJson);
 fs.writeFileSync(path.join(wellKnownDir, 'agent.json'), cardJson);
 fs.writeFileSync(path.join(outDir, 'agent-card.json'), cardJson);
+fs.writeFileSync(path.join(outDir, 'build-info.json'), `${JSON.stringify({builtAt:new Date().toISOString(),environment:'production',network:'base',chainId:8453}, null, 2)}\n`);
 
 console.log(`Built A2A402 dashboard -> ${target}`);
 if (fs.existsSync(marketplaceSource)) console.log(`Built A2A402 marketplace -> ${marketplaceTarget}`);
+if (fs.existsSync(socialSource)) console.log(`Built A2A402 social network -> ${socialTarget}`);
 if (fs.existsSync(recruitSource)) console.log(`Built A2A402 recruitment page -> ${recruitTarget}`);
 if (fs.existsSync(tokenSource)) console.log(`Built A2A402 token page -> ${tokenTarget}`);
 if (fs.existsSync(recruitJsonSource)) console.log('Published recruit.json');
@@ -101,3 +116,4 @@ if (fs.existsSync(tokenJsonSource)) console.log('Published token.json');
 if (fs.existsSync(openapiSource)) console.log('Published openapi.json');
 if (fs.existsSync(llmsSource)) console.log('Published llms.txt');
 console.log('Published Agent Card discovery files');
+console.log('Published build-info.json');
