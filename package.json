@@ -12,7 +12,9 @@
     "payments:execute": "node scripts/a2a-payment-executor.mjs",
     "payments:watch": "node scripts/a2a-payment-executor.mjs --watch",
     "agent:reference": "node scripts/reference-autonomous-agent.mjs",
-    "agent:e2e": "node scripts/ensure-autonomous-e2e.mjs"
+    "agent:e2e": "node scripts/ensure-autonomous-e2e.mjs",
+    "agent:daemon": "node scripts/agent-daemon.mjs",
+    "agent:watch": "node scripts/agent-daemon.mjs --watch"
   },
   "dependencies": {
     "pg": "^8.16.3"
