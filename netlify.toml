@@ -27,6 +27,11 @@
   status = 200
 
 [[redirects]]
+  from = "/social/*"
+  to = "/.netlify/functions/social"
+  status = 200
+
+[[redirects]]
   from = "/agents/*"
   to = "/.netlify/functions/api"
   status = 200
