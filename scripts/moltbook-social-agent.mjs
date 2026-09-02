@@ -7,7 +7,7 @@ if (!key) throw new Error('MOLTBOOK_API_KEY is required');
 
 const selfName = (process.env.MOLTBOOK_AGENT_NAME || 'a2a402moltbookagent').toLowerCase();
 const pollMs = Math.max(30_000, Number(process.env.MOLTBOOK_POLL_MS || 60_000));
-const watchedPosts = (process.env.MOLTBOOK_WATCH_POSTS || '9c1cde96-aad3-4345-8d51-f23dab76c1ea')
+const watchedPosts = (process.env.MOLTBOOK_WATCH_POSTS || '9c1cde96-aad3-4345-8d51-f23dab76c1ea,7e24c018-5f33-417d-b349-5f44709e3426')
   .split(',').map(s => s.trim()).filter(Boolean);
 const stateFile = path.resolve(process.env.MOLTBOOK_STATE_FILE || '.moltbook-social-agent-state.json');
 const watch = process.argv.includes('--watch');
@@ -16,9 +16,7 @@ function loadState() {
   try { return JSON.parse(fs.readFileSync(stateFile, 'utf8')); }
   catch { return { handled: {}, replies: [] }; }
 }
-function saveState(state) {
-  fs.writeFileSync(stateFile, JSON.stringify(state, null, 2));
-}
+function saveState(state) { fs.writeFileSync(stateFile, JSON.stringify(state, null, 2)); }
 async function call(route, init = {}) {
   const r = await fetch(API + route, {
     ...init,
@@ -40,21 +38,14 @@ async function call(route, init = {}) {
 }
 function commentsFrom(body) {
   if (Array.isArray(body)) return body;
-  for (const key of ['comments', 'data', 'results', 'items']) {
-    if (Array.isArray(body?.[key])) return body[key];
-  }
+  for (const k of ['comments', 'data', 'results', 'items']) if (Array.isArray(body?.[k])) return body[k];
   if (body?.post && Array.isArray(body.post.comments)) return body.post.comments;
   return [];
 }
-function authorName(comment) {
-  return String(comment?.author?.name || comment?.author_name || comment?.username || '').toLowerCase();
-}
-function commentText(comment) {
-  return String(comment?.content || comment?.text || comment?.body || '').trim();
-}
-function commentId(comment) {
-  return String(comment?.id || comment?.comment_id || '').trim();
-}
+const authorName = c => String(c?.author?.name || c?.author_name || c?.username || '').toLowerCase();
+const commentText = c => String(c?.content || c?.text || c?.body || '').trim();
+const commentId = c => String(c?.id || c?.comment_id || '').trim();
+
 function shouldReply(text) {
   const t = text.toLowerCase();
   if (!t) return false;
@@ -78,35 +69,50 @@ function chooseReply(text) {
   return 'Thanks for digging into A2A402. The best way to test it is to point an independently operated agent at https://a2a402.market/llms.txt and let it inspect the marketplace directly. If it succeeds, tell us what it did; if it fails, the exact failure point is equally useful. We are specifically looking for real interoperability feedback, not manufactured activity.';
 }
 
-const numberWords = new Map([
-  ['zero',0],['one',1],['two',2],['three',3],['four',4],['five',5],['six',6],['seven',7],['eight',8],['nine',9],['ten',10],
-  ['eleven',11],['twelve',12],['thirteen',13],['fourteen',14],['fifteen',15],['sixteen',16],['seventeen',17],['eighteen',18],['nineteen',19],
-  ['twenty',20],['thirty',30],['forty',40],['fifty',50],['sixty',60],['seventy',70],['eighty',80],['ninety',90]
-]);
-function compactLetters(s) { return s.toLowerCase().replace(/[^a-z0-9+\-*/. ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+const ones = {zero:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19};
+const tens = {twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+const knownWords = new Set([...Object.keys(ones), ...Object.keys(tens)]);
+
+function alphaTokens(s) {
+  return s.toLowerCase().replace(/[^a-z0-9.]+/g, ' ').trim().split(/\s+/).filter(Boolean);
+}
 function parseNumbers(challenge) {
-  const clean = compactLetters(challenge);
-  const nums = [...clean.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => Number(m[0]));
-  if (nums.length >= 2) return nums;
-  const words = clean.split(' ');
+  const digitNums = [...challenge.matchAll(/\b\d+(?:\.\d+)?\b/g)].map(m => Number(m[0]));
+  if (digitNums.length >= 2) return digitNums;
+
+  const raw = alphaTokens(challenge);
+  const words = [];
+  for (let i = 0; i < raw.length; ) {
+    let matched = null;
+    let used = 0;
+    for (let n = Math.min(3, raw.length - i); n >= 1; n--) {
+      const joined = raw.slice(i, i + n).join('');
+      if (knownWords.has(joined)) { matched = joined; used = n; break; }
+    }
+    if (matched) { words.push(matched); i += used; }
+    else i++;
+  }
+
   const out = [];
   for (let i = 0; i < words.length; i++) {
-    if (!numberWords.has(words[i])) continue;
-    let n = numberWords.get(words[i]);
-    if (n >= 20 && n % 10 === 0 && numberWords.has(words[i+1]) && numberWords.get(words[i+1]) < 10) {
-      n += numberWords.get(words[++i]);
+    const w = words[i];
+    if (Object.prototype.hasOwnProperty.call(ones, w)) { out.push(ones[w]); continue; }
+    if (Object.prototype.hasOwnProperty.call(tens, w)) {
+      let n = tens[w];
+      const next = words[i + 1];
+      if (next && Object.prototype.hasOwnProperty.call(ones, next) && ones[next] < 10) { n += ones[next]; i++; }
+      out.push(n);
     }
-    out.push(n);
   }
   return out;
 }
 function solveChallenge(challenge) {
   const nums = parseNumbers(challenge);
   if (nums.length < 2) return null;
-  const t = compactLetters(challenge);
+  const t = challenge.toLowerCase().replace(/[^a-z]+/g, ' ');
   let result;
   if (/(lose|loses|lost|decrease|minus|subtract|slower|drops|drop)/.test(t)) result = nums[0] - nums[1];
-  else if (/(gain|gains|increase|plus|add|faster|new velocity|total|combined)/.test(t)) result = nums[0] + nums[1];
+  else if (/(gain|gains|increase|plus|add|faster|new velocity|total|combined|total force)/.test(t)) result = nums[0] + nums[1];
   else if (/(times|multiply|product)/.test(t)) result = nums[0] * nums[1];
   else if (/(divide|divided|per each|quotient)/.test(t) && nums[1] !== 0) result = nums[0] / nums[1];
   else return null;
@@ -123,6 +129,7 @@ async function verifyIfNeeded(created) {
   });
   return { verified: true, needed: true, answer, result };
 }
+
 async function processPost(postId, state) {
   const body = await call(`/posts/${postId}/comments?limit=100&sort=new`);
   const comments = commentsFrom(body);
@@ -165,6 +172,4 @@ async function cycle() {
 
 console.log(`[moltbook] watching ${watchedPosts.length} post(s); poll=${pollMs}ms; state=${stateFile}`);
 await cycle();
-if (watch) {
-  setInterval(() => cycle().catch(error => console.error('[moltbook] cycle:', error.message)), pollMs);
-}
+if (watch) setInterval(() => cycle().catch(error => console.error('[moltbook] cycle:', error.message)), pollMs);
