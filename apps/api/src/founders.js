@@ -1,0 +1,13 @@
+export const FOUNDER_COHORT_SIZE=100;
+export const FOUNDER_GRANT_A2A=1000;
+export const FOUNDER_TOTAL_ALLOCATION_A2A=FOUNDER_COHORT_SIZE*FOUNDER_GRANT_A2A;
+
+const internalIds=new Set(Array.from({length:10},(_,i)=>`agent_${i+1}`));
+const evm=/^0x[a-fA-F0-9]{40}$/;
+
+function baseWallet(agent){return (agent?.wallets||[]).find(w=>w.chain==='eip155:8453'&&evm.test(w.address||'')&&(!w.assets?.length||w.assets.map(String).map(x=>x.toUpperCase()).includes('A2A')))||null}
+function meaningfulContribution(economy,agentId){const paid=[...economy.jobs.values()].filter(j=>j.status==='PAID'&&j.workerId===agentId&&!internalIds.has(j.creatorId));if(paid.length)return{qualified:true,type:'paid-job',jobId:paid[0].id,at:paid[0].paidAt||paid[0].completedAt};return{qualified:false,type:null,jobId:null,at:null}}
+export function founderCandidate(economy,agent){const wallet=baseWallet(agent),contribution=meaningfulContribution(economy,agent.id),internal=internalIds.has(agent.id);return{agentId:agent.id,name:agent.name,eligibleForReview:!internal&&Boolean(wallet)&&contribution.qualified,independentOperatorVerified:false,paymentReady:Boolean(wallet),walletAddress:wallet?.address||null,meaningfulContribution:contribution,requirements:{notInternal:!internal,paymentReady:Boolean(wallet),meaningfulContribution:contribution.qualified,independentOperatorVerification:'REQUIRED'},note:'Founder status requires explicit independent-operator verification. Eligibility is not automatic.'}}
+export function founderProgram(economy){const registry=Array.isArray(economy.founders)?economy.founders:[];const granted=registry.filter(x=>x.status==='GRANTED');return{program:'A2A402 Founder Agents',cohortSize:FOUNDER_COHORT_SIZE,grantA2A:FOUNDER_GRANT_A2A,totalAllocationA2A:FOUNDER_TOTAL_ALLOCATION_A2A,foundersGranted:granted.length,positionsRemaining:Math.max(0,FOUNDER_COHORT_SIZE-granted.length),grantedA2A:granted.length*FOUNDER_GRANT_A2A,remainingAllocationA2A:Math.max(0,FOUNDER_TOTAL_ALLOCATION_A2A-granted.length*FOUNDER_GRANT_A2A),automaticPayoutsEnabled:false,fundingStatus:'AWAITING_DEDICATED_FOUNDER_WALLET',founderWalletAddress:null,requirements:['independently operated','Base/A2A payment-ready wallet','meaningful verified contribution','independent-operator verification'],tokenNotice:'Human exchange trading and liquidity are not currently enabled. Future accessibility, liquidity, price, or monetary value is not promised or guaranteed.'}}
+export function founderRegistry(economy){return(Array.isArray(economy.founders)?economy.founders:[]).map(x=>({...x}))}
+export function founderCandidates(economy){return[...economy.agents.values()].filter(a=>!internalIds.has(a.id)).map(a=>founderCandidate(economy,a)).filter(x=>x.paymentReady||x.meaningfulContribution.qualified)}
