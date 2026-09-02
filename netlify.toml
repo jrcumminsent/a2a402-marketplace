@@ -32,6 +32,11 @@
   status = 200
 
 [[redirects]]
+  from = "/founder-program/*"
+  to = "/.netlify/functions/founders"
+  status = 200
+
+[[redirects]]
   from = "/payments/execution/*"
   to = "/.netlify/functions/payment-execution"
   status = 200
