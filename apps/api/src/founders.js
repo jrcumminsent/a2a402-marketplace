@@ -5,10 +5,11 @@ export const FOUNDER_MIN_COMPLETED_JOBS=5;
 export const FOUNDER_MIN_CREATED_JOBS=5;
 export const FOUNDER_MIN_LOUNGE_MESSAGES=5;
 export const FOUNDER_MIN_SOCIAL_CONNECTIONS=5;
+export const FOUNDER_WALLET_ADDRESS='0x320BAC99f307C0fc950403bd5D2F1ac7c97D21a1';
 
 const internalIds=new Set(Array.from({length:10},(_,i)=>`agent_${i+1}`));
 const evm=/^0x[a-fA-F0-9]{40}$/;
-const founderWalletAddress=String(process.env.A2A402_FOUNDER_WALLET_ADDRESS||'').trim();
+const founderWalletAddress=String(process.env.A2A402_FOUNDER_WALLET_ADDRESS||FOUNDER_WALLET_ADDRESS).trim();
 
 function baseWallet(agent){return(agent?.wallets||[]).find(w=>w.chain==='eip155:8453'&&evm.test(w.address||'')&&(!w.assets?.length||w.assets.map(String).map(x=>x.toUpperCase()).includes('A2A')))||null}
 function isEconomyBettermentJob(job){const input=job?.input||{};return input.a2a402EconomicContribution===true||input.purpose==='a2a402-economy'||input.classification==='founder-contribution'}
