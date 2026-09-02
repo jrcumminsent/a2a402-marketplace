@@ -10,7 +10,7 @@ const reply = (statusCode, value) => ({ statusCode, headers, body: JSON.stringif
 const parseBody = event => event.body ? JSON.parse(event.body) : {};
 const requestPath = event => {
   const raw = event.rawUrl ? new URL(event.rawUrl).pathname : event.path || '/';
-  return raw.replace(/^\/\.netlify\/functions\/social/, '') || '/';
+  return raw.replace(/^\/\.netlify\/functions\/social/, '').replace(/^\/social/, '') || '/';
 };
 
 function authenticate(economy, event) {
@@ -58,73 +58,23 @@ function profile(economy, agent) {
 
 function feed(economy) {
   const agentNames = new Map([...economy.agents.values()].map(a => [a.id, a.name]));
-  const posts = economy.lounge.map(p => ({
-    id: p.id,
-    kind: 'post',
-    at: p.at,
-    agentId: p.agentId,
-    agentName: agentNames.get(p.agentId) || p.agentId,
-    message: p.message,
-    postType: p.type || 'discussion'
-  }));
-  const events = (economy.events || []).filter(e => [
-    'AGENT_REGISTERED','JOB_CREATED','JOB_CLAIMED','JOB_SUBMITTED','JOB_PAID','AGENT_FOLLOWED'
-  ].includes(e.type)).map(e => ({
-    id: e.id,
-    kind: 'activity',
-    at: e.at,
-    type: e.type,
-    agentId: e.agentId || e.creatorId || null,
-    agentName: agentNames.get(e.agentId || e.creatorId) || null,
-    jobId: e.jobId || null,
-    targetAgentId: e.targetAgentId || null,
-    targetAgentName: e.targetAgentId ? agentNames.get(e.targetAgentId) || e.targetAgentId : null
-  }));
-  return [...posts, ...events]
-    .sort((a,b) => new Date(b.at || 0) - new Date(a.at || 0))
-    .slice(0, 200);
+  const posts = economy.lounge.map(p => ({ id:p.id,kind:'post',at:p.at,agentId:p.agentId,agentName:agentNames.get(p.agentId)||p.agentId,message:p.message,postType:p.type||'discussion' }));
+  const events = (economy.events || []).filter(e => ['AGENT_REGISTERED','JOB_CREATED','JOB_CLAIMED','JOB_SUBMITTED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type)).map(e => ({ id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:agentNames.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null,targetAgentName:e.targetAgentId?agentNames.get(e.targetAgentId)||e.targetAgentId:null }));
+  return [...posts,...events].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0)).slice(0,200);
 }
 
 export async function handler(event) {
   try {
     if (event.httpMethod === 'OPTIONS') return { statusCode: 204, headers, body: '' };
-    const method = event.httpMethod;
-    const p = requestPath(event);
+    const method=event.httpMethod,p=requestPath(event);
     return await withEconomy(async economy => {
-      if (method === 'GET' && p === '/feed') return reply(200, { persistence: persistenceMode(), items: feed(economy) });
-      if (method === 'GET' && p === '/agents') {
-        const agents = [...economy.agents.values()].filter(a => a.status === 'ACTIVE').map(a => profile(economy, a));
-        agents.sort((a,b) => (b.economy.a2aEarned - a.economy.a2aEarned) || (b.reputation?.successRate || 0) - (a.reputation?.successRate || 0));
-        return reply(200, { count: agents.length, agents });
-      }
-      if (method === 'GET' && /^\/agents\/[^/]+$/.test(p)) {
-        const agent = economy.agents.get(p.split('/')[2]);
-        return agent ? reply(200, profile(economy, agent)) : reply(404, { error: 'not found' });
-      }
-      if (method === 'POST' && p === '/posts') {
-        const agentId = authenticate(economy, event);
-        const data = parseBody(event);
-        if (!String(data.message || '').trim()) throw new Error('message required');
-        const post = economy.postLoungeMessage({ agentId, message: String(data.message).trim(), type: data.type || 'post' });
-        return reply(201, post);
-      }
-      if (method === 'POST' && /^\/agents\/[^/]+\/follow$/.test(p)) {
-        const agentId = authenticate(economy, event);
-        const targetAgentId = p.split('/')[2];
-        if (agentId === targetAgentId) throw new Error('agents cannot follow themselves');
-        if (!economy.agents.has(targetAgentId)) return reply(404, { error: 'target agent not found' });
-        economy.event('AGENT_FOLLOWED', { agentId, targetAgentId });
-        return reply(200, { ok: true, agentId, targetAgentId, following: true });
-      }
-      if (method === 'POST' && /^\/agents\/[^/]+\/unfollow$/.test(p)) {
-        const agentId = authenticate(economy, event);
-        const targetAgentId = p.split('/')[2];
-        economy.event('AGENT_UNFOLLOWED', { agentId, targetAgentId });
-        return reply(200, { ok: true, agentId, targetAgentId, following: false });
-      }
-      return reply(404, { error: 'not found' });
+      if(method==='GET'&&p==='/feed')return reply(200,{persistence:persistenceMode(),items:feed(economy)});
+      if(method==='GET'&&p==='/agents'){const agents=[...economy.agents.values()].filter(a=>a.status==='ACTIVE').map(a=>profile(economy,a));agents.sort((a,b)=>(b.economy.a2aEarned-a.economy.a2aEarned)||(b.reputation?.successRate||0)-(a.reputation?.successRate||0));return reply(200,{count:agents.length,agents})}
+      if(method==='GET'&&/^\/agents\/[^/]+$/.test(p)){const agent=economy.agents.get(p.split('/')[2]);return agent?reply(200,profile(economy,agent)):reply(404,{error:'not found'})}
+      if(method==='POST'&&p==='/posts'){const agentId=authenticate(economy,event),data=parseBody(event);if(!String(data.message||'').trim())throw new Error('message required');return reply(201,economy.postLoungeMessage({agentId,message:String(data.message).trim(),type:data.type||'post'}))}
+      if(method==='POST'&&/^\/agents\/[^/]+\/follow$/.test(p)){const agentId=authenticate(economy,event),targetAgentId=p.split('/')[2];if(agentId===targetAgentId)throw new Error('agents cannot follow themselves');if(!economy.agents.has(targetAgentId))return reply(404,{error:'target agent not found'});economy.event('AGENT_FOLLOWED',{agentId,targetAgentId});return reply(200,{ok:true,agentId,targetAgentId,following:true})}
+      if(method==='POST'&&/^\/agents\/[^/]+\/unfollow$/.test(p)){const agentId=authenticate(economy,event),targetAgentId=p.split('/')[2];economy.event('AGENT_UNFOLLOWED',{agentId,targetAgentId});return reply(200,{ok:true,agentId,targetAgentId,following:false})}
+      return reply(404,{error:'not found'});
     });
-  } catch (error) {
-    return reply(error.message === 'unauthorized' ? 401 : 400, { error: error.message });
-  }
+  } catch(error){return reply(error.message==='unauthorized'?401:400,{error:error.message})}
 }
