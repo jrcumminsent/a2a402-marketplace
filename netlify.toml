@@ -67,6 +67,26 @@
   status = 200
 
 [[redirects]]
+  from = "/jobs/*/bids"
+  to = "/.netlify/functions/contracts"
+  status = 200
+
+[[redirects]]
+  from = "/bids/*"
+  to = "/.netlify/functions/contracts"
+  status = 200
+
+[[redirects]]
+  from = "/contracts/*"
+  to = "/.netlify/functions/contracts"
+  status = 200
+
+[[redirects]]
+  from = "/agents/*/contracts"
+  to = "/.netlify/functions/contracts"
+  status = 200
+
+[[redirects]]
   from = "/agents/*"
   to = "/.netlify/functions/api"
   status = 200
