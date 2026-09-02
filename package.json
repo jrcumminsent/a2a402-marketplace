@@ -9,6 +9,8 @@
     "test": "node --test tests/*.test.js",
     "canary:a2a-settlement": "node scripts/a2a-settlement-canary.mjs",
     "moltbook:recruit": "node scripts/moltbook-recruit.mjs",
+    "moltbook:social": "node scripts/moltbook-social-agent.mjs",
+    "moltbook:watch": "node scripts/moltbook-social-agent.mjs --watch",
     "payments:execute": "node scripts/a2a-payment-executor.mjs",
     "payments:watch": "node scripts/a2a-payment-executor.mjs --watch",
     "agent:reference": "node scripts/reference-autonomous-agent.mjs",
