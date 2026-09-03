@@ -1,4 +1,5 @@
 import { withEconomy } from '../../apps/api/src/persistence.js';
+import { deepRedactSecrets, containsLikelySecret } from '../../apps/api/src/security-sanitize.js';
 import { baseHeaders as headers, reply, errorResponse } from './_http.mjs';
 
 export const config={
@@ -43,22 +44,26 @@ function normalizeRequirements(value){
 }
 function queryParams(event){
   const out={...(event.queryStringParameters||{})};
-  try{
-    if(event.rawUrl){for(const [key,value] of new URL(event.rawUrl).searchParams.entries()){if(out[key]==null)out[key]=value;}}
-  }catch{}
+  try{if(event.rawUrl){for(const [key,value] of new URL(event.rawUrl).searchParams.entries()){if(out[key]==null)out[key]=value;}}}catch{}
   return out;
+}
+function isLegacyTestJob(job){
+  const asset=String(job.paymentAsset||'').toUpperCase(),network=String(job.paymentNetwork||'').toLowerCase();
+  return asset==='USDC_TEST'||network==='base-sepolia'||network==='eip155:84532';
 }
 function filteredJobs(economy,q){
   let jobs=[...economy.jobs.values()];
+  const includeLegacy=['1','true','yes'].includes(String(q.includeLegacy||'').toLowerCase());
+  if(!includeLegacy)jobs=jobs.filter(j=>!isLegacyTestJob(j));
   if(q.status)jobs=jobs.filter(j=>String(j.status||'').toUpperCase()===String(q.status).trim().toUpperCase());
   if(q.capability){const capability=String(q.capability).trim().toLowerCase();jobs=jobs.filter(j=>String(j.requiredCapability||'').trim().toLowerCase()===capability);}
   if(q.category)jobs=jobs.filter(j=>String(j.input?.category||'').toLowerCase()===String(q.category).trim().toLowerCase());
   if(q.tag){const tag=String(q.tag).trim().toLowerCase();jobs=jobs.filter(j=>Array.isArray(j.input?.tags)&&j.input.tags.map(x=>String(x).toLowerCase()).includes(tag));}
   if(q.paymentAsset)jobs=jobs.filter(j=>String(j.paymentAsset||'').toUpperCase()===String(q.paymentAsset).trim().toUpperCase());
-  return jobs;
+  return deepRedactSecrets(jobs);
 }
 function authenticate(economy,event){const agentId=event.headers?.['x-agent-id']??event.headers?.['X-Agent-Id'];const auth=event.headers?.authorization??event.headers?.Authorization??'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!economy.authenticate(agentId,token))throw new Error('unauthorized');return agentId}
-function parseBody(event){if(!event.body)return{};if(event.body.length>1_000_000)throw new Error('payload too large');return JSON.parse(event.body)}
+function parseBody(event){if(!event.body)return{};if(event.body.length>1_000_000)throw new Error('payload too large');const data=JSON.parse(event.body);if(containsLikelySecret(data))throw new Error('payload appears to contain a credential or secret; submit references instead of secrets');return data}
 
 export async function handler(event){
   try{
@@ -75,7 +80,7 @@ export async function handler(event){
         data.creatorId=agentId;data.creatorType='agent';
         data.input={...(data.input&&typeof data.input==='object'&&!Array.isArray(data.input)?data.input:{}),...(requirements?{requirements}:{}),...(category?{category}:{}),...(tags.length?{tags}:{})};
         delete data.requirements;delete data.category;delete data.tags;
-        return reply(201,economy.createJob(data));
+        return reply(201,deepRedactSecrets(economy.createJob(data)));
       }
       return reply(405,{error:{code:'METHOD_NOT_ALLOWED',message:'method not allowed',retryable:false}});
     });
