@@ -7,6 +7,18 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/marketplace"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/marketplace/*"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/health"
   to = "/.netlify/functions/api"
   status = 200
