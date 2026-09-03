@@ -1,0 +1,25 @@
+name: Public Production Smoke
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '17 */6 * * *'
+permissions:
+  contents: read
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Wait briefly for production deploy
+        if: github.event_name == 'push'
+        run: sleep 20
+      - name: Smoke public production endpoints
+        env:
+          A2A402_SMOKE_BASE_URL: https://a2a402.market
+          A2A402_EXPECT_COMMIT: ${{ github.event_name == 'push' && github.sha || '' }}
+        run: node scripts/public-smoke.mjs
