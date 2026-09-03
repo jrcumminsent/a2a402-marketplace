@@ -1,5 +1,6 @@
 import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js';
 import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';
+import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';
 
 const headers={
   'content-type':'application/json; charset=utf-8',
@@ -7,12 +8,15 @@ const headers={
   'access-control-allow-headers':'authorization,content-type,x-agent-id',
   'access-control-allow-methods':'GET,OPTIONS'
 };
-const reply=(statusCode,value)=>({statusCode,headers,body:JSON.stringify(value)});
+const reply=(statusCode,value)=>({statusCode,headers,body:JSON.stringify(deepRedactSecrets(value))});
 const requestPath=event=>{
   const raw=event.rawUrl?new URL(event.rawUrl).pathname:event.path||'/';
   return raw.replace(/^\/\.netlify\/functions\/public-read/,'')||'/';
 };
 const query=event=>event.queryStringParameters||{};
+const cleanNumber=(value,places=12)=>Number(Number(value||0).toFixed(places));
+const isLegacyTestJob=job=>String(job?.paymentAsset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(job?.paymentNetwork||'').toLowerCase());
+const isLegacyTestTx=tx=>String(tx?.asset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(tx?.network||'').toLowerCase());
 
 function publicSocialFeed(economy){
   const names=new Map([...economy.agents.values()].map(a=>[a.id,a.name]));
@@ -27,6 +31,33 @@ function publicAgents(economy){
     const reputation=economy.reputations.get(a.id)||null;
     return {...publicAgent,reputation};
   });
+}
+
+function productionStats(economy){
+  const jobs=[...economy.jobs.values()].filter(j=>!isLegacyTestJob(j));
+  const transactions=(economy.transactions||[]).filter(t=>!isLegacyTestTx(t));
+  const paid=jobs.filter(j=>j.status==='PAID');
+  const a2a=transactions.filter(t=>String(t.asset||'').toUpperCase()==='A2A');
+  const repeats=new Map();
+  for(const tx of transactions){const key=`${tx.payer}->${tx.payee}`;repeats.set(key,(repeats.get(key)||0)+1)}
+  return {
+    scope:'production-default',
+    legacyTestDataExcluded:true,
+    activeAgents:[...economy.agents.values()].filter(a=>a.status==='ACTIVE').length,
+    activeJobs:jobs.filter(j=>['OPEN','CLAIMED','IN_PROGRESS','SUBMITTED','VERIFYING','AWAITING_PAYMENT'].includes(j.status)).length,
+    jobsCreated:jobs.length,
+    jobsCompleted:paid.length,
+    agentCreatedJobs:jobs.filter(j=>j.creatorType==='agent').length,
+    agentToAgentTransactions:transactions.length,
+    transactionVolume:cleanNumber(transactions.reduce((s,t)=>s+Number(t.amount||0),0)),
+    a2aTransactionVolume:cleanNumber(a2a.reduce((s,t)=>s+Number(t.amount||0),0)),
+    a2aTransactions:a2a.length,
+    a2aMarketplaceFees:cleanNumber(a2a.reduce((s,t)=>s+Number(t.feeAmount||0),0)),
+    marketplaceFeeBps:500,
+    services:economy.services.size,
+    successRate:cleanNumber(jobs.length?paid.length/jobs.length:0),
+    repeatTransactions:[...repeats.values()].filter(n=>n>1).reduce((s,n)=>s+n-1,0)
+  };
 }
 
 export async function handler(event){
@@ -44,7 +75,7 @@ export async function handler(event){
       if(p==='/lounge/messages')return reply(200,(economy.lounge||[]).slice(-100));
       if(p==='/social/feed')return reply(200,{persistence:persistenceMode(),items:publicSocialFeed(economy)});
       if(p==='/social/agents')return reply(200,{count:publicAgents(economy).length,agents:publicAgents(economy)});
-      if(p==='/economy/stats')return reply(200,economy.stats());
+      if(p==='/economy/stats')return reply(200,productionStats(economy));
       if(p==='/economy/activity')return reply(200,economy.activity());
       if(p==='/growth/stats')return reply(200,growthStats(economy));
       if(p==='/growth/evidence')return reply(200,growthEvidence(economy));
