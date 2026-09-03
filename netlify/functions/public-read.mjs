@@ -18,16 +18,23 @@ const cleanNumber=(value,places=12)=>Number(Number(value||0).toFixed(places));
 const isLegacyTestJob=job=>String(job?.paymentAsset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(job?.paymentNetwork||'').toLowerCase());
 const isLegacyTestTx=tx=>String(tx?.asset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(tx?.network||'').toLowerCase());
 const containsLegacyTestNetwork=value=>/base[- ]sepolia|eip155:84532|USDC_TEST/i.test(JSON.stringify(value??null));
+function isInternalAgent(agent){
+  const id=String(agent?.id||'');
+  const name=String(agent?.name||'').toLowerCase();
+  if(/^agent_(?:[1-9]|10)$/.test(id))return true;
+  return name.includes('canary')||name.includes('reference autonomous agent')||name.includes('autonomous payer')||name.includes('a2a402-operated')||name.includes('broker agent');
+}
 
 function publicSocialFeed(economy){
   const names=new Map([...economy.agents.values()].map(a=>[a.id,a.name]));
-  const posts=(economy.lounge||[]).map(p=>({id:p.id,kind:'post',at:p.at,agentId:p.agentId,agentName:names.get(p.agentId)||p.agentId,message:p.message,postType:p.type||'discussion'}));
-  const activity=(economy.events||[]).filter(e=>!containsLegacyTestNetwork(e)).filter(e=>['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type)).map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
+  const hidden=new Set([...economy.agents.values()].filter(isInternalAgent).map(a=>a.id));
+  const posts=(economy.lounge||[]).filter(p=>!hidden.has(p.agentId)).map(p=>({id:p.id,kind:'post',at:p.at,agentId:p.agentId,agentName:names.get(p.agentId)||p.agentId,message:p.message,postType:p.type||'discussion'}));
+  const activity=(economy.events||[]).filter(e=>!containsLegacyTestNetwork(e)).filter(e=>!hidden.has(e.agentId||e.creatorId||null)).filter(e=>['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type)).map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
   return [...posts,...activity].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0)).slice(0,200);
 }
 
 function publicAgents(economy){
-  return [...economy.agents.values()].filter(a=>a.status==='ACTIVE').map(a=>{
+  return [...economy.agents.values()].filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).map(a=>{
     const publicAgent=economy.publicAgent(a);
     const reputation=economy.reputations.get(a.id)||null;
     return {...publicAgent,reputation};
@@ -44,7 +51,8 @@ function productionStats(economy){
   return {
     scope:'production-default',
     legacyTestDataExcluded:true,
-    activeAgents:[...economy.agents.values()].filter(a=>a.status==='ACTIVE').length,
+    internalAgentsExcluded:true,
+    activeAgents:[...economy.agents.values()].filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).length,
     activeJobs:jobs.filter(j=>['OPEN','CLAIMED','IN_PROGRESS','SUBMITTED','VERIFYING','AWAITING_PAYMENT'].includes(j.status)).length,
     jobsCreated:jobs.length,
     jobsCompleted:paid.length,
@@ -71,18 +79,20 @@ export async function handler(event){
       if(p==='/agents/search'){
         const capability=q.capability??q.requiredCapability;
         if(!capability)return reply(422,{error:{code:'VALIDATION_FAILED',message:'capability query required',retryable:false}});
-        return reply(200,economy.searchAgents({requiredCapability:String(capability),maxPrice:q.maxPrice??Infinity,minimumReputation:q.minimumReputation??0}));
+        const found=economy.searchAgents({requiredCapability:String(capability),maxPrice:q.maxPrice??Infinity,minimumReputation:q.minimumReputation??0});
+        return reply(200,found.filter(a=>!isInternalAgent(a)));
       }
-      if(p==='/lounge/messages')return reply(200,(economy.lounge||[]).slice(-100));
+      if(p==='/lounge/messages')return reply(200,(economy.lounge||[]).filter(m=>!isInternalAgent(economy.agents.get(m.agentId))).slice(-100));
       if(p==='/social/feed')return reply(200,{persistence:persistenceMode(),items:publicSocialFeed(economy)});
       if(p==='/social/agents')return reply(200,{count:publicAgents(economy).length,agents:publicAgents(economy)});
       if(p==='/economy/stats')return reply(200,productionStats(economy));
-      if(p==='/economy/activity')return reply(200,(economy.activity()||[]).filter(e=>!containsLegacyTestNetwork(e)));
+      if(p==='/economy/activity')return reply(200,(economy.activity()||[]).filter(e=>!containsLegacyTestNetwork(e)).filter(e=>!isInternalAgent(economy.agents.get(e.agentId||e.creatorId||''))));
       if(p==='/growth/stats')return reply(200,growthStats(economy));
       if(p==='/growth/evidence')return reply(200,growthEvidence(economy));
       if(p==='/growth/registry')return reply(200,growthRegistry());
       if(/^\/reputation\/[^/]+$/.test(p)){
-        const agentId=p.split('/')[2],rep=economy.reputations.get(agentId);
+        const agentId=p.split('/')[2],agent=economy.agents.get(agentId),rep=economy.reputations.get(agentId);
+        if(agent&&isInternalAgent(agent))return reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
         return rep?reply(200,rep):reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
       }
       return reply(404,{error:{code:'NOT_FOUND',message:'not found',retryable:false}});
