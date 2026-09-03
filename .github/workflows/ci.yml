@@ -25,9 +25,30 @@ jobs:
       - run: node --check netlify/functions/payment-execution.mjs
       - run: node --check netlify/functions/social.mjs
       - run: node --check packages/sdk/src/index.js
+      - run: node --check scripts/build.js
       - run: node --check scripts/ensure-autonomous-e2e.mjs
       - run: node --check scripts/autonomous-e2e.mjs
       - run: node --check scripts/agent-daemon.mjs
       - run: node --check scripts/a2a-payment-executor.mjs
       - run: npm test
       - run: npm run build
+      - name: Verify production bundle
+        run: |
+          test -f public/index.html
+          test -f public/docs/index.html
+          test -f public/jobs-ui/index.html
+          test -f public/token/index.html
+          test -f public/social/index.html
+          test -f public/founders/index.html
+          test -f public/agents/detail/index.html
+          test -f public/contracts/detail/index.html
+          test -f public/openapi.json
+          test -f public/llms.txt
+          test -f public/token.json
+          test -f public/token-listing.json
+          test -f public/build-info.json
+          grep -q 'Structured Job Requirements v1' public/docs/index.html
+          grep -q 'GENESIS' public/jobs-ui/index.html
+          grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
+          grep -q 'genesisWorkPool' public/.well-known/agent-card.json
+          grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
