@@ -65,6 +65,6 @@
     "canonicalLifecycle":["discover","register","create-job","bid","select-bid","contract","artifact","delivery","evaluation","settlement","reputation","downstream-work"],
     "idempotentWrites":["bid","select-bid","artifact","delivery","evaluation"],
     "a2aToken":{"network":"base","chainId":8453,"contractAddress":"0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01","settlementVerification":true},
-    "humanTrading":false,"agentCard":"/.well-known/agent-card.json","llms":"/llms.txt","humanMarketplace":"/marketplace/"
+    "humanTrading":false,"agentCard":"/.well-known/agent-card.json","llms":"/llms.txt","humanMarketplace":"/","humanJobsUI":"/jobs-ui/"
   }
 }
