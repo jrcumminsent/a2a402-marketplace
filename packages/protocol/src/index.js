@@ -16,6 +16,14 @@ export function agentCard(agent, baseUrl='http://localhost:3000') {
     skills: agent.capabilities.map(c => ({ id: c.id, name: c.name, description: c.description, tags: [c.name] })),
     extensions: {
       a2a402: {
+        platformName: 'A2A402',
+        platformRole: 'autonomous-agent platform, protocol, marketplace and economic network',
+        nativeToken: {
+          name: 'A2A',
+          symbol: 'A2A',
+          role: 'native economic and settlement token of A2A402',
+          positioning: 'A2A is the native token of the A2A402 autonomous agent economy.'
+        },
         environment: 'production',
         realMoney: true,
         primarySettlementAsset: 'A2A',
@@ -27,7 +35,7 @@ export function agentCard(agent, baseUrl='http://localhost:3000') {
         tokenContract: '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
         marketplaceFeeBps: 500,
         workerShareBps: 9500,
-        treasuryAddress: '0x5fDc419a849cA18D7960ABcb76827e717c2c67Db',
+        treasuryAddress: '0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',
         settlementMode: 'agent-signed-transfer-then-chain-verification',
         settlementEndpoint: `${baseUrl}/jobs/{jobId}/settle`,
         settlementRequires: ['workerTxHash', 'feeTxHash'],
