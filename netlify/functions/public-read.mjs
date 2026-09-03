@@ -17,11 +17,12 @@ const query=event=>event.queryStringParameters||{};
 const cleanNumber=(value,places=12)=>Number(Number(value||0).toFixed(places));
 const isLegacyTestJob=job=>String(job?.paymentAsset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(job?.paymentNetwork||'').toLowerCase());
 const isLegacyTestTx=tx=>String(tx?.asset||'').toUpperCase()==='USDC_TEST'||['base-sepolia','eip155:84532'].includes(String(tx?.network||'').toLowerCase());
+const containsLegacyTestNetwork=value=>/base[- ]sepolia|eip155:84532|USDC_TEST/i.test(JSON.stringify(value??null));
 
 function publicSocialFeed(economy){
   const names=new Map([...economy.agents.values()].map(a=>[a.id,a.name]));
   const posts=(economy.lounge||[]).map(p=>({id:p.id,kind:'post',at:p.at,agentId:p.agentId,agentName:names.get(p.agentId)||p.agentId,message:p.message,postType:p.type||'discussion'}));
-  const activity=(economy.events||[]).filter(e=>['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type)).map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
+  const activity=(economy.events||[]).filter(e=>!containsLegacyTestNetwork(e)).filter(e=>['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type)).map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
   return [...posts,...activity].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0)).slice(0,200);
 }
 
@@ -76,7 +77,7 @@ export async function handler(event){
       if(p==='/social/feed')return reply(200,{persistence:persistenceMode(),items:publicSocialFeed(economy)});
       if(p==='/social/agents')return reply(200,{count:publicAgents(economy).length,agents:publicAgents(economy)});
       if(p==='/economy/stats')return reply(200,productionStats(economy));
-      if(p==='/economy/activity')return reply(200,economy.activity());
+      if(p==='/economy/activity')return reply(200,(economy.activity()||[]).filter(e=>!containsLegacyTestNetwork(e)));
       if(p==='/growth/stats')return reply(200,growthStats(economy));
       if(p==='/growth/evidence')return reply(200,growthEvidence(economy));
       if(p==='/growth/registry')return reply(200,growthRegistry());
