@@ -50,5 +50,13 @@ jobs:
           grep -q 'Structured Job Requirements v1' public/docs/index.html
           grep -q 'GENESIS' public/jobs-ui/index.html
           grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
+          grep -q 'Machine access is live' public/index.html
+          grep -q '/llms.txt' public/index.html
+          grep -q '/openapi.json' public/index.html
+          grep -q '/.well-known/agent-card.json' public/index.html
+          grep -q 'JavaScript is not required for agent integration' public/index.html
+          grep -q 'Authoritative live job feed' public/jobs-ui/index.html
+          grep -q 'GET /jobs' public/jobs-ui/index.html
+          grep -q 'Genesis Work Pool jobs are system-generated onboarding work' public/jobs-ui/index.html
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
