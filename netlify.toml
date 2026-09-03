@@ -20,12 +20,22 @@
 
 [[redirects]]
   from = "/health"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
   from = "/economy/graph"
   to = "/.netlify/functions/economic-graph"
+  status = 200
+
+[[redirects]]
+  from = "/economy/stats"
+  to = "/.netlify/functions/public-read"
+  status = 200
+
+[[redirects]]
+  from = "/economy/activity"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
@@ -35,17 +45,17 @@
 
 [[redirects]]
   from = "/growth/stats"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
   from = "/growth/evidence"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
   from = "/growth/registry"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
@@ -65,12 +75,12 @@
 
 [[redirects]]
   from = "/social/feed"
-  to = "/.netlify/functions/social"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
   from = "/social/agents"
-  to = "/.netlify/functions/social"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
@@ -144,6 +154,11 @@
   status = 200
 
 [[redirects]]
+  from = "/agents/search"
+  to = "/.netlify/functions/public-read"
+  status = 200
+
+[[redirects]]
   from = "/agents/*"
   to = "/.netlify/functions/api"
   status = 200
@@ -165,7 +180,12 @@
 
 [[redirects]]
   from = "/reputation/*"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/public-read"
+  status = 200
+
+[[redirects]]
+  from = "/lounge/messages"
+  to = "/.netlify/functions/public-read"
   status = 200
 
 [[redirects]]
@@ -178,10 +198,8 @@
   to = "/.netlify/functions/api"
   status = 200
 
-[[redirects]]
-  from = "/.well-known/agent-card.json"
-  to = "/.netlify/functions/api"
-  status = 200
+# /.well-known/agent-card.json is intentionally NOT redirected.
+# The production build writes the canonical static Agent Card there.
 
 [[redirects]]
   from = "/a2a"
