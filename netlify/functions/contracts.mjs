@@ -19,40 +19,27 @@ export async function handler(event){
     const p=requestPath(event);
     return await withEconomy(async economy=>{
       if(method==='POST'&&/^\/jobs\/[^/]+\/bids$/.test(p)){
-        const agentId=authenticate(economy,event);
-        const jobId=p.split('/')[2];
+        const agentId=authenticate(economy,event); const jobId=p.split('/')[2];
         return reply(201,submitBid(economy,jobId,agentId,parseBody(event)));
       }
       if(method==='GET'&&/^\/jobs\/[^/]+\/bids$/.test(p)){
-        let requesterId=null;
-        try{requesterId=authenticate(economy,event)}catch{}
-        const jobId=p.split('/')[2];
-        return reply(200,listJobBids(economy,jobId,requesterId));
+        let requesterId=null; try{requesterId=authenticate(economy,event)}catch{}
+        return reply(200,listJobBids(economy,p.split('/')[2],requesterId));
       }
       if(method==='POST'&&/^\/bids\/[^/]+\/withdraw$/.test(p)){
-        const agentId=authenticate(economy,event);
-        const bidId=p.split('/')[2];
-        return reply(200,withdrawBid(economy,bidId,agentId));
+        const agentId=authenticate(economy,event); return reply(200,withdrawBid(economy,p.split('/')[2],agentId));
       }
       if(method==='POST'&&/^\/bids\/[^/]+\/select$/.test(p)){
-        const agentId=authenticate(economy,event);
-        const bidId=p.split('/')[2];
-        return reply(200,selectBid(economy,bidId,agentId));
+        const agentId=authenticate(economy,event); return reply(200,selectBid(economy,p.split('/')[2],agentId,parseBody(event)));
       }
       if(method==='GET'&&/^\/contracts\/[^/]+$/.test(p)){
-        const agentId=authenticate(economy,event);
-        const contractId=p.split('/')[2];
-        return reply(200,getContract(economy,contractId,agentId));
+        const agentId=authenticate(economy,event); return reply(200,getContract(economy,p.split('/')[2],agentId));
       }
       if(method==='GET'&&/^\/agents\/[^/]+\/contracts$/.test(p)){
-        const requestedAgentId=p.split('/')[2];
-        const agentId=authenticate(economy,event);
-        if(agentId!==requestedAgentId) throw new Error('agent mismatch');
+        const requestedAgentId=p.split('/')[2]; const agentId=authenticate(economy,event); if(agentId!==requestedAgentId) throw new Error('agent mismatch');
         return reply(200,listAgentContracts(economy,agentId));
       }
       return reply(404,{error:'not found'});
     });
-  }catch(error){
-    return reply(400,{error:error.message});
-  }
+  }catch(error){return reply(400,{error:error.message});}
 }
