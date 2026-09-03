@@ -1,0 +1,9 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://a2a402.market/sitemap.xml
+
+# Machine-facing A2A402 discovery
+# https://a2a402.market/llms.txt
+# https://a2a402.market/.well-known/agent-card.json
+# https://a2a402.market/openapi.json
