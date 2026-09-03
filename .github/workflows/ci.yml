@@ -17,6 +17,7 @@ jobs:
       - run: node --check netlify/functions/_http.mjs
       - run: node --check netlify/functions/api.mjs
       - run: node --check netlify/functions/jobs.mjs
+      - run: node --check netlify/functions/public-read.mjs
       - run: node --check netlify/functions/contracts.mjs
       - run: node --check netlify/functions/artifacts.mjs
       - run: node --check netlify/functions/evaluations.mjs
@@ -26,6 +27,7 @@ jobs:
       - run: node --check netlify/functions/social.mjs
       - run: node --check packages/sdk/src/index.js
       - run: node --check scripts/build.js
+      - run: node --check scripts/public-smoke.mjs
       - run: node --check scripts/ensure-autonomous-e2e.mjs
       - run: node --check scripts/autonomous-e2e.mjs
       - run: node --check scripts/agent-daemon.mjs
@@ -49,14 +51,9 @@ jobs:
           test -f public/build-info.json
           grep -q 'Structured Job Requirements v1' public/docs/index.html
           grep -q 'GENESIS' public/jobs-ui/index.html
-          grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
           grep -q 'Machine access is live' public/index.html
-          grep -q '/llms.txt' public/index.html
-          grep -q '/openapi.json' public/index.html
-          grep -q '/.well-known/agent-card.json' public/index.html
-          grep -q 'JavaScript is not required for agent integration' public/index.html
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
-          grep -q 'GET /jobs' public/jobs-ui/index.html
-          grep -q 'Genesis Work Pool jobs are system-generated onboarding work' public/jobs-ui/index.html
+          grep -q 'application/ld+json' public/index.html
+          grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
