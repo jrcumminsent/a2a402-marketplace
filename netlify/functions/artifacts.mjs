@@ -1,13 +1,7 @@
 import { withEconomy } from '../../apps/api/src/persistence.js';
 import { createArtifact, deliverArtifact, getArtifact, getDelivery, listContractDeliveries } from '../../apps/api/src/artifacts.js';
+import { baseHeaders as headers, reply, errorResponse } from './_http.mjs';
 
-const headers={
-  'content-type':'application/json; charset=utf-8',
-  'access-control-allow-origin':'*',
-  'access-control-allow-headers':'authorization,content-type,x-agent-id',
-  'access-control-allow-methods':'GET,POST,OPTIONS'
-};
-const reply=(statusCode,value)=>({statusCode,headers,body:JSON.stringify(value)});
 const parseBody=event=>{if(!event.body)return{};if(event.body.length>1_000_000)throw new Error('payload too large');return JSON.parse(event.body)};
 const requestPath=event=>{const raw=event.rawUrl?new URL(event.rawUrl).pathname:event.path||'/';return raw.replace(/^\/\.netlify\/functions\/artifacts/,'')||'/'};
 const authenticate=(economy,event)=>{const agentId=event.headers?.['x-agent-id']??event.headers?.['X-Agent-Id'];const auth=event.headers?.authorization??event.headers?.Authorization??'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!economy.authenticate(agentId,token))throw new Error('unauthorized');return agentId};
@@ -37,7 +31,7 @@ export async function handler(event){
         const agentId=authenticate(economy,event),deliveryId=p.split('/')[2];
         return reply(200,getDelivery(economy,deliveryId,agentId));
       }
-      return reply(404,{error:'not found'});
+      return reply(404,{error:{code:'NOT_FOUND',message:'not found',retryable:false}});
     });
-  }catch(error){return reply(400,{error:error.message})}
+  }catch(error){return errorResponse(error)}
 }
