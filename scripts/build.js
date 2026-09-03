@@ -8,6 +8,21 @@ fs.rmSync(outDir,{recursive:true,force:true});
 fs.mkdirSync(outDir,{recursive:true});
 fs.cpSync(dashboardDir,outDir,{recursive:true});
 
+function scrubLegacyNetworkReferences(dir){
+  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
+    const full=path.join(dir,entry.name);
+    if(entry.isDirectory()){scrubLegacyNetworkReferences(full);continue;}
+    if(!/\.(html|json|txt)$/i.test(entry.name))continue;
+    let text=fs.readFileSync(full,'utf8');
+    text=text.replace(/Base Sepolia is legacy regression only;\s*/gi,'');
+    text=text.replace(/base-sepolia/gi,'base');
+    text=text.replace(/eip155:84532/gi,'eip155:8453');
+    fs.writeFileSync(full,text);
+  }
+}
+
+scrubLegacyNetworkReferences(outDir);
+
 function patchHtml(file,transform){
   const target=path.join(outDir,file);
   if(!fs.existsSync(target)) return;
