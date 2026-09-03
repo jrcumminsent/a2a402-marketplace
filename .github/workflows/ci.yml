@@ -57,3 +57,4 @@ jobs:
           grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
+          ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
