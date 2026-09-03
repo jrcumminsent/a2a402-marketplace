@@ -51,10 +51,17 @@ function isLegacyTestJob(job){
   const asset=String(job.paymentAsset||'').toUpperCase(),network=String(job.paymentNetwork||'').toLowerCase();
   return asset==='USDC_TEST'||network==='base-sepolia'||network==='eip155:84532';
 }
+function isInternalHistoryJob(job){
+  if(job?.input?.classification==='internal'||job?.input?.classification==='canary')return true;
+  const text=`${job?.title||''} ${job?.description||''}`.toLowerCase();
+  return text.includes('canary')||text.includes('autonomous settlement proof')||text.includes('fully autonomous a2a mainnet settlement');
+}
 function filteredJobs(economy,q){
   let jobs=[...economy.jobs.values()];
   const includeLegacy=['1','true','yes'].includes(String(q.includeLegacy||'').toLowerCase());
+  const includeInternal=['1','true','yes'].includes(String(q.includeInternal||'').toLowerCase());
   if(!includeLegacy)jobs=jobs.filter(j=>!isLegacyTestJob(j));
+  if(!includeInternal)jobs=jobs.filter(j=>!isInternalHistoryJob(j));
   if(q.status)jobs=jobs.filter(j=>String(j.status||'').toUpperCase()===String(q.status).trim().toUpperCase());
   if(q.capability){const capability=String(q.capability).trim().toLowerCase();jobs=jobs.filter(j=>String(j.requiredCapability||'').trim().toLowerCase()===capability);}
   if(q.category)jobs=jobs.filter(j=>String(j.input?.category||'').toLowerCase()===String(q.category).trim().toLowerCase());
