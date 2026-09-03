@@ -1,10 +1,22 @@
 function values(mapLike){return mapLike?.values?[...mapLike.values()]:[]}
 function addNode(nodes,seen,node){if(!node?.id||seen.has(node.id))return;seen.add(node.id);nodes.push(node)}
 function addEdge(edges,seen,from,to,type,meta={}){if(!from||!to)return;const key=`${from}|${to}|${type}|${meta.id||''}`;if(seen.has(key))return;seen.add(key);edges.push({from,to,type,...meta})}
+function isLegacyTestRecord(record){const asset=String(record?.paymentAsset||record?.asset||'').toUpperCase();const network=String(record?.paymentNetwork||record?.network||record?.chain||'').toLowerCase();return asset==='USDC_TEST'||network==='base-sepolia'||network==='eip155:84532'}
 
-export function buildEconomicGraph(economy){
+export function buildEconomicGraph(economy,{includeLegacy=false}={}){
   const nodes=[],edges=[],nodeSeen=new Set(),edgeSeen=new Set();
-  const agents=values(economy.agents),jobs=values(economy.jobs),bids=values(economy.bids),contracts=values(economy.contracts),artifacts=values(economy.artifacts),deliveries=values(economy.deliveries),evaluations=values(economy.evaluations),transactions=Array.isArray(economy.transactions)?economy.transactions:[];
+  const agents=values(economy.agents);
+  const allJobs=values(economy.jobs),jobs=includeLegacy?allJobs:allJobs.filter(j=>!isLegacyTestRecord(j));
+  const visibleJobIds=new Set(jobs.map(j=>j.id));
+  const allBids=values(economy.bids),bids=allBids.filter(b=>visibleJobIds.has(b.jobId));
+  const allContracts=values(economy.contracts),contracts=allContracts.filter(c=>visibleJobIds.has(c.jobId));
+  const visibleContractIds=new Set(contracts.map(c=>c.id));
+  const artifacts=values(economy.artifacts).filter(a=>visibleContractIds.has(a.contractId));
+  const deliveries=values(economy.deliveries).filter(d=>visibleContractIds.has(d.contractId));
+  const visibleDeliveryIds=new Set(deliveries.map(d=>d.id));
+  const evaluations=values(economy.evaluations).filter(e=>visibleDeliveryIds.has(e.deliveryId));
+  const allTransactions=Array.isArray(economy.transactions)?economy.transactions:[];
+  const transactions=(includeLegacy?allTransactions:allTransactions.filter(tx=>!isLegacyTestRecord(tx))).filter(tx=>!tx.jobId||visibleJobIds.has(tx.jobId));
 
   for(const agent of agents){
     const rep=economy.reputations?.get?.(agent.id)||null;
@@ -14,7 +26,7 @@ export function buildEconomicGraph(economy){
     addNode(nodes,nodeSeen,{id:job.id,type:'job',label:job.title||job.id,status:job.status,requiredCapability:job.requiredCapability,reward:Number(job.reward||0),paymentAsset:job.paymentAsset||null,parentJobId:job.parentJobId||null,rootJobId:job.rootJobId||null});
     addEdge(edges,edgeSeen,job.creatorId,job.id,'CREATED_JOB');
     if(job.workerId)addEdge(edges,edgeSeen,job.id,job.workerId,'ASSIGNED_TO');
-    if(job.parentJobId)addEdge(edges,edgeSeen,job.parentJobId,job.id,'SPAWNED_JOB');
+    if(job.parentJobId&&visibleJobIds.has(job.parentJobId))addEdge(edges,edgeSeen,job.parentJobId,job.id,'SPAWNED_JOB');
   }
   for(const bid of bids){
     addNode(nodes,nodeSeen,{id:bid.id,type:'bid',label:`Bid ${Number(bid.amount||0)} ${bid.paymentAsset||''}`.trim(),status:bid.status,amount:Number(bid.amount||0),paymentAsset:bid.paymentAsset||null});
@@ -67,6 +79,7 @@ export function buildEconomicGraph(economy){
   return {
     version:'2.0',
     generatedAt:new Date().toISOString(),
+    legacyTestDataExcluded:!includeLegacy,
     nodes,
     edges,
     metrics:{
