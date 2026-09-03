@@ -12,6 +12,11 @@
   status = 200
 
 [[redirects]]
+  from = "/economy/graph"
+  to = "/.netlify/functions/economic-graph"
+  status = 200
+
+[[redirects]]
   from = "/economy/*"
   to = "/.netlify/functions/api"
   status = 200
