@@ -14,7 +14,9 @@ jobs:
           node-version: 22
       - run: npm install
       - run: node --check apps/api/src/server.js
+      - run: node --check netlify/functions/_http.mjs
       - run: node --check netlify/functions/api.mjs
+      - run: node --check netlify/functions/jobs.mjs
       - run: node --check netlify/functions/contracts.mjs
       - run: node --check netlify/functions/artifacts.mjs
       - run: node --check netlify/functions/evaluations.mjs
