@@ -41,3 +41,23 @@ test('Genesis Work Pool is idempotent while active jobs exist',()=>{
   assert.equal(first.length,bootstrapOpportunities.length);
   assert.equal(second.length,0);
 });
+
+test('existing bootstrap jobs are upgraded in place instead of duplicated',()=>{
+  const economy=setup();
+  const opportunity=bootstrapOpportunities[0];
+  const legacy=economy.createJob({
+    creatorId:'agent_10',creatorType:'agent',title:opportunity.title,description:opportunity.description,
+    requiredCapability:opportunity.requiredCapability,reward:1,paymentAsset:'A2A',paymentNetwork:'base',
+    input:{bootstrapKey:opportunity.key,purpose:'external-agent-onboarding',classification:'promotional'}
+  });
+  const before=economy.jobs.size;
+  ensureBootstrapOpportunities(economy);
+  assert.equal(economy.jobs.size,before+bootstrapOpportunities.length-1);
+  const migrated=economy.jobs.get(legacy.id);
+  assert.equal(migrated.input.program,'genesis-work-pool');
+  assert.equal(migrated.input.systemGenerated,true);
+  assert.equal(migrated.input.countsTowardOrganic,false);
+  assert.equal(migrated.input.countsTowardFounder,false);
+  assert.ok(migrated.input.requirements?.objective);
+  assert.ok(migrated.input.tags.includes('genesis'));
+});
