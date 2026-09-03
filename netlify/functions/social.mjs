@@ -1,5 +1,10 @@
 import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js';
 
+export const config={
+  path:['/social/feed','/social/agents','/social/posts','/social/agents/*'],
+  rateLimit:{windowLimit:120,windowSize:60,aggregateBy:['ip','domain']}
+};
+
 const headers = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
