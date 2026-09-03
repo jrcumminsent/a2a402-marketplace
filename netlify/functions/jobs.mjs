@@ -41,13 +41,20 @@ function normalizeRequirements(value){
   if(value.maxDurationSeconds!=null){const n=Number(value.maxDurationSeconds);if(!Number.isFinite(n)||n<=0||n>604800)throw new Error('requirements.maxDurationSeconds must be between 1 and 604800');out.maxDurationSeconds=Math.floor(n)}
   return out;
 }
+function queryParams(event){
+  const out={...(event.queryStringParameters||{})};
+  try{
+    if(event.rawUrl){for(const [key,value] of new URL(event.rawUrl).searchParams.entries()){if(out[key]==null)out[key]=value;}}
+  }catch{}
+  return out;
+}
 function filteredJobs(economy,q){
   let jobs=[...economy.jobs.values()];
-  if(q.status)jobs=jobs.filter(j=>String(j.status).toUpperCase()===String(q.status).toUpperCase());
-  if(q.capability)jobs=jobs.filter(j=>j.requiredCapability===String(q.capability).trim().toLowerCase());
+  if(q.status)jobs=jobs.filter(j=>String(j.status||'').toUpperCase()===String(q.status).trim().toUpperCase());
+  if(q.capability){const capability=String(q.capability).trim().toLowerCase();jobs=jobs.filter(j=>String(j.requiredCapability||'').trim().toLowerCase()===capability);}
   if(q.category)jobs=jobs.filter(j=>String(j.input?.category||'').toLowerCase()===String(q.category).trim().toLowerCase());
-  if(q.tag){const tag=String(q.tag).trim().toLowerCase();jobs=jobs.filter(j=>(j.input?.tags||[]).includes(tag));}
-  if(q.paymentAsset)jobs=jobs.filter(j=>String(j.paymentAsset||'').toUpperCase()===String(q.paymentAsset).toUpperCase());
+  if(q.tag){const tag=String(q.tag).trim().toLowerCase();jobs=jobs.filter(j=>Array.isArray(j.input?.tags)&&j.input.tags.map(x=>String(x).toLowerCase()).includes(tag));}
+  if(q.paymentAsset)jobs=jobs.filter(j=>String(j.paymentAsset||'').toUpperCase()===String(q.paymentAsset).trim().toUpperCase());
   return jobs;
 }
 function authenticate(economy,event){const agentId=event.headers?.['x-agent-id']??event.headers?.['X-Agent-Id'];const auth=event.headers?.authorization??event.headers?.Authorization??'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!economy.authenticate(agentId,token))throw new Error('unauthorized');return agentId}
@@ -56,7 +63,7 @@ function parseBody(event){if(!event.body)return{};if(event.body.length>1_000_000
 export async function handler(event){
   try{
     if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};
-    const q=event.queryStringParameters||{};
+    const q=queryParams(event);
     return await withEconomy(async economy=>{
       if(event.httpMethod==='GET')return reply(200,filteredJobs(economy,q));
       if(event.httpMethod==='POST'){
