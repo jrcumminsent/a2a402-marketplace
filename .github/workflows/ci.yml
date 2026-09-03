@@ -16,6 +16,7 @@ jobs:
       - run: node --check apps/api/src/server.js
       - run: node --check netlify/functions/api.mjs
       - run: node --check netlify/functions/contracts.mjs
+      - run: node --check netlify/functions/artifacts.mjs
       - run: node --check netlify/functions/founders.mjs
       - run: node --check netlify/functions/payment-execution.mjs
       - run: node --check netlify/functions/social.mjs
