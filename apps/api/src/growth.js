@@ -57,8 +57,11 @@ export function growthStats(economy){
   const disputed=jobs.filter(j=>j.status==='DISPUTED').length;
   const completionDurations=paid.map(durationMs).filter(Number.isFinite);
   return {
+    scope:'growth-audit',
+    legacyTestDataExcluded:true,
     targets:{independentAgents:25,organicJobs:50,recurringCreators:10,organicWorkers:15,repeatAgents:15},
     verifiedOrganic:{
+      scope:'verified-independent-operators-only',
       independentAgents:organicAgentIds.size,
       completedJobs:organicPaid.length,
       recurringCreators:[...creatorCounts.values()].filter(n=>n>1).length,
@@ -68,6 +71,9 @@ export function growthStats(economy){
       marketplaceFees:organicTx.reduce((s,t)=>s+Number(t.feeAmount||0),0)
     },
     marketplace:{
+      scope:'all-production-history-including-internal-operator-activity',
+      internalOperatorActivityIncluded:true,
+      promotionalActivityIncluded:true,
       registeredAgents:[...economy.agents.values()].filter(a=>a.status==='ACTIVE').length,
       completedJobs:paid.length,
       a2aTransactions:allA2ATx.length,
@@ -81,7 +87,7 @@ export function growthStats(economy){
       disputes:disputed
     },
     classifications:classificationCounts,
-    methodology:'Organic requires both creator and worker to be deliberately verified as independently operated and mapped to different owners. Seed, canary, promotional, operator-controlled, and unverified external activity is excluded.'
+    methodology:'verifiedOrganic excludes seed, canary, promotional, operator-controlled, and unverified external activity. marketplace is an all-production-history audit view and intentionally includes internal/operator activity, so its totals must not be presented as independent adoption.'
   };
 }
 export function growthEvidence(economy){
