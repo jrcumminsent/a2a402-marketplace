@@ -1,0 +1,33 @@
+name: Agent Globe preparation
+on:
+  push:
+    branches: [build/agentglobe-20260904]
+    paths: [.github/workflows/agentglobe-prepare.yml]
+permissions:
+  contents: read
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Prepare isolated dependencies and visual assets
+        run: |
+          npm install --ignore-scripts --no-audit --no-fund
+          npm install --ignore-scripts --no-save --package-lock=false --no-audit --no-fund three@0.180.0
+          mkdir -p /tmp/globe-assets
+          curl --fail --location --retry 2 https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/textures/planets/earth_atmos_2048.jpg -o /tmp/globe-assets/earth-day.jpg
+          curl --fail --location --retry 2 https://raw.githubusercontent.com/mrdoob/three.js/r180/examples/textures/planets/earth_lights_2048.png -o /tmp/globe-assets/earth-night.png
+          tar --exclude=.git --exclude=public --exclude=.github/workflows/agentglobe-prepare.yml -czf /tmp/agentglobe-workspace.tar.gz .
+          tar -czf /tmp/agentglobe-assets.tar.gz -C /tmp/globe-assets .
+      - uses: actions/upload-artifact@v4
+        with:
+          name: agentglobe-workspace
+          path: |
+            /tmp/agentglobe-workspace.tar.gz
+            /tmp/agentglobe-assets.tar.gz
+          retention-days: 3
