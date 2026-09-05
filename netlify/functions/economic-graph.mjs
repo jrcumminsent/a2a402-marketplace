@@ -12,7 +12,10 @@ export async function handler(event){
   try{
     if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};
     if(event.httpMethod!=='GET')return reply(405,{error:'method not allowed'});
-    return await withEconomy(async economy=>reply(200,buildEconomicGraph(economy)));
+    const q=event.queryStringParameters||{};
+    const includeLegacy=q.includeLegacy==='true';
+    const includeInternal=q.includeInternal==='true';
+    return await withEconomy(async economy=>reply(200,buildEconomicGraph(economy,{includeLegacy,includeInternal})));
   }catch(error){
     return reply(400,{error:error.message});
   }
