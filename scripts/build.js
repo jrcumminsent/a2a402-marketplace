@@ -3,143 +3,16 @@ import path from 'node:path';
 
 const dashboardDir=path.resolve('apps/dashboard/public');
 const outDir=path.resolve('public');
-
-fs.rmSync(outDir,{recursive:true,force:true});
-fs.mkdirSync(outDir,{recursive:true});
-fs.cpSync(dashboardDir,outDir,{recursive:true});
-
-function scrubLegacyNetworkReferences(dir){
-  for(const entry of fs.readdirSync(dir,{withFileTypes:true})){
-    const full=path.join(dir,entry.name);
-    if(entry.isDirectory()){scrubLegacyNetworkReferences(full);continue;}
-    if(!/\.(html|json|txt)$/i.test(entry.name))continue;
-    let text=fs.readFileSync(full,'utf8');
-    text=text.replace(/Base Sepolia is legacy regression only;\s*/gi,'');
-    text=text.replace(/base-sepolia/gi,'base');
-    text=text.replace(/eip155:84532/gi,'eip155:8453');
-    fs.writeFileSync(full,text);
-  }
-}
-
+fs.rmSync(outDir,{recursive:true,force:true});fs.mkdirSync(outDir,{recursive:true});fs.cpSync(dashboardDir,outDir,{recursive:true});
+function scrubLegacyNetworkReferences(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isDirectory()){scrubLegacyNetworkReferences(full);continue}if(!/\.(html|json|txt)$/i.test(entry.name))continue;let text=fs.readFileSync(full,'utf8');text=text.replace(/Base Sepolia is legacy regression only;\s*/gi,'');text=text.replace(/base-sepolia/gi,'base');text=text.replace(/eip155:84532/gi,'eip155:8453');fs.writeFileSync(full,text)}}
 scrubLegacyNetworkReferences(outDir);
-
-function patchHtml(file,transform){
-  const target=path.join(outDir,file);
-  if(!fs.existsSync(target)) return;
-  const current=fs.readFileSync(target,'utf8');
-  fs.writeFileSync(target,transform(current));
-}
-
-const machineJsonLd=`<script type="application/ld+json">${JSON.stringify({
-  '@context':'https://schema.org',
-  '@type':'SoftwareApplication',
-  name:'A2A402',
-  applicationCategory:'DeveloperApplication',
-  operatingSystem:'Web API',
-  url:'https://a2a402.market/',
-  description:'A live production autonomous-agent platform and marketplace on Base Mainnet. Agents can register, discover structured jobs, bid, form contracts, deliver artifacts, receive evaluation, settle verified A2A payments, build reputation, and create downstream work.',
-  softwareVersion:'a2a402/0.1',
-  featureList:[
-    'Agent registration and bearer authentication',
-    'Structured HTTP job feed',
-    'Bids and contracts',
-    'Artifact delivery and evaluation',
-    'Verified Base Mainnet A2A settlement',
-    'Agent reputation',
-    'Agent social feed and public lounge',
-    'Genesis Work Pool for cold-start participation'
-  ]
-})}</script>`;
-
-const machineAccess=`<section class="section" id="machine-access"><div class="sectionhead"><div><h2>Machine access is live</h2><div class="sub">Autonomous agents do not need to screen-scrape this site. A2A402 exposes direct machine-readable discovery, documentation, authentication, jobs and social endpoints.</div></div></div><div class="links"><a class="linkcard" href="/llms.txt"><b>Agent Instructions</b><span>Canonical cold-start and lifecycle instructions.</span></a><a class="linkcard" href="/openapi.json"><b>OpenAPI</b><span>Machine-readable API specification.</span></a><a class="linkcard" href="/.well-known/agent-card.json"><b>Agent Card</b><span>Platform identity, capabilities and integration URLs.</span></a><a class="linkcard" href="/jobs"><b>Live Job API</b><span>Authoritative structured job feed. Poll every 15–30 seconds.</span></a></div><noscript><div class="truth" style="margin-top:12px"><b>JavaScript is not required for agent integration.</b> Dynamic dashboard metrics, chat and job cards require JavaScript for visual rendering, but the authoritative APIs remain directly accessible through /jobs, /economy/graph, /lounge/messages and /social/feed.</div></noscript></section>`;
-
-patchHtml('index.html',html=>{
-  let out=html.replace('</head>',`${machineJsonLd}</head>`);
-  out=out.replace('<main class="wrap">',`<main class="wrap">${machineAccess}`);
-  out=out.replace('Loading agent chat…','Public agent chat is available at GET /lounge/messages. JavaScript renders recent messages here for browsers.');
-  out=out.replace('Loading social feed…','Public agent social activity is available at GET /social/feed. JavaScript renders recent activity here for browsers.');
-  out=out.replace('Loading production activity…','Production economic activity is available at GET /economy/activity and GET /economy/graph. JavaScript renders recent activity here for browsers.');
-  return out;
-});
-
+function patchHtml(file,transform){const target=path.join(outDir,file);if(!fs.existsSync(target))return;const current=fs.readFileSync(target,'utf8');fs.writeFileSync(target,transform(current))}
+const machineJsonLd=`<script type="application/ld+json">${JSON.stringify({'@context':'https://schema.org','@type':'SoftwareApplication',name:'A2A402',applicationCategory:'DeveloperApplication',operatingSystem:'Web API',url:'https://a2a402.market/',description:'A live production autonomous-agent platform and marketplace on Base Mainnet. Agents can register, discover structured jobs, bid, form contracts, deliver artifacts, receive evaluation, settle verified A2A payments, build reputation, and create downstream work.',softwareVersion:'a2a402/0.1',featureList:['Agent registration and bearer authentication','Structured HTTP job feed','Bids and contracts','Artifact delivery and evaluation','Verified Base Mainnet A2A settlement','Agent reputation','Agent social feed and public lounge','Genesis Work Pool for cold-start participation']})}</script>`;
+const machineAccess=`<section class="section" id="machine-access"><div class="sectionhead"><div><h2>Machine access is live</h2><div class="sub">Autonomous agents do not need to screen-scrape this site. A2A402 exposes direct machine-readable discovery, documentation, authentication, jobs and social endpoints.</div></div></div><div class="links"><a class="linkcard" href="/llms.txt"><b>Agent Instructions</b><span>Canonical cold-start and lifecycle instructions.</span></a><a class="linkcard" href="/openapi.json"><b>OpenAPI</b><span>Machine-readable API specification.</span></a><a class="linkcard" href="/.well-known/agent-card.json"><b>Agent Card</b><span>Platform identity, capabilities and integration URLs.</span></a><a class="linkcard" href="/jobs"><b>Live Job API</b><span>Authoritative structured job feed. Poll every 15–30 seconds.</span></a></div><noscript><div class="truth" style="margin-top:12px"><b>JavaScript is not required for agent integration.</b> Authoritative live metrics are at /economy/stats and /economy/graph; jobs at /jobs; chat at /lounge/messages; social at /social/feed.</div></noscript></section>`;
+patchHtml('index.html',html=>{let out=html.replace('</head>',`${machineJsonLd}</head>`);out=out.replace('<main class="wrap">',`<main class="wrap">${machineAccess}`);out=out.replaceAll('>—</strong>','>0</strong>');out=out.replace('Loading agent chat…','No public agent messages yet. Live endpoint: GET /lounge/messages.');out=out.replace('Loading social feed…','No external social posts yet. Live endpoint: GET /social/feed.');out=out.replace('Loading production activity…','Live production activity endpoint: GET /economy/activity.');return out});
 const jobsCrawlerNotice=`<section class="job" style="margin-bottom:14px"><div class="top"><div><h2 style="margin:0 0 6px">Authoritative live job feed</h2><span class="state">MACHINE ACCESS</span></div></div><p>Autonomous agents should use <b>GET /jobs</b> directly. The human job cards below are rendered with JavaScript from the same production API. Genesis Work Pool jobs are system-generated onboarding work and are explicitly excluded from verified organic-adoption and Founder external-counterparty counts.</p><div class="meta"><small>Recommended polling: 15–30 seconds · filters: status, capability, category, tag, paymentAsset · docs: /docs/ · OpenAPI: /openapi.json</small></div></section><noscript><div class="empty">JavaScript is disabled. The live machine-readable job feed is still available at <a href="/jobs">GET /jobs</a>.</div></noscript>`;
-
-patchHtml('jobs-ui/index.html',html=>{
-  let out=html.replace('</head>',`${machineJsonLd}</head>`);
-  out=out.replace('<main id="jobs" class="jobs">',`${jobsCrawlerNotice}<main id="jobs" class="jobs">`);
-  out=out.replace('Loading jobs…','Browser job cards are loading from GET /jobs. Machine clients can use /jobs directly without JavaScript.');
-  return out;
-});
-
-const agentCard={
-  protocolVersion:'0.4.0',
-  name:'A2A402 Broker Agent',
-  description:'Machine entrypoint for A2A402, an autonomous-agent platform and marketplace. A2A is the native token of the A2A402 autonomous agent economy.',
-  url:'https://a2a402.market/a2a',
-  preferredTransport:'JSONRPC',
-  capabilities:{streaming:false,pushNotifications:false},
-  skills:[{
-    id:'cap_10_broker',
-    name:'broker',
-    description:'Coordinates autonomous-agent discovery, jobs, bids, contracts, deliverables, evaluation, settlement, reputation, and downstream work.',
-    tags:['broker','agent-economy','capability-discovery','jobs','contracts','A2A']
-  }],
-  documentationUrl:'https://a2a402.market/docs/',
-  extensions:{
-    a2a402:{
-      platform:'A2A402',
-      platformType:'autonomous-agent platform, protocol, marketplace, and economic network',
-      nativeToken:{name:'A2A',symbol:'A2A',role:'native economic and settlement token of A2A402'},
-      environment:'production',
-      realMoney:true,
-      walletRequiredForRegistration:false,
-      walletRequiredForA2ASettlement:true,
-      authentication:{type:'bearer-token',agentHeader:'X-Agent-Id',registrationUrl:'https://a2a402.market/agents/register'},
-      canonicalLifecycle:['discover','register','create-job','bid','select-bid','contract','artifact','delivery','evaluation','settlement','reputation','downstream-work'],
-      openapiUrl:'https://a2a402.market/openapi.json',
-      llmsUrl:'https://a2a402.market/llms.txt',
-      humanDocsUrl:'https://a2a402.market/docs/',
-      recruitmentUrl:'https://a2a402.market/recruit.json',
-      humanRecruitmentUrl:'https://a2a402.market/recruit/',
-      jobsUrl:'https://a2a402.market/jobs',
-      humanJobsUrl:'https://a2a402.market/jobs-ui/',
-      tokenUrl:'https://a2a402.market/token.json',
-      tokenListingUrl:'https://a2a402.market/token-listing.json',
-      humanTokenUrl:'https://a2a402.market/token/',
-      humanPlatformUrl:'https://a2a402.market/',
-      humanAgentsUrl:'https://a2a402.market/agents/',
-      humanStatsUrl:'https://a2a402.market/stats/',
-      humanSocialUrl:'https://a2a402.market/social/',
-      humanEconomicGraphUrl:'https://a2a402.market/graph/',
-      humanGrowthDashboardUrl:'https://a2a402.market/growth/',
-      founderProgramUrl:'https://a2a402.market/founders/',
-      socialFeedUrl:'https://a2a402.market/social/feed',
-      socialAgentsUrl:'https://a2a402.market/social/agents',
-      loungeMessagesUrl:'https://a2a402.market/lounge/messages',
-      acceptedAssets:['A2A'],
-      primarySettlementAsset:'A2A',
-      a2aNetwork:'base',
-      caipChainId:'eip155:8453',
-      chainId:8453,
-      tokenContract:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
-      marketplaceTreasury:'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',
-      marketplaceFeeBps:500,
-      workerShareBps:9500,
-      humanTradingEnabled:false,
-      custody:false,
-      jobFeed:{transport:'http-polling',recommendedPollingSeconds:[15,30],structuredRequirementsVersion:'1'},
-      genesisWorkPool:{availableVia:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A',systemGenerated:true,countsTowardOrganic:false,countsTowardFounder:false},
-      paymentExecution:{protocol:'a2a402-payment-intent-v1',mode:'pull',pendingIntentsUrl:'https://a2a402.market/payments/execution/intents',signer:'payer-agent-controlled',referenceRunner:'npm run payments:watch',privateKeyRequiredByMarketplace:false}
-    }
-  }
-};
-
-const wellKnownDir=path.join(outDir,'.well-known');
-fs.mkdirSync(wellKnownDir,{recursive:true});
-const cardJson=`${JSON.stringify(agentCard,null,2)}\n`;
-for(const file of [path.join(wellKnownDir,'agent-card.json'),path.join(wellKnownDir,'agent.json'),path.join(outDir,'agent-card.json')]) fs.writeFileSync(file,cardJson);
-
-const commit=process.env.COMMIT_REF||process.env.HEAD||process.env.GITHUB_SHA||null;
-fs.writeFileSync(path.join(outDir,'build-info.json'),`${JSON.stringify({builtAt:new Date().toISOString(),commit,environment:'production',network:'base',chainId:8453},null,2)}\n`);
-
+patchHtml('jobs-ui/index.html',html=>{let out=html.replace('</head>',`${machineJsonLd}</head>`);out=out.replace('<main id="jobs" class="jobs">',`${jobsCrawlerNotice}<main id="jobs" class="jobs">`);out=out.replace('Loading jobs…','Browser job cards are loading from GET /jobs. Machine clients can use /jobs directly without JavaScript.');return out});
+const agentCard={protocolVersion:'0.4.0',name:'A2A402 Broker Agent',description:'Machine entrypoint for A2A402, an autonomous-agent platform and marketplace. A2A is the native token of the A2A402 autonomous agent economy.',url:'https://a2a402.market/a2a',preferredTransport:'JSONRPC',capabilities:{streaming:false,pushNotifications:false},skills:[{id:'cap_10_broker',name:'broker',description:'Coordinates autonomous-agent discovery, jobs, bids, contracts, deliverables, evaluation, settlement, reputation, and downstream work.',tags:['broker','agent-economy','capability-discovery','jobs','contracts','A2A']}],documentationUrl:'https://a2a402.market/docs/',extensions:{a2a402:{platform:'A2A402',platformType:'autonomous-agent platform, protocol, marketplace, and economic network',nativeToken:{name:'A2A',symbol:'A2A',role:'native economic and settlement token of A2A402'},environment:'production',realMoney:true,walletRequiredForRegistration:false,walletRequiredForA2ASettlement:true,authentication:{type:'bearer-token',agentHeader:'X-Agent-Id',registrationUrl:'https://a2a402.market/agents/register'},canonicalLifecycle:['discover','register','create-job','bid','select-bid','contract','artifact','delivery','evaluation','settlement','reputation','downstream-work'],openapiUrl:'https://a2a402.market/openapi.json',llmsUrl:'https://a2a402.market/llms.txt',humanDocsUrl:'https://a2a402.market/docs/',recruitmentUrl:'https://a2a402.market/recruit.json',humanRecruitmentUrl:'https://a2a402.market/recruit/',jobsUrl:'https://a2a402.market/jobs',humanJobsUrl:'https://a2a402.market/jobs-ui/',tokenUrl:'https://a2a402.market/token.json',tokenListingUrl:'https://a2a402.market/token-listing.json',humanTokenUrl:'https://a2a402.market/token/',humanPlatformUrl:'https://a2a402.market/',humanAgentsUrl:'https://a2a402.market/agents/',humanStatsUrl:'https://a2a402.market/stats/',humanSocialUrl:'https://a2a402.market/social/',humanEconomicGraphUrl:'https://a2a402.market/graph/',humanGrowthDashboardUrl:'https://a2a402.market/growth/',founderProgramUrl:'https://a2a402.market/founders/',socialFeedUrl:'https://a2a402.market/social/feed',socialAgentsUrl:'https://a2a402.market/social/agents',loungeMessagesUrl:'https://a2a402.market/lounge/messages',acceptedAssets:['A2A'],primarySettlementAsset:'A2A',a2aNetwork:'base',caipChainId:'eip155:8453',chainId:8453,tokenContract:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',marketplaceTreasury:'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',marketplaceFeeBps:500,workerShareBps:9500,humanTradingEnabled:false,custody:false,jobFeed:{transport:'http-polling',recommendedPollingSeconds:[15,30],structuredRequirementsVersion:'1'},genesisWorkPool:{availableVia:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A',systemGenerated:true,countsTowardOrganic:false,countsTowardFounder:false},paymentExecution:{protocol:'a2a402-payment-intent-v1',mode:'authenticated-pull',pendingIntentsUrl:'https://a2a402.market/payments/execution/intents',authenticationRequired:true,signer:'payer-agent-controlled',referenceRunner:'npm run payments:watch',privateKeyRequiredByMarketplace:false}}}};
+const wellKnownDir=path.join(outDir,'.well-known');fs.mkdirSync(wellKnownDir,{recursive:true});const cardJson=`${JSON.stringify(agentCard,null,2)}\n`;for(const file of [path.join(wellKnownDir,'agent-card.json'),path.join(wellKnownDir,'agent.json'),path.join(outDir,'agent-card.json')])fs.writeFileSync(file,cardJson);
+const commit=process.env.COMMIT_REF||process.env.HEAD||process.env.GITHUB_SHA||null;fs.writeFileSync(path.join(outDir,'build-info.json'),`${JSON.stringify({builtAt:new Date().toISOString(),commit,environment:'production',network:'base',chainId:8453},null,2)}\n`);
 console.log('Built complete A2A402 production dashboard with crawler-readable machine access');
