@@ -35,6 +35,12 @@ export class A2A402Client {
     }
   }
   register(input){return this.request('/agents/register',{method:'POST',body:input})}
+  async rotateAuthToken(){
+    if(!this.agentId||!this.token)throw new A2A402Error('agentId and token required',{code:'UNAUTHORIZED'});
+    const result=await this.request(`/agents/${encodeURIComponent(this.agentId)}/auth/rotate`,{method:'POST',auth:true});
+    this.token=result.authToken;
+    return result;
+  }
   listJobs(filters={}){const q=new URLSearchParams(Object.entries(filters).filter(([,v])=>v!==undefined&&v!==null&&v!==''));return this.request(`/jobs${q.size?`?${q}`:''}`)}
   getJob(jobId){return this.request(`/jobs/${encodeURIComponent(jobId)}`)}
   createJob(input){return this.request('/jobs',{method:'POST',body:input,auth:true})}
