@@ -13,20 +13,54 @@ const reply=(statusCode,value)=>({statusCode,headers,body:JSON.stringify(deepRed
 const requestPath=event=>{const raw=event.rawUrl?new URL(event.rawUrl).pathname:event.path||'/';return raw.replace(/^\/\.netlify\/functions\/public-read/,'')||'/'};
 const query=event=>event.queryStringParameters||{};
 const cleanNumber=(value,places=12)=>Number(Number(value||0).toFixed(places));
+const PUBLIC_ACTIVITY_TYPES=new Set(['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED']);
+
+function publicEvents(economy){
+  return (economy.events||[])
+    .filter(e=>!containsLegacyTestNetwork(e))
+    .filter(e=>!eventReferencesInternalAgent(economy,e))
+    .filter(e=>PUBLIC_ACTIVITY_TYPES.has(e.type));
+}
 
 function publicSocialFeed(economy){
   const names=new Map([...economy.agents.values()].map(a=>[a.id,a.name]));
   const posts=(economy.lounge||[]).filter(p=>!isInternalAgent(economy.agents.get(p.agentId))).map(p=>({id:p.id,kind:'post',at:p.at,agentId:p.agentId,agentName:names.get(p.agentId)||p.agentId,message:p.message,postType:p.type||'discussion'}));
-  const activity=(economy.events||[])
-    .filter(e=>!containsLegacyTestNetwork(e))
-    .filter(e=>!eventReferencesInternalAgent(economy,e))
-    .filter(e=>['AGENT_REGISTERED','JOB_CREATED','BID_SUBMITTED','BID_SELECTED','CONTRACT_ACTIVATED','ARTIFACT_DELIVERED','DELIVERY_EVALUATED','JOB_PAID','AGENT_FOLLOWED'].includes(e.type))
-    .map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
+  const activity=publicEvents(economy).map(e=>({id:e.id,kind:'activity',at:e.at,type:e.type,agentId:e.agentId||e.creatorId||null,agentName:names.get(e.agentId||e.creatorId)||null,jobId:e.jobId||null,targetAgentId:e.targetAgentId||null}));
   return [...posts,...activity].sort((a,b)=>new Date(b.at||0)-new Date(a.at||0)).slice(0,200);
 }
 
 function publicAgents(economy){
   return [...economy.agents.values()].filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).map(a=>{const publicAgent=economy.publicAgent(a);const reputation=economy.reputations.get(a.id)||null;return {...publicAgent,reputation}});
+}
+
+function reputationForPublicAgent(economy,agentId){
+  const agent=economy.agents.get(agentId);
+  if(!agent||isInternalAgent(agent))return null;
+  const rep=economy.reputations.get(agentId);
+  if(rep)return {...rep,source:'reputation-ledger',modernEvaluationRecord:Number(rep.evaluationsReceived||0)>0};
+  const paidJobs=[...economy.jobs.values()].filter(j=>j.workerId===agentId&&j.status==='PAID'&&!isLegacyTestRecord(j));
+  return {
+    agentId,
+    source:paidJobs.length?'legacy-job-history':'no-reputation-record',
+    modernEvaluationRecord:false,
+    jobsCompleted:paidJobs.length,
+    successfulJobs:paidJobs.length,
+    failedJobs:0,
+    disputes:0,
+    successRate:paidJobs.length?1:0,
+    disputeRate:0,
+    averageCompletionMs:0,
+    repeatCustomers:0,
+    totalEarned:cleanNumber(paidJobs.reduce((sum,j)=>sum+Number(j.reward||0)*0.95,0)),
+    averageQualityScore:null,
+    evaluationsReceived:0,
+    acceptedEvaluations:0,
+    rejectedEvaluations:0,
+    recentEvaluations:[],
+    recentActivity:paidJobs.slice(-20).map(j=>({type:'legacy-paid-job',jobId:j.id,capability:j.requiredCapability,at:j.paidAt||j.completedAt||j.updatedAt||null})),
+    capabilityPerformance:{},
+    note:paidJobs.length?'Historical paid work exists, but no modern evaluation/reputation ledger record was persisted for this agent.':'Agent exists, but no reputation activity has been recorded yet.'
+  };
 }
 
 function productionStats(economy){
@@ -92,14 +126,13 @@ export async function handler(event){
       if(p==='/social/feed')return reply(200,{persistence:persistenceMode(),items:publicSocialFeed(economy)});
       if(p==='/social/agents')return reply(200,{count:publicAgents(economy).length,agents:publicAgents(economy)});
       if(p==='/economy/stats')return reply(200,productionStats(economy));
-      if(p==='/economy/activity')return reply(200,(economy.activity()||[]).filter(e=>!containsLegacyTestNetwork(e)).filter(e=>!eventReferencesInternalAgent(economy,e)));
+      if(p==='/economy/activity')return reply(200,publicEvents(economy));
       if(p==='/growth/stats')return reply(200,growthStats(economy));
       if(p==='/growth/evidence')return reply(200,growthEvidence(economy));
       if(p==='/growth/registry')return reply(200,growthRegistry());
       if(/^\/reputation\/[^/]+$/.test(p)){
-        const agentId=p.split('/')[2],agent=economy.agents.get(agentId),rep=economy.reputations.get(agentId);
-        if(agent&&isInternalAgent(agent))return reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
-        return rep?reply(200,rep):reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
+        const agentId=p.split('/')[2],reputation=reputationForPublicAgent(economy,agentId);
+        return reputation?reply(200,reputation):reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
       }
       return reply(404,{error:{code:'NOT_FOUND',message:'not found',retryable:false}});
     }, {baseUrl:process.env.APP_BASE_URL||process.env.URL||'https://a2a402.market'});
