@@ -33,6 +33,9 @@ function median(values){
   const xs=values.filter(Number.isFinite).sort((a,b)=>a-b); if(!xs.length)return null;
   const m=Math.floor(xs.length/2); return xs.length%2?xs[m]:(xs[m-1]+xs[m])/2;
 }
+function cleanNumber(value,places=12){return Number(Number(value||0).toFixed(places));}
+function settlementVolume(transactions){return cleanNumber(transactions.reduce((s,t)=>s+Number(t.amount||0)+Number(t.feeAmount||0),0));}
+function marketplaceFees(transactions){return cleanNumber(transactions.reduce((s,t)=>s+Number(t.feeAmount||0),0));}
 function publicWallet(economy,agentId){
   const agent=economy.agents.get(agentId); if(!agent)return null;
   const wallets=economy.publicAgent(agent)?.wallets||[];
@@ -67,8 +70,8 @@ export function growthStats(economy){
       recurringCreators:[...creatorCounts.values()].filter(n=>n>1).length,
       workers:new Set(organicPaid.map(j=>j.workerId)).size,
       repeatAgents:[...participantTx.values()].filter(n=>n>1).length,
-      a2aSettlementVolume:organicTx.reduce((s,t)=>s+Number(t.amount||0)+Number(t.feeAmount||0),0),
-      marketplaceFees:organicTx.reduce((s,t)=>s+Number(t.feeAmount||0),0)
+      a2aSettlementVolume:settlementVolume(organicTx),
+      marketplaceFees:marketplaceFees(organicTx)
     },
     marketplace:{
       scope:'all-production-history-including-internal-operator-activity',
@@ -77,12 +80,12 @@ export function growthStats(economy){
       registeredAgents:[...economy.agents.values()].filter(a=>a.status==='ACTIVE').length,
       completedJobs:paid.length,
       a2aTransactions:allA2ATx.length,
-      a2aSettlementVolume:allA2ATx.reduce((s,t)=>s+Number(t.amount||0)+Number(t.feeAmount||0),0),
-      marketplaceFees:allA2ATx.reduce((s,t)=>s+Number(t.feeAmount||0),0),
+      a2aSettlementVolume:settlementVolume(allA2ATx),
+      marketplaceFees:marketplaceFees(allA2ATx),
       uniquePayerWallets:payerWallets.size,
       uniqueWorkerWallets:workerWallets.size,
       medianCompletionMs:median(completionDurations),
-      successRate:jobs.length?paid.length/jobs.length:0,
+      successRate:cleanNumber(jobs.length?paid.length/jobs.length:0),
       failedJobs:failed,
       disputes:disputed
     },
@@ -94,7 +97,7 @@ export function growthEvidence(economy){
   const txByJob=new Map(economy.transactions.map(t=>[t.jobId,t]));
   return [...economy.jobs.values()].filter(j=>j.status==='PAID'&&!isLegacyTestRecord(j)).map(job=>{
     const tx=txByJob.get(job.id);
-    return {jobId:job.id,title:job.title,classification:classifyJob(job,economy),creatorId:job.creatorId,workerId:job.workerId,reward:job.reward,asset:job.paymentAsset,network:job.paymentNetwork,paidAt:job.paidAt,workerTxHash:tx?.reference||job.settlementTxHash||null,feeTxHash:tx?.feeReference||job.feeTxHash||null,payerAddress:tx?.payerAddress||job.payerAddress||null,payeeAddress:tx?.payeeAddress||job.payeeAddress||null,feeAmount:tx?.feeAmount??null};
+    return {jobId:job.id,title:job.title,classification:classifyJob(job,economy),creatorId:job.creatorId,workerId:job.workerId,reward:job.reward,asset:job.paymentAsset,network:job.paymentNetwork,paidAt:job.paidAt,workerTxHash:tx?.reference||job.settlementTxHash||null,feeTxHash:tx?.feeReference||job.feeTxHash||null,payerAddress:tx?.payerAddress||job.payerAddress||null,payeeAddress:tx?.payeeAddress||job.payeeAddress||null,feeAmount:tx?.feeAmount==null?null:cleanNumber(tx.feeAmount)};
   }).sort((a,b)=>new Date(b.paidAt||0)-new Date(a.paidAt||0));
 }
 export function growthRegistry(){
