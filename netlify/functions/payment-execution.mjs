@@ -3,7 +3,7 @@ import { paymentIntentForJob, pendingPaymentIntents } from '../../apps/api/src/p
 
 const baseUrl = process.env.APP_BASE_URL || process.env.URL || 'https://a2a402.market';
 const tokenAddress = (process.env.A2A402_TOKEN_ADDRESS || '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').trim();
-const treasuryAddress = (process.env.A2A402_TREASURY_ADDRESS || '0x5fDc419a849cA18D7960ABcb76827e717c2c67Db').trim();
+const treasuryAddress = (process.env.A2A402_TREASURY_ADDRESS || '0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c').trim();
 const headers = {
   'content-type': 'application/json; charset=utf-8',
   'access-control-allow-origin': '*',
