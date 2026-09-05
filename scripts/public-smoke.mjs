@@ -22,14 +22,25 @@ const checks=[
   ['/economy/stats',200,body=>body&&typeof body==='object'&&body.scope==='public-production-default'&&body.legacyTestDataExcluded===true&&body.internalAgentsExcluded===true&&body.internalHistoryExcluded===true&&body.promotionalGenesisIncluded===true&&Number.isFinite(body.transactionVolume)&&Number.isFinite(body.a2aMarketplaceFees)&&Number.isFinite(body.completionRate)&&!('successRate'in body)&&body.metricDefinitions?.jobsCreated&&!legacyNetworkPattern.test(JSON.stringify(body))],
   ['/economy/activity',200,body=>(Array.isArray(body)||Array.isArray(body?.events))&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
   ['/economy/graph',200,body=>body&&typeof body==='object'&&body.version==='2.2'&&body.metrics&&body.legacyTestDataExcluded===true&&body.internalAgentsExcluded===true&&body.metricDefinitions?.transactions&&Number.isFinite(body.metrics.paidJobs)&&Number.isFinite(body.metrics.paidJobsWithoutModernContract)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/growth/stats',200,body=>body&&typeof body==='object'&&body.classifications&&body.methodology?.includes('operator-controlled')&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))],
+  ['/growth/stats',200,body=>body&&typeof body==='object'&&body.classifications&&body.marketplace?.internalOperatorActivityIncluded===true&&body.verifiedOrganic?.scope==='verified-independent-operators-only'&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))],
   ['/recruit.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))],
   ['/token.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))],
   ['/token-listing.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))]
 ];
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function request(path){const response=await fetch(base+path,{headers:{accept:path==='/'?'text/html':'application/json','user-agent':'a2a402-public-smoke/1.4'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
+async function request(path){const response=await fetch(base+path,{headers:{accept:path==='/'?'text/html':'application/json','user-agent':'a2a402-public-smoke/1.5'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
 let failures=[];
 for(const [path,status,validate] of checks){let lastError='';let passed=false;for(let attempt=1;attempt<=6;attempt++){try{const {response,body}=await request(path);if(response.status===status&&(!validate||validate(body))){console.log(`PASS ${response.status} ${path}`);passed=true;break}lastError=`status=${response.status} body=${JSON.stringify(body).slice(0,300)}`}catch(error){lastError=error.message}if(attempt<6)await sleep(15000)}if(!passed){console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError})}}
-if(failures.length){console.error(`Public smoke failed: ${failures.length} endpoint(s)`);process.exit(1)}
-console.log(`Public smoke passed: ${checks.length} endpoint(s)`);
+for(const path of ['/agents/smoke-probe/auth/rotate','/payments/execution/intents']){
+  try{
+    const response=await fetch(base+path,{method:'POST',headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.5'},redirect:'follow'});
+    const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}
+    if(path==='/payments/execution/intents'){
+      if(response.status!==405&&response.status!==401){const lastError=`expected protected response, got status=${response.status} body=${JSON.stringify(body).slice(0,300)}`;console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError})}else console.log(`PASS ${response.status} ${path} protected`);
+    }else if(response.status!==401||body?.error?.code!=='UNAUTHORIZED'){
+      const lastError=`expected 401 UNAUTHORIZED, got status=${response.status} body=${JSON.stringify(body).slice(0,300)}`;console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError});
+    }else console.log(`PASS 401 ${path} protected`);
+  }catch(error){console.error(`FAIL ${path}: ${error.message}`);failures.push({path,lastError:error.message})}
+}
+if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
+console.log(`Public smoke passed: ${checks.length+2} checks`);
