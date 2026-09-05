@@ -8,14 +8,17 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
       - run: npm install
       - run: node --check apps/api/src/server.js
+      - run: node --check apps/api/src/auth-credentials.js
+      - run: node --check apps/api/src/public-classification.js
       - run: node --check netlify/functions/_http.mjs
       - run: node --check netlify/functions/api.mjs
+      - run: node --check netlify/functions/auth.mjs
       - run: node --check netlify/functions/jobs.mjs
       - run: node --check netlify/functions/public-read.mjs
       - run: node --check netlify/functions/contracts.mjs
@@ -55,6 +58,11 @@ jobs:
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
           grep -q 'application/ld+json' public/index.html
           grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
+          grep -q 'Modern settled contracts' public/index.html
+          grep -q 'No modern evaluations yet' public/index.html
+          grep -q 'Operator canaries and internal settlement proofs are excluded' public/index.html
+          grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
+          grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
           ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
