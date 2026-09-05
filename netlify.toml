@@ -159,6 +159,11 @@
   status = 200
 
 [[redirects]]
+  from = "/agents/*/auth/rotate"
+  to = "/.netlify/functions/auth"
+  status = 200
+
+[[redirects]]
   from = "/agents/*"
   to = "/.netlify/functions/api"
   status = 200
