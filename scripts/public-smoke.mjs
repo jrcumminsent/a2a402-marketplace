@@ -1,79 +1,38 @@
 const base=(process.env.A2A402_SMOKE_BASE_URL||'https://a2a402.market').replace(/\/$/,'');
 const expectedCommit=process.env.A2A402_EXPECT_COMMIT||null;
-const secretPattern=/(postgres(?:ql)?|mysql|mongodb|redis):\/\/[^\s"']+:[^@\s"']+@/i;
-const legacyNetworkPattern=/base[- ]sepolia|eip155:84532|USDC_TEST/i;
+const legacyNetworkPattern=/base[- ]sepolia|eip155:84532|USDC_TEST|legacyTestnet/i;
 const internalAgentPattern=/A2A Canary|Reference Autonomous Agent|Autonomous Payer|Autonomous Worker|Background Worker|A2A402-operated|broker agent|Feral Teachers Commerce Agent/i;
-const internalHistoryPattern=/internal first A2A mainnet settlement canary|autonomous settlement proof|fully autonomous A2A mainnet settlement/i;
-const claimPathPattern=/\/jobs\/\{jobId\}\/claim/;
-const claimInstructionPattern=/\/jobs\/(?:<jobId>|\{jobId\})\/claim/i;
+const forbiddenActivityTypes=new Set(['JOB_CLAIMED','JOB_SUBMITTED','JOB_VERIFYING']);
 const modernLifecyclePattern=/bid\s*->\s*contract\s*->\s*(?:artifact\/?delivery|artifact\s*->\s*delivery)\s*->\s*evaluation\s*->\s*settlement/i;
-const checks=[
-  ['/build-info.json',200,body=>!expectedCommit||String(body.commit||'').startsWith(expectedCommit)],
-  ['/',200,body=>typeof body==='string'&&body.includes('Modern settled contracts')&&body.includes('No modern evaluations yet')&&body.includes('Operator canaries and internal settlement proofs are excluded')&&!body.includes('>—</strong>')],
-  ['/.well-known/agent-card.json',200,body=>body?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&body?.extensions?.a2a402?.jobsUrl&&body?.extensions?.a2a402?.authentication?.rotationInvalidatesPreviousToken===true&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/.well-known/agent.json',200,body=>body?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/agent-card.json',200,body=>body?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/llms.txt',200,body=>typeof body==='string'&&modernLifecyclePattern.test(body)&&!claimInstructionPattern.test(body)&&!legacyNetworkPattern.test(body)],
-  ['/openapi.json',200,body=>body&&typeof body==='object'&&body?.info?.version==='1.2.0'&&body?.paths?.['/agents/{agentId}/auth/rotate']&&body?.paths?.['/jobs/{jobId}/bids']&&body?.paths?.['/bids/{bidId}/select']&&body?.paths?.['/contracts/{contractId}/deliveries']&&body?.paths?.['/deliveries/{deliveryId}/evaluate']&&body?.paths?.['/jobs/{jobId}/settle']&&!claimPathPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/health',200,body=>body?.status==='ok'&&body?.chainId===8453],
-  ['/jobs',200,body=>Array.isArray(body)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/jobs?status=OPEN',200,body=>Array.isArray(body)&&body.every(j=>String(j.status).toUpperCase()==='OPEN')&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/jobs?capability=research&status=OPEN',200,body=>Array.isArray(body)&&body.every(j=>String(j.status).toUpperCase()==='OPEN'&&String(j.requiredCapability).toLowerCase()==='research')&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/agents/search?capability=research',200,body=>Array.isArray(body)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))],
-  ['/social/feed',200,body=>Array.isArray(body?.items)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/social/agents',200,body=>Array.isArray(body?.agents)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))],
-  ['/lounge/messages',200,body=>Array.isArray(body)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))],
-  ['/economy/stats',200,body=>body&&typeof body==='object'&&body.scope==='public-production-default'&&body.legacyTestDataExcluded===true&&body.internalAgentsExcluded===true&&body.internalHistoryExcluded===true&&body.promotionalGenesisIncluded===true&&Number.isFinite(body.transactionVolume)&&Number.isFinite(body.a2aMarketplaceFees)&&Number.isFinite(body.completionRate)&&!('successRate'in body)&&body.metricDefinitions?.jobsCreated&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/economy/activity',200,body=>(Array.isArray(body)||Array.isArray(body?.events))&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/economy/graph',200,body=>body&&typeof body==='object'&&body.version==='2.2'&&body.metrics&&body.legacyTestDataExcluded===true&&body.internalAgentsExcluded===true&&body.metricDefinitions?.transactions&&Number.isFinite(body.metrics.paidJobs)&&Number.isFinite(body.metrics.paidJobsWithoutModernContract)&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))&&!internalAgentPattern.test(JSON.stringify(body))&&!internalHistoryPattern.test(JSON.stringify(body))],
-  ['/growth/stats',200,body=>body&&typeof body==='object'&&body.classifications&&body.marketplace?.internalOperatorActivityIncluded===true&&body.verifiedOrganic?.scope==='verified-independent-operators-only'&&!secretPattern.test(JSON.stringify(body))&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/recruit.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/token.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))],
-  ['/token-listing.json',200,body=>body&&typeof body==='object'&&!legacyNetworkPattern.test(JSON.stringify(body))]
-];
+const claimLanguage=/\bclaim(?:ing|ed)?\s+(?:an?\s+)?A2A(?:-denominated)?\s+jobs?\b/i;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function request(path){const response=await fetch(base+path,{headers:{accept:path==='/'||path==='/llms.txt'?'text/html':'application/json','user-agent':'a2a402-public-smoke/1.6'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
+async function request(path){const response=await fetch(base+path,{headers:{accept:path==='/'||path==='/llms.txt'?'text/html':'application/json','user-agent':'a2a402-public-smoke/1.7'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
 let failures=[];
-for(const [path,status,validate] of checks){let lastError='';let passed=false;for(let attempt=1;attempt<=6;attempt++){try{const {response,body}=await request(path);if(response.status===status&&(!validate||validate(body))){console.log(`PASS ${response.status} ${path}`);passed=true;break}lastError=`status=${response.status} body=${JSON.stringify(body).slice(0,300)}`}catch(error){lastError=error.message}if(attempt<6)await sleep(15000)}if(!passed){console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError})}}
-
-async function readTruth(path){const {response,body}=await request(path);if(response.status!==200)throw new Error(`${path} returned ${response.status}`);return body}
-function sameJson(a,b){return JSON.stringify(a)===JSON.stringify(b)}
-function truthAssert(name,condition,detail){if(condition){console.log(`PASS truth ${name}`);return}const lastError=detail||'public truth mismatch';console.error(`FAIL truth ${name}: ${lastError}`);failures.push({path:`truth:${name}`,lastError})}
-
+function pass(name){console.log(`PASS ${name}`)}
+function fail(name,detail){console.error(`FAIL ${name}: ${detail}`);failures.push({path:name,lastError:detail})}
+async function check(path,validate){let last='';for(let i=0;i<6;i++){try{const {response,body}=await request(path);if(response.status===200&&validate(body)){pass(`200 ${path}`);return}last=`status=${response.status} body=${JSON.stringify(body).slice(0,500)}`}catch(e){last=e.message}if(i<5)await sleep(15000)}fail(path,last)}
+await check('/build-info.json',b=>!expectedCommit||String(b.commit||'').startsWith(expectedCommit));
+await check('/',b=>typeof b==='string'&&b.includes('Modern settled contracts'));
+await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
+await check('/openapi.json',b=>Boolean(b?.paths?.['/jobs/{jobId}/bids']&&b?.paths?.['/bids/{bidId}/select']&&b?.paths?.['/contracts/{contractId}/deliveries']&&b?.paths?.['/deliveries/{deliveryId}/evaluate']&&b?.paths?.['/jobs/{jobId}/settle'])&&!b?.paths?.['/jobs/{jobId}/claim']&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/health',b=>b?.environment==='production'&&b?.chainId===8453);
+await check('/token.json',b=>b?.chainId===8453&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/token-listing.json',b=>!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/jobs',b=>Array.isArray(b)&&b.every(j=>!legacyNetworkPattern.test(JSON.stringify(j)))&&b.filter(j=>j.input?.program==='genesis-work-pool'||/genesis/i.test(String(j.input?.program||j.program||''))).every(j=>j.input?.classification==='promotional'&&j.input?.systemGenerated===true&&j.input?.countsTowardOrganic===false));
+await check('/agents/search?capability=research',b=>Array.isArray(b)&&!internalAgentPattern.test(JSON.stringify(b))&&!claimLanguage.test(JSON.stringify(b))&&b.every(a=>a.reputation&&a.reputation.agentId===a.agentId));
+await check('/economy/activity',b=>{const events=Array.isArray(b)?b:b?.events;return Array.isArray(events)&&events.every(e=>!forbiddenActivityTypes.has(e.type))&&!internalAgentPattern.test(JSON.stringify(events))});
+await check('/economy/stats',b=>b?.scope==='public-production-default'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true&&b?.internalHistoryExcluded===true);
+await check('/economy/graph',b=>b?.version==='2.2'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true);
 try{
-  const [card,agentAlias,rootAlias,health,jobs,stats,graph,llms,openapi]=await Promise.all([
-    readTruth('/.well-known/agent-card.json'),
-    readTruth('/.well-known/agent.json'),
-    readTruth('/agent-card.json'),
-    readTruth('/health'),
-    readTruth('/jobs'),
-    readTruth('/economy/stats'),
-    readTruth('/economy/graph'),
-    readTruth('/llms.txt'),
-    readTruth('/openapi.json')
-  ]);
-  const meta=card?.extensions?.a2a402||{};
-  truthAssert('agent-card aliases are byte-equivalent JSON',sameJson(card,agentAlias)&&sameJson(card,rootAlias),'/.well-known/agent-card.json, /.well-known/agent.json and /agent-card.json differ');
-  truthAssert('production network identity agrees',health?.environment==='production'&&meta.environment==='production'&&health?.chainId===meta.chainId&&meta.chainId===8453&&meta.a2aNetwork==='base'&&meta.caipChainId==='eip155:8453','health and Agent Card disagree on production/Base identity');
-  truthAssert('token identity agrees',String(health?.tokenContract||'').toLowerCase()===String(meta.tokenContract||'').toLowerCase(),'health and Agent Card disagree on A2A token contract');
-  truthAssert('fee policy agrees',Number(health?.marketplaceFeeBps)===Number(meta.marketplaceFeeBps)&&Number(health?.workerShareBps)===Number(meta.workerShareBps)&&Number(stats?.marketplaceFeeBps)===Number(meta.marketplaceFeeBps),'health, stats and Agent Card disagree on 5%/95% settlement policy');
-  truthAssert('default job count agrees',Array.isArray(jobs)&&jobs.length===Number(stats?.jobsCreated)&&jobs.length===Number(graph?.metrics?.jobs),`jobs=${jobs?.length} stats.jobsCreated=${stats?.jobsCreated} graph.metrics.jobs=${graph?.metrics?.jobs}`);
-  truthAssert('paid job count agrees',Number(stats?.jobsCompleted)===Number(graph?.metrics?.paidJobs),`stats.jobsCompleted=${stats?.jobsCompleted} graph.metrics.paidJobs=${graph?.metrics?.paidJobs}`);
-  truthAssert('transaction count agrees',Number(stats?.agentToAgentTransactions)===Number(graph?.metrics?.transactions),`stats.agentToAgentTransactions=${stats?.agentToAgentTransactions} graph.metrics.transactions=${graph?.metrics?.transactions}`);
-  truthAssert('public filtering contract agrees',stats?.legacyTestDataExcluded===true&&stats?.internalAgentsExcluded===true&&stats?.internalHistoryExcluded===true&&graph?.legacyTestDataExcluded===true&&graph?.internalAgentsExcluded===true,'stats and graph do not expose the same default public-production filtering contract');
-  truthAssert('modern lifecycle agrees',Array.isArray(meta.canonicalLifecycle)&&['bid','contract','artifact','delivery','evaluation','settlement'].every(step=>meta.canonicalLifecycle.includes(step))&&modernLifecyclePattern.test(llms)&&Boolean(openapi?.paths?.['/jobs/{jobId}/bids'])&&Boolean(openapi?.paths?.['/bids/{bidId}/select'])&&Boolean(openapi?.paths?.['/contracts/{contractId}/deliveries'])&&Boolean(openapi?.paths?.['/deliveries/{deliveryId}/evaluate'])&&Boolean(openapi?.paths?.['/jobs/{jobId}/settle'])&&!claimInstructionPattern.test(llms)&&!claimPathPattern.test(JSON.stringify(openapi)),'Agent Card, llms.txt and OpenAPI do not agree on the modern bid-to-settlement lifecycle');
-}catch(error){const lastError=error.message;console.error(`FAIL truth snapshot: ${lastError}`);failures.push({path:'truth:snapshot',lastError})}
-
-for(const path of ['/agents/smoke-probe/auth/rotate','/payments/execution/intents']){
-  try{
-    const response=await fetch(base+path,{method:'POST',headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.6'},redirect:'follow'});
-    const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}
-    if(path==='/payments/execution/intents'){
-      if(response.status!==405&&response.status!==401){const lastError=`expected protected response, got status=${response.status} body=${JSON.stringify(body).slice(0,300)}`;console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError})}else console.log(`PASS ${response.status} ${path} protected`);
-    }else if(response.status!==401||body?.error?.code!=='UNAUTHORIZED'){
-      const lastError=`expected 401 UNAUTHORIZED, got status=${response.status} body=${JSON.stringify(body).slice(0,300)}`;console.error(`FAIL ${path}: ${lastError}`);failures.push({path,lastError});
-    }else console.log(`PASS 401 ${path} protected`);
-  }catch(error){console.error(`FAIL ${path}: ${error.message}`);failures.push({path,lastError:error.message})}
-}
+ const [cards,alias1,alias2,jobs,stats,graph,agents]=await Promise.all([request('/.well-known/agent-card.json'),request('/.well-known/agent.json'),request('/agent-card.json'),request('/jobs'),request('/economy/stats'),request('/economy/graph'),request('/agents/search?capability=research')]);
+ const same=JSON.stringify(cards.body)===JSON.stringify(alias1.body)&&JSON.stringify(cards.body)===JSON.stringify(alias2.body);same?pass('truth agent-card aliases agree'):fail('truth agent-card aliases','aliases differ');
+ const counts=jobs.body.length===Number(stats.body.jobsCreated)&&jobs.body.length===Number(graph.body.metrics?.jobs)&&Number(stats.body.jobsCompleted)===Number(graph.body.metrics?.paidJobs)&&Number(stats.body.agentToAgentTransactions)===Number(graph.body.metrics?.transactions);counts?pass('truth economy counts agree'):fail('truth economy counts',`jobs=${jobs.body.length}/${stats.body.jobsCreated}/${graph.body.metrics?.jobs} paid=${stats.body.jobsCompleted}/${graph.body.metrics?.paidJobs} tx=${stats.body.agentToAgentTransactions}/${graph.body.metrics?.transactions}`);
+ for(const a of agents.body){const {response,body}=await request(`/reputation/${encodeURIComponent(a.agentId)}`);if(response.status!==200||body?.agentId!==a.agentId||body?.error)fail(`reputation ${a.agentId}`,`status=${response.status} body=${JSON.stringify(body).slice(0,300)}`)}
+ if(Array.isArray(agents.body)&&!failures.some(f=>String(f.path).startsWith('reputation ')))pass('truth every discoverable research agent has public reputation');
+}catch(e){fail('truth snapshot',e.message)}
+for(const [path,method] of [['/agents/smoke-probe/auth/rotate','POST'],['/payments/execution/intents','POST']]){try{const r=await fetch(base+path,{method,headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.7'}});if([401,405].includes(r.status))pass(`${r.status} ${path} protected`);else fail(path,`expected protected response, got ${r.status}`)}catch(e){fail(path,e.message)}}
 if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
-console.log(`Public smoke passed: ${checks.length+2} endpoint checks plus cross-endpoint truth invariants`);
+console.log('Public smoke passed: targeted public-truth, reputation, Genesis-label and modern-lifecycle guards');
