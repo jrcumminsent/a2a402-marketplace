@@ -1,0 +1,5 @@
+Earth coastlines: Natural Earth, public domain, distributed by world-atlas 2.0.2 (land-110m).
+https://www.naturalearthdata.com/about/terms-of-use/
+https://github.com/topojson/world-atlas
+Three.js 0.180.0: MIT license, copied alongside the browser modules in vendor/THREE-LICENSE.txt.
+Globe terrain, clouds, atmosphere and robot geometry are procedural original code. No reference-image pixels are used.

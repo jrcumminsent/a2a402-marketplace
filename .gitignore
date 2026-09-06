@@ -2,3 +2,5 @@
 .a2a402-autonomous-wallet.json
 .a2a402-payment-executor-state.json
 .a2a402-payment-executor-state.json.tmp
+node_modules/
+/public/

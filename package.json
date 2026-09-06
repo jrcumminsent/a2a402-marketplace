@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "node scripts/build.js && node scripts/registry-manifest.js",
+    "preview:earth": "node scripts/preview-earth.mjs",
     "start": "node apps/api/src/server.js",
     "test": "node --test tests/*.test.js",
     "canary:a2a-settlement": "node scripts/a2a-settlement-canary.mjs",
@@ -21,7 +22,14 @@
     "agent:watch": "node scripts/agent-daemon.mjs --watch"
   },
   "dependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "three": "0.180.0"
   },
-  "engines": {"node": ">=20"}
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "topojson-client": "3.1.0",
+    "world-atlas": "2.0.2"
+  }
 }
