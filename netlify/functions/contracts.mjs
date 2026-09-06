@@ -1,10 +1,33 @@
 import { withEconomy } from '../../apps/api/src/persistence.js';
 import { submitBid, withdrawBid, selectBid, listJobBids, getContract, listAgentContracts } from '../../apps/api/src/contracts.js';
+import { isInternalAgent } from '../../apps/api/src/public-classification.js';
 import { baseHeaders as headers, reply, errorResponse } from './_http.mjs';
 
 const parseBody=event=>event.body?JSON.parse(event.body):{};
 const requestPath=event=>{const raw=event.rawUrl?new URL(event.rawUrl).pathname:event.path||'/';return raw.replace(/^\/\.netlify\/functions\/contracts/,'')||'/'};
 const authenticate=(economy,event)=>{const agentId=event.headers?.['x-agent-id']??event.headers?.['X-Agent-Id'];const auth=event.headers?.authorization??event.headers?.Authorization??'';const token=auth.startsWith('Bearer ')?auth.slice(7):'';if(!economy.authenticate(agentId,token))throw new Error('unauthorized');return agentId};
+
+function isGenesisJob(job){
+  return Boolean(job&&job.input?.program==='genesis-work-pool'&&job.input?.systemGenerated===true&&job.input?.classification==='promotional'&&job.input?.countsTowardOrganic===false);
+}
+
+function maybeAutoSelectGenesisBid(economy,bid,{requesterId=null}={}){
+  const job=economy.jobs.get(bid?.jobId);
+  const bidder=economy.agents.get(bid?.bidderId);
+  if(!bid||!job||!bidder)return{bid,autoSelection:{eligible:false,selected:false,reason:'MISSING_RESOURCE'}};
+  if(requesterId&&requesterId!==bid.bidderId)return{bid,autoSelection:{eligible:false,selected:false,reason:'ONLY_BIDDER_MAY_REQUEST_AUTO_SELECTION'}};
+  if(!isGenesisJob(job))return{bid,autoSelection:{eligible:false,selected:false,reason:'NOT_GENESIS_JOB'}};
+  if(isInternalAgent(bidder))return{bid,autoSelection:{eligible:false,selected:false,reason:'INTERNAL_BIDDER_NOT_ELIGIBLE'}};
+  if(job.status!=='OPEN'||bid.status!=='OPEN')return{bid,autoSelection:{eligible:true,selected:false,reason:'JOB_OR_BID_NOT_OPEN'}};
+  if(Number(bid.amount)!==Number(job.reward))return{bid,autoSelection:{eligible:true,selected:false,reason:'BID_AMOUNT_MISMATCH'}};
+  const readiness=economy.publicAgent(bidder)?.paymentReadiness;
+  if(!readiness?.ready){
+    return{bid,autoSelection:{eligible:true,selected:false,reason:'WALLET_REQUIRED',paymentReadiness:readiness,nextAction:{method:'PATCH',url:`/agents/${bid.bidderId}`,body:{wallets:[{chain:'eip155:8453',address:'0xYOUR_PUBLIC_BASE_WALLET',walletType:'agent-controlled',assets:['A2A']}]},then:{method:'POST',url:`/bids/${bid.id}/auto-select`}}}};
+  }
+  const selected=selectBid(economy,bid.id,job.creatorId,{idempotencyKey:`genesis-auto-select:${bid.id}`});
+  economy.event('GENESIS_BID_AUTO_SELECTED',{bidId:bid.id,jobId:job.id,creatorId:job.creatorId,bidderId:bid.bidderId,contractId:selected.contract?.id||null});
+  return{...selected,autoSelection:{eligible:true,selected:true,reason:'GENESIS_POLICY_MATCH',contractId:selected.contract?.id||null}};
+}
 
 export async function handler(event){
   try{
@@ -14,7 +37,14 @@ export async function handler(event){
     return await withEconomy(async economy=>{
       if(method==='POST'&&/^\/jobs\/[^/]+\/bids$/.test(p)){
         const agentId=authenticate(economy,event); const jobId=p.split('/')[2];
-        return reply(201,submitBid(economy,jobId,agentId,parseBody(event)));
+        const bid=submitBid(economy,jobId,agentId,parseBody(event));
+        return reply(201,maybeAutoSelectGenesisBid(economy,bid,{requesterId:agentId}));
+      }
+      if(method==='POST'&&/^\/bids\/[^/]+\/auto-select$/.test(p)){
+        const agentId=authenticate(economy,event); const bidId=p.split('/')[2];
+        const bid=economy.bids.get(bidId);
+        if(!bid)return reply(404,{error:{code:'NOT_FOUND',message:'bid not found',retryable:false}});
+        return reply(200,maybeAutoSelectGenesisBid(economy,bid,{requesterId:agentId}));
       }
       if(method==='GET'&&/^\/jobs\/[^/]+\/bids$/.test(p)){
         let requesterId=null; try{requesterId=authenticate(economy,event)}catch{}
