@@ -19,15 +19,15 @@ function isPublicHttpUrl(value){
 function extractEntries(content){
   if(Array.isArray(content))return content;
   if(!content||typeof content!=='object')return null;
-  for(const key of ['surfaces','entries','items','results','discoverySurfaces'])if(Array.isArray(content[key]))return content[key];
+  for(const key of ['surfaces','entries','items','results','discoverySurfaces','discovery_surfaces'])if(Array.isArray(content[key]))return content[key];
   return null;
 }
 function field(obj,names){for(const name of names){if(obj?.[name]!=null&&String(obj[name]).trim())return String(obj[name]).trim()}return null}
 async function reachable(url){
   const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),7000);
   try{
-    let r=await fetch(url,{method:'HEAD',redirect:'follow',signal:controller.signal,headers:{'user-agent':'a2a402-genesis-verifier/1.0'}});
-    if(r.status===405||r.status===403)r=await fetch(url,{method:'GET',redirect:'follow',signal:controller.signal,headers:{'user-agent':'a2a402-genesis-verifier/1.0','accept':'application/json,text/plain,text/html;q=0.8,*/*;q=0.5'}});
+    let r=await fetch(url,{method:'HEAD',redirect:'follow',signal:controller.signal,headers:{'user-agent':'a2a402-genesis-verifier/1.1'}});
+    if(r.status===405||r.status===403)r=await fetch(url,{method:'GET',redirect:'follow',signal:controller.signal,headers:{'user-agent':'a2a402-genesis-verifier/1.1','accept':'application/json,text/plain,text/html;q=0.8,*/*;q=0.5'}});
     return r.status>=200&&r.status<400;
   }catch{return false}finally{clearTimeout(timer)}
 }
@@ -41,10 +41,10 @@ async function validateDiscoveryGenesis(economy,delivery){
   for(let i=0;i<entries.length;i++){
     const item=entries[i];
     if(!item||typeof item!=='object')return{eligible:true,accepted:false,reason:`Entry ${i+1} must be an object.`};
-    const name=field(item,['name','title']);
-    const url=field(item,['url','href','endpoint']);
-    const protocol=field(item,['protocol','format','protocolFormat','protocol_or_format','protocolOrFormat']);
-    const usefulness=field(item,['usefulness','whyUseful','why_useful','why','utility','description']);
+    const name=field(item,['name','title','surface_name']);
+    const url=field(item,['url','href','endpoint','public_url']);
+    const protocol=field(item,['protocol','format','protocolFormat','protocol_format','protocol_or_format','protocolOrFormat']);
+    const usefulness=field(item,['usefulness','whyUseful','why_useful','why','utility','description','usefulness_statement']);
     if(!name||!url||!protocol||!usefulness)return{eligible:true,accepted:false,reason:`Entry ${i+1} is missing name, URL, protocol/format, or usefulness.`};
     if(!isPublicHttpUrl(url))return{eligible:true,accepted:false,reason:`Entry ${i+1} URL is not a permitted public HTTP(S) URL.`};
     urls.push(url);
@@ -52,7 +52,7 @@ async function validateDiscoveryGenesis(economy,delivery){
   if(new Set(urls.map(x=>x.toLowerCase())).size!==5)return{eligible:true,accepted:false,reason:'All five URLs must be distinct.'};
   const checks=await Promise.all(urls.map(reachable));
   if(checks.some(ok=>!ok))return{eligible:true,accepted:false,reason:'One or more submitted URLs could not be independently reached by the verifier.',urlChecks:urls.map((url,i)=>({url,reachable:checks[i]}))};
-  return{eligible:true,accepted:true,qualityScore:100,reason:'Deterministic Genesis validator passed: exactly five distinct surfaces, required fields present, and all public URLs independently reachable.',evidence:{artifactSha256:artifact.sha256,validator:'genesis-discovery-v1',urlChecks:urls.map(url=>({url,reachable:true}))}};
+  return{eligible:true,accepted:true,qualityScore:100,reason:'Deterministic Genesis validator passed: exactly five distinct surfaces, required fields present, and all public URLs independently reachable.',evidence:{artifactSha256:artifact.sha256,validator:'genesis-discovery-v1.1',urlChecks:urls.map(url=>({url,reachable:true}))}};
 }
 
 export async function handler(event){
@@ -73,8 +73,8 @@ export async function handler(event){
         const verdict=await validateDiscoveryGenesis(economy,delivery);
         if(!verdict.eligible)return reply(200,{delivery,autoEvaluation:verdict});
         if(!verdict.accepted)return reply(422,{delivery,autoEvaluation:verdict});
-        const result=await evaluateDelivery(economy,deliveryId,delivery.creatorId,{accepted:true,qualityScore:verdict.qualityScore,reason:verdict.reason,evidence:verdict.evidence,idempotencyKey:`genesis-auto-evaluate:${deliveryId}:v1`});
-        return reply(201,{...result,autoEvaluation:{eligible:true,accepted:true,validator:'genesis-discovery-v1'}});
+        const result=await evaluateDelivery(economy,deliveryId,delivery.creatorId,{accepted:true,qualityScore:verdict.qualityScore,reason:verdict.reason,evidence:verdict.evidence,idempotencyKey:`genesis-auto-evaluate:${deliveryId}:v1.1`});
+        return reply(201,{...result,autoEvaluation:{eligible:true,accepted:true,validator:'genesis-discovery-v1.1'}});
       }
       if(method==='POST'&&/^\/deliveries\/[^/]+\/evaluate$/.test(p)){
         const agentId=authenticate(economy,event),deliveryId=p.split('/')[2];
