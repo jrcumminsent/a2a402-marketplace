@@ -1,0 +1,187 @@
+name: A2A402 production audit fix
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/a2a402-production-audit-fix.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-test-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Apply canonical A2A402 migration
+        run: |
+          node <<'NODE'
+          const fs = require('fs');
+          const path = require('path');
+          const NEW='0xf9e891696c022f9fe4a143a92255371253c5567a';
+          const OLD='0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01';
+          const TREASURY='0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c';
+          const read=p=>fs.readFileSync(p,'utf8');
+          const write=(p,s)=>fs.writeFileSync(p,s);
+          const replace=(p,pairs)=>{let s=read(p);for(const [a,b] of pairs)s=s.split(a).join(b);write(p,s)};
+
+          fs.writeFileSync('apps/api/src/token-config.js', `export const TOKEN_CONFIG = Object.freeze({\n  name: 'A2A402',\n  symbol: 'A2A402',\n  network: 'base',\n  chainId: 8453,\n  caipChainId: 'eip155:8453',\n  contractAddress: '${NEW}',\n  decimals: 18,\n  fixedSupply: '1000000000',\n  treasuryAddress: '${TREASURY}',\n  marketplaceFeeBps: 500,\n  workerShareBps: 9500\n});\n\nexport const LEGACY_TOKEN_CONFIG = Object.freeze({\n  label: 'Legacy / Deprecated',\n  name: 'A2A',\n  symbol: 'A2A',\n  contractAddress: '${OLD}',\n  status: 'deprecated'\n});\n\nexport const tokenAddressFromEnv = (env=process.env) => String(env.A2A402_TOKEN_ADDRESS || env.A2A402_EXPECTED_TOKEN_ADDRESS || TOKEN_CONFIG.contractAddress).trim().toLowerCase();\nexport const treasuryAddressFromEnv = (env=process.env) => String(env.A2A402_TREASURY_ADDRESS || env.A2A402_EXPECTED_TREASURY_ADDRESS || TOKEN_CONFIG.treasuryAddress).trim();\n`);
+
+          fs.mkdirSync('docs',{recursive:true});
+          fs.writeFileSync('docs/legacy-token.md', `# Legacy / Deprecated A2A token\n\nThis section is historical only. The former A2A token is deprecated and is not the canonical A2A402 settlement asset.\n\n- Legacy name/symbol: A2A\n- Legacy contract: ${OLD}\n- Status: Legacy / Deprecated\n- Canonical replacement: A2A402\n- Canonical contract: ${NEW}\n\nCurrent runtime, public documentation, agent cards, jobs, payment routes, settlement verification, and machine-readable metadata must use A2A402 only.\n`);
+
+          // Replace the old contract everywhere except the explicit legacy record and this one-time workflow.
+          const skip=new Set(['docs/legacy-token.md','.github/workflows/a2a402-production-audit-fix.yml','.github/workflows/migrate-economy-a2a402.yml']);
+          const roots=['apps','netlify','scripts','packages','tests','.env.example','README.md','TOKEN_DEPLOYMENT.md','netlify.toml'];
+          function filesUnder(p){if(!fs.existsSync(p))return[];const st=fs.statSync(p);if(st.isFile())return[p];return fs.readdirSync(p,{withFileTypes:true}).flatMap(e=>filesUnder(path.join(p,e.name)));}
+          for(const f of roots.flatMap(filesUnder)){
+            if(skip.has(f)||!fs.statSync(f).isFile())continue;
+            if(!/\.(js|mjs|cjs|json|html|txt|md|toml|yml|yaml|example)$/i.test(f) && !f.endsWith('.env.example'))continue;
+            let s=read(f);
+            if(s.includes(OLD))s=s.split(OLD).join(NEW);
+            write(f,s);
+          }
+
+          // Canonical runtime token literals. Protocol path names like /a2a are intentionally untouched.
+          const runtimeFiles=[
+            'apps/api/src/economy.js','apps/api/src/payment-execution.js','apps/api/src/seed.js','apps/api/src/server.js',
+            'netlify/functions/api.mjs','netlify/functions/public-read.mjs','netlify/functions/payment-execution.mjs','netlify/functions/genesis-settlement.mjs','netlify/functions/contracts.mjs',
+            'scripts/a2a-payment-executor.mjs','scripts/genesis-payment-executor.mjs','scripts/metamask-genesis-runner.mjs','scripts/agent-daemon.mjs','scripts/reference-autonomous-agent.mjs','scripts/ensure-autonomous-e2e.mjs'
+          ].filter(fs.existsSync);
+          for(const f of runtimeFiles){
+            let s=read(f);
+            s=s.replace(/(['"])A2A\1/g,"'A2A402'");
+            s=s.replace(/\bA2A-denominated\b/g,'A2A402-denominated');
+            s=s.replace(/\bA2A token job\b/g,'A2A402 token job');
+            s=s.replace(/\bA2A jobs\b/g,'A2A402 jobs');
+            s=s.replace(/\bA2A payment\b/g,'A2A402 payment');
+            s=s.replace(/\bA2A settlement\b/g,'A2A402 settlement');
+            s=s.replace(/base-mainnet-a2a-erc20/g,'base-mainnet-a2a402-erc20');
+            write(f,s);
+          }
+
+          // Centralize token config in API, public health, payment execution, and build-time Agent Card.
+          let api=read('netlify/functions/api.mjs');
+          if(!api.includes("token-config.js")) api=api.replace("import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';", "import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';\nimport { TOKEN_CONFIG, tokenAddressFromEnv, treasuryAddressFromEnv } from '../../apps/api/src/token-config.js';");
+          api=api.replace(/const baseUrl=.*?const transferTopic=/s, `const baseUrl=process.env.APP_BASE_URL||process.env.URL||'https://a2a402.market';const loungeEnabled=process.env.A2A402_ENABLE_LOUNGE!=='false';const a2aTokenAddress=tokenAddressFromEnv();const treasuryAddress=treasuryAddressFromEnv();const baseMainnetRpcUrl=process.env.A2A402_BASE_MAINNET_RPC_URL||'https://mainnet.base.org';const transferTopic=`);
+          api=api.replace(/asset:'A2A402',network:'base',chainId:8453,contractAddress:a2aTokenAddress/g,"asset:TOKEN_CONFIG.symbol,network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,contractAddress:a2aTokenAddress");
+          api=api.replace(/payments:\{preferredAsset:'A2A402',directRouteVerification:\['A2A402@eip155:8453'\],adapterExtensible:true\},a2aToken:\{network:'base',chainId:8453,contractAddress:a2aTokenAddress,settlementVerification:true,marketplaceFeeBps:500,treasuryAddress\}/, "payments:{preferredAsset:TOKEN_CONFIG.symbol,directRouteVerification:[`${TOKEN_CONFIG.symbol}@${TOKEN_CONFIG.caipChainId}`],adapterExtensible:true},a2aToken:{name:TOKEN_CONFIG.name,symbol:TOKEN_CONFIG.symbol,network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,contractAddress:a2aTokenAddress,decimals:TOKEN_CONFIG.decimals,fixedSupply:TOKEN_CONFIG.fixedSupply,settlementVerification:true,marketplaceFeeBps:TOKEN_CONFIG.marketplaceFeeBps,treasuryAddress}");
+          write('netlify/functions/api.mjs',api);
+
+          let pr=read('netlify/functions/public-read.mjs');
+          if(!pr.includes("token-config.js")) pr=pr.replace("import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';", "import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';\nimport { TOKEN_CONFIG, tokenAddressFromEnv } from '../../apps/api/src/token-config.js';");
+          pr=pr.replace(/const a2a=transactions\.filter\(t=>String\(t\.asset\|\|''\)\.toUpperCase\(\)==='A2A402'\);/, "const a2a=transactions.filter(t=>String(t.asset||'').toUpperCase()===TOKEN_CONFIG.symbol);");
+          pr=pr.replace(/if\(p==='\/health'\)return reply\(200,\{[^;]+\}\);/, "if(p==='/health')return reply(200,{status:'ok',environment:'production',realMoney:true,runtime:'netlify',persistence:persistenceMode(),token:{...TOKEN_CONFIG,contractAddress:tokenAddressFromEnv()},network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,tokenContract:tokenAddressFromEnv(),marketplaceFeeBps:TOKEN_CONFIG.marketplaceFeeBps,workerShareBps:TOKEN_CONFIG.workerShareBps});");
+          pr=pr.replace(/A2A jobs/g,'A2A402 jobs').replace(/A2A-denominated/g,'A2A402-denominated');
+          write('netlify/functions/public-read.mjs',pr);
+
+          let pe=read('apps/api/src/payment-execution.js');
+          if(!pe.includes("token-config.js")) pe=`import { TOKEN_CONFIG } from './token-config.js';\n`+pe;
+          pe=pe.replace(/asset:'A2A402'/g,'asset:TOKEN_CONFIG.symbol').replace(/chainId:8453/g,'chainId:TOKEN_CONFIG.chainId').replace(/network:'base'/g,'network:TOKEN_CONFIG.network');
+          write('apps/api/src/payment-execution.js',pe);
+
+          let build=read('scripts/build.js');
+          if(!build.includes("token-config.js")) build="import { TOKEN_CONFIG } from '../apps/api/src/token-config.js';\n"+build;
+          build=build.replace(/A2A is the native token of the A2A402 autonomous agent economy\./g,'A2A402 is the native token of the A2A402 autonomous agent economy.');
+          build=build.replace(/settle verified A2A payments/g,'settle verified A2A402 payments').replace(/Verified Base Mainnet A2A settlement/g,'Verified Base Mainnet A2A402 settlement');
+          build=build.replace("nativeToken:{name:'A2A',symbol:'A2A',role:'native economic and settlement token of A2A402'}", "nativeToken:{name:TOKEN_CONFIG.name,symbol:TOKEN_CONFIG.symbol,role:'native economic and settlement token of A2A402',contractAddress:TOKEN_CONFIG.contractAddress,network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,decimals:TOKEN_CONFIG.decimals,fixedSupply:TOKEN_CONFIG.fixedSupply}");
+          build=build.replace("acceptedAssets:['A2A'],primarySettlementAsset:'A2A',a2aNetwork:'base',caipChainId:'eip155:8453',chainId:8453,tokenContract:'"+NEW+"',marketplaceTreasury:'"+TREASURY+"'", "acceptedAssets:[TOKEN_CONFIG.symbol],primarySettlementAsset:TOKEN_CONFIG.symbol,a2aNetwork:TOKEN_CONFIG.network,caipChainId:TOKEN_CONFIG.caipChainId,chainId:TOKEN_CONFIG.chainId,tokenContract:TOKEN_CONFIG.contractAddress,marketplaceTreasury:TOKEN_CONFIG.treasuryAddress");
+          build=build.replace(/paymentAsset=A2A(?!402)/g,'paymentAsset=A2A402');
+          write('scripts/build.js',build);
+
+          // Public copy and docs: replace token-context language, never lowercase protocol route names.
+          for(const f of filesUnder('apps/dashboard/public').filter(f=>/\.(html|json|txt)$/i.test(f))){
+            let s=read(f);
+            s=s.replace(/paymentAsset=A2A(?!402)/g,'paymentAsset=A2A402');
+            s=s.replace(/\bA2A-denominated\b/g,'A2A402-denominated');
+            s=s.replace(/\bA2A token\b/gi,'A2A402 token');
+            s=s.replace(/\bA2A settlement\b/g,'A2A402 settlement');
+            s=s.replace(/\bA2A payment\b/g,'A2A402 payment');
+            s=s.replace(/\bA2A wallet\b/g,'A2A402 wallet');
+            s=s.replace(/\bA2A jobs\b/g,'A2A402 jobs');
+            s=s.replace(/\bA2A work\b/g,'A2A402 work');
+            s=s.replace(/"A2A"/g,'"A2A402"');
+            write(f,s);
+          }
+
+          // OpenAPI: exact registration shape, job requirements object, and authenticated lounge posting.
+          const openapiPath='apps/dashboard/public/openapi.json';
+          const spec=JSON.parse(read(openapiPath));
+          spec.info.version='1.4.0';
+          spec.components ||= {}; spec.components.securitySchemes ||= {agentBearer:{type:'http',scheme:'bearer'},agentId:{type:'apiKey',in:'header',name:'X-Agent-Id'}};
+          spec.components.schemas={...(spec.components.schemas||{}),
+            RegistrationResponse:{type:'object',required:['id','name','description','endpoint','capabilities','status','authToken'],properties:{id:{type:'string'},name:{type:'string'},description:{type:'string'},endpoint:{type:'string'},capabilities:{type:'array',items:{type:'object'}},wallets:{type:'array',items:{type:'object'}},supportedPayments:{type:'array',items:{type:'object'}},status:{type:'string'},createdAt:{type:'string',format:'date-time'},authToken:{type:'string',description:'Bearer token returned once at the response root. Persist securely; it is not nested under agent.'}}},
+            JobRequirements:{type:'object',description:'Structured requirements MUST be a JSON object, not an array.',properties:{objective:{type:'string'},inputs:{type:'array',items:{type:'object'}},deliverable:{type:'object'},acceptanceCriteria:{type:'array',items:{type:'string'}},maxDurationSeconds:{type:'integer',minimum:1,maximum:604800}},example:{objective:'Verify canonical A2A402 metadata',acceptanceCriteria:['Return contract, chainId, symbol, and treasury.']}},
+            JobCreateRequest:{type:'object',required:['title','description','requiredCapability','reward'],properties:{title:{type:'string'},description:{type:'string'},requiredCapability:{type:'string'},reward:{type:'number',exclusiveMinimum:0},paymentAsset:{type:'string',enum:['A2A402']},paymentNetwork:{type:'string',enum:['base']},requirements:{$ref:'#/components/schemas/JobRequirements'},category:{type:'string'},tags:{type:'array',items:{type:'string'}}}}
+          };
+          spec.paths['/agents/register'].post.responses['201']={description:'Registered. Agent fields are at the response root and authToken is also at the root.',content:{'application/json':{schema:{$ref:'#/components/schemas/RegistrationResponse'}}}};
+          spec.paths['/jobs'].post.requestBody={required:true,content:{'application/json':{schema:{$ref:'#/components/schemas/JobCreateRequest'}}}};
+          spec.paths['/jobs'].post.description='requirements, when supplied, must be a JSON object. Arrays are rejected with VALIDATION_FAILED.';
+          spec.paths['/lounge/messages']={get:{summary:'Read public non-internal agent chat messages',responses:{200:{description:'Messages'}}},post:{summary:'Post an authenticated agent chat message',description:'Official public chatroom posting endpoint. Requires agent bearer auth. Internal agents remain excluded from organic marketplace metrics.',security:[{agentBearer:[],agentId:[]}],requestBody:{required:true,content:{'application/json':{schema:{type:'object',required:['message'],properties:{message:{type:'string',maxLength:1000},type:{type:'string',default:'discussion'}}}}}},responses:{201:{description:'Posted'}}}};
+          write(openapiPath,JSON.stringify(spec,null,2)+'\n');
+
+          // Route /lounge/messages to the authenticated API handler so GET and POST are consistent.
+          let toml=read('netlify.toml');
+          toml=toml.replace('from = "/lounge/messages"\n  to = "/.netlify/functions/public-read"','from = "/lounge/messages"\n  to = "/.netlify/functions/api"');
+          write('netlify.toml',toml);
+
+          // Environment and legacy deployment doc.
+          if(fs.existsSync('.env.example')) replace('.env.example',[[/A2A402_TOKEN_ADDRESS=.*/g,`A2A402_TOKEN_ADDRESS=${NEW}`],[/A2A402_EXPECTED_TOKEN_ADDRESS=.*/g,`A2A402_EXPECTED_TOKEN_ADDRESS=${NEW}`]]);
+          if(fs.existsSync('TOKEN_DEPLOYMENT.md')){
+            let s=read('TOKEN_DEPLOYMENT.md');
+            s='# Legacy / Deprecated deployment record\n\n> This file documents the former A2A token only. It is not the canonical production token. Current A2A402 contract: '+NEW+'\n\n'+s;
+            write('TOKEN_DEPLOYMENT.md',s);
+          }
+
+          // Improve requirements error so clients know exactly what to send.
+          let jobs=read('netlify/functions/jobs.mjs');
+          jobs=jobs.replace("throw new Error('requirements must be an object')", "throw new Error('requirements must be a JSON object (for example {objective, inputs, deliverable, acceptanceCriteria}); arrays are not accepted')");
+          write('netlify/functions/jobs.mjs',jobs);
+
+          // CI assertions updated to current canonical token.
+          let ci=read('.github/workflows/ci.yml');
+          ci=ci.replace("grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html", "grep -q 'A2A402 is the native token of the A2A402 autonomous agent economy' public/index.html");
+          ci += `\n          grep -q '${NEW}' public/.well-known/agent-card.json\n          grep -q 'A2A402' public/token.json\n          ! grep -R '${OLD}' public\n`;
+          write('.github/workflows/ci.yml',ci);
+
+          // Canonical tests.
+          fs.writeFileSync('tests/token-canonical.test.js', `import test from 'node:test';\nimport assert from 'node:assert/strict';\nimport fs from 'node:fs';\nimport { TOKEN_CONFIG, LEGACY_TOKEN_CONFIG } from '../apps/api/src/token-config.js';\nimport { Economy } from '../apps/api/src/economy.js';\nimport { handler as publicRead } from '../netlify/functions/public-read.mjs';\n\nconst NEW='${NEW}';\nconst OLD='${OLD}';\n\ntest('canonical token config is exact',()=>{assert.equal(TOKEN_CONFIG.name,'A2A402');assert.equal(TOKEN_CONFIG.symbol,'A2A402');assert.equal(TOKEN_CONFIG.network,'base');assert.equal(TOKEN_CONFIG.chainId,8453);assert.equal(TOKEN_CONFIG.contractAddress,NEW);assert.equal(TOKEN_CONFIG.decimals,18);assert.equal(TOKEN_CONFIG.fixedSupply,'1000000000');assert.equal(TOKEN_CONFIG.treasuryAddress,'${TREASURY}');assert.equal(LEGACY_TOKEN_CONFIG.status,'deprecated');assert.equal(LEGACY_TOKEN_CONFIG.contractAddress,OLD)});\n\ntest('/health reports canonical A2A402 token',async()=>{const r=await publicRead({httpMethod:'GET',path:'/health',headers:{}});assert.equal(r.statusCode,200);const b=JSON.parse(r.body);assert.equal(b.tokenContract,NEW.toLowerCase());assert.equal(b.token.symbol,'A2A402');assert.equal(b.chainId,8453)});\n\ntest('job payment route uses A2A402',()=>{const e=new Economy();const payer=e.registerAgent({name:'payer',description:'payer',endpoint:'https://example.com/p',capabilities:['research'],wallets:[{chain:'eip155:8453',address:'0x1111111111111111111111111111111111111111',assets:['A2A402']}]});const worker=e.registerAgent({name:'worker',description:'worker',endpoint:'https://example.com/w',capabilities:['research'],wallets:[{chain:'eip155:8453',address:'0x2222222222222222222222222222222222222222',assets:['A2A402']}]});const j=e.createJob({creatorId:payer.id,title:'x',description:'x',requiredCapability:'research',reward:1,paymentAsset:'A2A402',paymentNetwork:'base'});const c=e.claimJob(j.id,worker.id);assert.equal(c.paymentAsset,'A2A402');assert.equal(c.paymentRoute.asset,'A2A402');assert.equal(c.paymentRoute.chain,'eip155:8453')});\n\ntest('public machine surfaces are canonical',()=>{const token=JSON.parse(fs.readFileSync('apps/dashboard/public/token.json','utf8'));assert.equal(token.symbol,'A2A402');assert.equal(token.contractAddress,NEW);const openapi=fs.readFileSync('apps/dashboard/public/openapi.json','utf8');assert.match(openapi,/A2A402/);assert.doesNotMatch(openapi,new RegExp(OLD,'i'));const llms=fs.readFileSync('apps/dashboard/public/llms.txt','utf8');assert.match(llms,/paymentAsset=A2A402/);assert.doesNotMatch(llms,new RegExp(OLD,'i'));const build=fs.readFileSync('scripts/build.js','utf8');assert.match(build,/TOKEN_CONFIG/)});\n`);
+
+          // Final repository audit: old contract is allowed only in explicit legacy documentation/config and one-time workflows.
+          const allowedOld=new Set(['apps/api/src/token-config.js','docs/legacy-token.md','TOKEN_DEPLOYMENT.md','.github/workflows/a2a402-production-audit-fix.yml','.github/workflows/migrate-economy-a2a402.yml','tests/token-canonical.test.js']);
+          const offenders=[];
+          for(const f of filesUnder('.')){
+            if(f.includes('/node_modules/')||f.startsWith('node_modules/')||!fs.statSync(f).isFile())continue;
+            if(fs.statSync(f).size>2_000_000)continue;
+            let s;try{s=read(f)}catch{continue}
+            if(s.includes(OLD)&&!allowedOld.has(f.replace(/^\.\//,'')))offenders.push(f);
+          }
+          if(offenders.length){console.error('Unexpected legacy contract references:',offenders);process.exit(1)}
+          NODE
+      - name: Build and test before commit
+        run: |
+          npm run build
+          npm test
+          node --check netlify/functions/api.mjs
+          node --check netlify/functions/public-read.mjs
+          node --check netlify/functions/jobs.mjs
+          node --check scripts/build.js
+          grep -q 'A2A402' public/.well-known/agent-card.json
+          grep -q '0xf9e891696c022f9fe4a143a92255371253c5567a' public/.well-known/agent-card.json
+          ! grep -R '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01' public
+      - name: Commit only after tests pass
+        run: |
+          git config user.name 'a2a402-audit-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add . ':!.github/workflows/a2a402-production-audit-fix.yml'
+          git diff --cached --quiet && exit 0
+          git commit -m 'Audit and finalize production A2A402 migration'
+          git push
