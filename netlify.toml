@@ -114,6 +114,11 @@
   status = 200
 
 [[redirects]]
+  from = "/contracts/*/refresh-payment-readiness"
+  to = "/.netlify/functions/contracts"
+  status = 200
+
+[[redirects]]
   from = "/deliveries/*/auto-evaluate"
   to = "/.netlify/functions/evaluations"
   status = 200
