@@ -1,0 +1,59 @@
+name: Finalize production A2A402 migration
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/a2a402-finalize.yml']
+permissions:
+  contents: write
+jobs:
+  finalize:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - run: npm install
+      - name: Fix canonical runtime and public surfaces
+        run: |
+          node <<'NODE'
+          const fs=require('fs'),path=require('path');
+          const NEW='0xf9e891696c022f9fe4a143a92255371253c5567a',OLD='0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',TREASURY='0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c';
+          const read=p=>fs.readFileSync(p,'utf8'),write=(p,s)=>fs.writeFileSync(p,s);
+          const walk=p=>!fs.existsSync(p)?[]:fs.statSync(p).isFile()?[p]:fs.readdirSync(p).flatMap(n=>walk(path.join(p,n)));
+          fs.mkdirSync('docs',{recursive:true});
+          write('apps/api/src/token-config.js',`export const TOKEN_CONFIG=Object.freeze({name:'A2A402',symbol:'A2A402',network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'${NEW}',decimals:18,fixedSupply:'1000000000',treasuryAddress:'${TREASURY}',marketplaceFeeBps:500,workerShareBps:9500});\nexport const LEGACY_TOKEN_CONFIG=Object.freeze({label:'Legacy / Deprecated',name:'A2A',symbol:'A2A',contractAddress:'${OLD}',status:'deprecated'});\nexport const tokenAddressFromEnv=(env=process.env)=>String(env.A2A402_TOKEN_ADDRESS||env.A2A402_EXPECTED_TOKEN_ADDRESS||TOKEN_CONFIG.contractAddress).trim().toLowerCase();\nexport const treasuryAddressFromEnv=(env=process.env)=>String(env.A2A402_TREASURY_ADDRESS||env.A2A402_EXPECTED_TREASURY_ADDRESS||TOKEN_CONFIG.treasuryAddress).trim();\n`);
+          write('docs/legacy-token.md',`# Legacy / Deprecated A2A token\n\nHistorical only. A2A is deprecated.\n\nLegacy contract: ${OLD}\n\nCanonical replacement: A2A402 at ${NEW}.\n`);
+          const roots=['apps','netlify','scripts','packages','.env.example','README.md'];
+          for(const f of roots.flatMap(walk)){if(!fs.statSync(f).isFile()||fs.statSync(f).size>2e6)continue;let s;try{s=read(f)}catch{continue}s=s.split(OLD).join(NEW);write(f,s)}
+          const runtime=['apps/api/src/economy.js','apps/api/src/payment-execution.js','apps/api/src/seed.js','apps/api/src/server.js','netlify/functions/api.mjs','netlify/functions/public-read.mjs','netlify/functions/payment-execution.mjs','netlify/functions/genesis-settlement.mjs','netlify/functions/contracts.mjs'].filter(fs.existsSync);
+          for(const f of runtime){let s=read(f);s=s.replace(/(['"])A2A\1/g,"'A2A402'").replace(/A2A-denominated/g,'A2A402-denominated').replace(/A2A jobs/g,'A2A402 jobs').replace(/A2A payment/g,'A2A402 payment').replace(/A2A settlement/g,'A2A402 settlement').replace(/base-mainnet-a2a-erc20/g,'base-mainnet-a2a402-erc20');write(f,s)}
+          let api=read('netlify/functions/api.mjs');if(!api.includes("token-config.js"))api=api.replace("import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';", "import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';\nimport { TOKEN_CONFIG, tokenAddressFromEnv, treasuryAddressFromEnv } from '../../apps/api/src/token-config.js';");api=api.replace(/const baseUrl=.*?const transferTopic=/s,`const baseUrl=process.env.APP_BASE_URL||process.env.URL||'https://a2a402.market';const loungeEnabled=process.env.A2A402_ENABLE_LOUNGE!=='false';const a2aTokenAddress=tokenAddressFromEnv();const treasuryAddress=treasuryAddressFromEnv();const baseMainnetRpcUrl=process.env.A2A402_BASE_MAINNET_RPC_URL||'https://mainnet.base.org';const transferTopic=`);write('netlify/functions/api.mjs',api);
+          let pr=read('netlify/functions/public-read.mjs');if(!pr.includes("token-config.js"))pr=pr.replace("import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';", "import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';\nimport { TOKEN_CONFIG, tokenAddressFromEnv } from '../../apps/api/src/token-config.js';");pr=pr.replace(/if\(p==='\/health'\)return reply\(200,\{[^;]+\}\);/,"if(p==='/health')return reply(200,{status:'ok',environment:'production',realMoney:true,runtime:'netlify',persistence:persistenceMode(),token:{...TOKEN_CONFIG,contractAddress:tokenAddressFromEnv()},network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,tokenContract:tokenAddressFromEnv(),marketplaceFeeBps:TOKEN_CONFIG.marketplaceFeeBps,workerShareBps:TOKEN_CONFIG.workerShareBps});");write('netlify/functions/public-read.mjs',pr);
+          let build=read('scripts/build.js');if(!build.includes("token-config.js"))build="import { TOKEN_CONFIG } from '../apps/api/src/token-config.js';\n"+build;build=build.replace(/A2A is the native token of the A2A402 autonomous agent economy\./g,'A2A402 is the native token of the A2A402 autonomous agent economy.').replace(/name:'A2A',symbol:'A2A'/g,'name:TOKEN_CONFIG.name,symbol:TOKEN_CONFIG.symbol').replace(/acceptedAssets:\['A2A'\],primarySettlementAsset:'A2A'/g,'acceptedAssets:[TOKEN_CONFIG.symbol],primarySettlementAsset:TOKEN_CONFIG.symbol').replace(/tokenContract:'[^']+'/g,'tokenContract:TOKEN_CONFIG.contractAddress').replace(/paymentAsset=A2A(?!402)/g,'paymentAsset=A2A402');write('scripts/build.js',build);
+          for(const f of walk('apps/dashboard/public').filter(f=>/\.(html|json|txt)$/.test(f))){let s=read(f);s=s.replace(/paymentAsset=A2A(?!402)/g,'paymentAsset=A2A402').replace(/A2A-denominated/g,'A2A402-denominated').replace(/A2A token/gi,'A2A402 token').replace(/A2A settlement/g,'A2A402 settlement').replace(/A2A payment/g,'A2A402 payment').replace(/"A2A"/g,'"A2A402"');write(f,s)}
+          const op='apps/dashboard/public/openapi.json',spec=JSON.parse(read(op));spec.info.version='1.4.0';spec.components.schemas={...(spec.components.schemas||{}),RegistrationResponse:{type:'object',required:['id','authToken'],properties:{id:{type:'string'},authToken:{type:'string',description:'Returned once at response root; retain securely.'}}},JobRequirements:{type:'object',description:'MUST be a JSON object, never an array.',properties:{objective:{type:'string'},inputs:{type:'array',items:{type:'object'}},deliverable:{type:'object'},acceptanceCriteria:{type:'array',items:{type:'string'}},maxDurationSeconds:{type:'integer'}}},JobCreateRequest:{type:'object',required:['title','description','requiredCapability','reward'],properties:{title:{type:'string'},description:{type:'string'},requiredCapability:{type:'string'},reward:{type:'number'},paymentAsset:{type:'string',enum:['A2A402']},paymentNetwork:{type:'string',enum:['base']},requirements:{$ref:'#/components/schemas/JobRequirements'}}}};spec.paths['/agents/register'].post.responses['201']={description:'Agent fields and authToken are returned at the response root.',content:{'application/json':{schema:{$ref:'#/components/schemas/RegistrationResponse'}}}};spec.paths['/jobs'].post.requestBody={required:true,content:{'application/json':{schema:{$ref:'#/components/schemas/JobCreateRequest'}}}};spec.paths['/lounge/messages']={get:{summary:'Read public agent chat',responses:{200:{description:'Messages'}}},post:{summary:'Post authenticated public agent chat',security:[{agentBearer:[],agentId:[]}],responses:{201:{description:'Posted'}}}};write(op,JSON.stringify(spec,null,2)+'\n');
+          let toml=read('netlify.toml');toml=toml.replace('from = "/lounge/messages"\n  to = "/.netlify/functions/public-read"','from = "/lounge/messages"\n  to = "/.netlify/functions/api"');write('netlify.toml',toml);
+          let jobs=read('netlify/functions/jobs.mjs');jobs=jobs.replace('requirements must be an object','requirements must be a JSON object; arrays are not accepted');write('netlify/functions/jobs.mjs',jobs);
+          let ci=read('.github/workflows/ci.yml');ci=ci.replace('A2A is the native token of the A2A402 autonomous agent economy','A2A402 is the native token of the A2A402 autonomous agent economy');write('.github/workflows/ci.yml',ci);
+          write('tests/token-canonical.test.js',`import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';import {TOKEN_CONFIG} from '../apps/api/src/token-config.js';import {Economy} from '../apps/api/src/economy.js';import {handler as health} from '../netlify/functions/public-read.mjs';\ntest('canonical config',()=>{assert.deepEqual([TOKEN_CONFIG.name,TOKEN_CONFIG.symbol,TOKEN_CONFIG.chainId,TOKEN_CONFIG.contractAddress,TOKEN_CONFIG.decimals,TOKEN_CONFIG.fixedSupply],['A2A402','A2A402',8453,'${NEW}',18,'1000000000'])});\ntest('health canonical',async()=>{const r=await health({httpMethod:'GET',path:'/health',headers:{}}),b=JSON.parse(r.body);assert.equal(b.tokenContract,'${NEW}');assert.equal(b.token.symbol,'A2A402')});\ntest('job route canonical',()=>{const e=new Economy(),p=e.registerAgent({name:'p',description:'p',endpoint:'https://p.test',capabilities:['x'],wallets:[{chain:'eip155:8453',address:'0x1111111111111111111111111111111111111111',assets:['A2A402']}]}),w=e.registerAgent({name:'w',description:'w',endpoint:'https://w.test',capabilities:['x'],wallets:[{chain:'eip155:8453',address:'0x2222222222222222222222222222222222222222',assets:['A2A402']}]});const j=e.createJob({creatorId:p.id,title:'x',description:'x',requiredCapability:'x',reward:1,paymentAsset:'A2A402',paymentNetwork:'base'}),c=e.claimJob(j.id,w.id);assert.equal(c.paymentRoute.asset,'A2A402')});\ntest('machine metadata canonical',()=>{const t=JSON.parse(fs.readFileSync('apps/dashboard/public/token.json'));assert.equal(t.symbol,'A2A402');assert.equal(t.contractAddress,'${NEW}');assert.doesNotMatch(fs.readFileSync('apps/dashboard/public/openapi.json','utf8'),/${OLD}/i)});\n`);
+          NODE
+      - name: Test before commit
+        run: |
+          npm run build
+          npm test
+          node --check netlify/functions/api.mjs
+          node --check netlify/functions/public-read.mjs
+          node --check scripts/build.js
+          grep -q '0xf9e891696c022f9fe4a143a92255371253c5567a' public/.well-known/agent-card.json
+          ! grep -R '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01' public
+      - name: Commit tested migration
+        run: |
+          git config user.name a2a402-audit-bot
+          git config user.email actions@users.noreply.github.com
+          git add apps netlify scripts packages tests docs .env.example README.md netlify.toml .github/workflows/ci.yml
+          git diff --cached --quiet && exit 0
+          git commit -m 'Finalize canonical A2A402 production migration'
+          git push
