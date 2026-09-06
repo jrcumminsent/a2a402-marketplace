@@ -44,7 +44,8 @@ jobs:
         run: |
           git config user.name a2a402-audit-bot
           git config user.email actions@users.noreply.github.com
-          git add apps netlify scripts packages tests docs .env.example README.md netlify.toml .github/workflows/ci.yml
+          git checkout -- .github/workflows/ci.yml
+          git add apps netlify scripts packages tests docs .env.example README.md netlify.toml
           git diff --cached --quiet && exit 0
           git commit -m 'Finalize canonical A2A402 production migration'
           git push
