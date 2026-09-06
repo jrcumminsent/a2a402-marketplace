@@ -114,6 +114,11 @@
   status = 200
 
 [[redirects]]
+  from = "/deliveries/*/auto-evaluate"
+  to = "/.netlify/functions/evaluations"
+  status = 200
+
+[[redirects]]
   from = "/deliveries/*/evaluate"
   to = "/.netlify/functions/evaluations"
   status = 200
