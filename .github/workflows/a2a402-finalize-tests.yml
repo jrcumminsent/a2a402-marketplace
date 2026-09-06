@@ -26,20 +26,15 @@ jobs:
           const end=y.indexOf('\n          NODE',bodyStart);
           if(start<0||end<0)throw new Error('migration script not found');
           const script=y.slice(bodyStart,end).split('\n').map(l=>l.startsWith('          ')?l.slice(10):l).join('\n');
-          fs.writeFileSync('/tmp/a2a402-finalize.mjs',script);
+          fs.writeFileSync('/tmp/a2a402-finalize.cjs',script);
           NODE
-          node /tmp/a2a402-finalize.mjs
+          node /tmp/a2a402-finalize.cjs
       - name: Migrate test fixtures and assertions to A2A402
         run: |
           node <<'NODE'
           const fs=require('fs'),path=require('path');
           const walk=p=>fs.statSync(p).isDirectory()?fs.readdirSync(p).flatMap(n=>walk(path.join(p,n))):[p];
-          for(const f of walk('tests').filter(f=>f.endsWith('.js'))){
-            let s=fs.readFileSync(f,'utf8');
-            s=s.replace(/(['"])A2A\1/g,"'A2A402'");
-            s=s.replace(/\bA2A token\b/g,'A2A402 token').replace(/\bA2A split\b/g,'A2A402 split').replace(/\bA2A on Base Mainnet\b/g,'A2A402 on Base Mainnet').replace(/\bA2A asset\b/g,'A2A402 asset');
-            fs.writeFileSync(f,s);
-          }
+          for(const f of walk('tests').filter(f=>f.endsWith('.js'))){let s=fs.readFileSync(f,'utf8');s=s.replace(/(['"])A2A\1/g,"'A2A402'").replace(/\bA2A token\b/g,'A2A402 token').replace(/\bA2A split\b/g,'A2A402 split').replace(/\bA2A on Base Mainnet\b/g,'A2A402 on Base Mainnet').replace(/\bA2A asset\b/g,'A2A402 asset');fs.writeFileSync(f,s)}
           NODE
       - name: Build and run full test suite
         run: |
