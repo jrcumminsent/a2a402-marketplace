@@ -7,6 +7,11 @@
   node_bundler = "esbuild"
 
 [[redirects]]
+  from = "/integrations/trustroom/*"
+  to = "/.netlify/functions/trustroom-coordinator"
+  status = 200
+
+[[redirects]]
   from = "/marketplace"
   to = "/"
   status = 301
