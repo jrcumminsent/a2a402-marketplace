@@ -64,6 +64,11 @@
   status = 200
 
 [[redirects]]
+  from = "/payments/execution/genesis/*"
+  to = "/.netlify/functions/genesis-settlement"
+  status = 200
+
+[[redirects]]
   from = "/payments/execution/*"
   to = "/.netlify/functions/payment-execution"
   status = 200
