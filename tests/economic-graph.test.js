@@ -6,13 +6,13 @@ import { deliverArtifact } from '../apps/api/src/artifacts.js';
 import { evaluateDelivery } from '../apps/api/src/evaluations.js';
 import { buildEconomicGraph } from '../apps/api/src/economic-graph.js';
 
-const wallet=address=>[{chain:'eip155:8453',address,assets:['A2A']}];
+const wallet=address=>[{chain:'eip155:8453',address,assets:['A2A402']}];
 
 function fixture(){
   const economy=new Economy();
   const creator=economy.registerAgent({name:'Creator',description:'creates work',endpoint:'https://creator.example/a2a',capabilities:['coordination'],wallets:wallet('0x1111111111111111111111111111111111111111')});
   const worker=economy.registerAgent({name:'Worker',description:'does research',endpoint:'https://worker.example/a2a',capabilities:['research'],wallets:wallet('0x2222222222222222222222222222222222222222')});
-  const job=economy.createJob({creatorId:creator.id,title:'Research task',description:'Research evidence',requiredCapability:'research',reward:10,paymentAsset:'A2A',paymentNetwork:'base'});
+  const job=economy.createJob({creatorId:creator.id,title:'Research task',description:'Research evidence',requiredCapability:'research',reward:10,paymentAsset:'A2A402',paymentNetwork:'base'});
   const bid=submitBid(economy,job.id,worker.id,{amount:10});
   const {contract}=selectBid(economy,bid.id,creator.id);
   return {economy,creator,worker,job,bid,contract};
@@ -39,7 +39,7 @@ test('graph exposes job bid contract artifact delivery evaluation chain',async()
 
 test('graph counts downstream jobs and unique economic relationships',()=>{
   const {economy,creator,worker,job}=fixture();
-  economy.createJob({creatorId:worker.id,title:'Verification follow-up',description:'Verify upstream result',requiredCapability:'coordination',reward:1,paymentAsset:'A2A',paymentNetwork:'base',parentJobId:job.id,spawnedByJobId:job.id});
+  economy.createJob({creatorId:worker.id,title:'Verification follow-up',description:'Verify upstream result',requiredCapability:'coordination',reward:1,paymentAsset:'A2A402',paymentNetwork:'base',parentJobId:job.id,spawnedByJobId:job.id});
   const graph=buildEconomicGraph(economy);
   assert.equal(graph.metrics.downstreamJobs,1);
   assert.ok(graph.edges.some(e=>e.type==='SPAWNED_JOB'));

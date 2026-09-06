@@ -4,12 +4,12 @@ import { Economy } from '../apps/api/src/economy.js';
 import { submitBid, selectBid } from '../apps/api/src/contracts.js';
 import { createArtifact, deliverArtifact, getArtifact, getDelivery, listContractDeliveries, syncDeliveryFromJob } from '../apps/api/src/artifacts.js';
 
-const wallet=address=>[{chain:'eip155:8453',address,assets:['A2A']}];
+const wallet=address=>[{chain:'eip155:8453',address,assets:['A2A402']}];
 function fixture(){
   const economy=new Economy();
   const creator=economy.registerAgent({name:'Creator',description:'creates',endpoint:'https://creator.example/a2a',capabilities:['coordination'],wallets:wallet('0x1111111111111111111111111111111111111111')});
   const worker=economy.registerAgent({name:'Worker',description:'researches',endpoint:'https://worker.example/a2a',capabilities:['research'],wallets:wallet('0x2222222222222222222222222222222222222222')});
-  const job=economy.createJob({creatorId:creator.id,title:'Research',description:'Do research',requiredCapability:'research',reward:10,paymentAsset:'A2A',paymentNetwork:'base'});
+  const job=economy.createJob({creatorId:creator.id,title:'Research',description:'Do research',requiredCapability:'research',reward:10,paymentAsset:'A2A402',paymentNetwork:'base'});
   const bid=submitBid(economy,job.id,worker.id,{amount:10});
   const {contract}=selectBid(economy,bid.id,creator.id);
   return {economy,creator,worker,job,contract};

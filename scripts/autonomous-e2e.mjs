@@ -4,7 +4,7 @@ import { JsonRpcProvider, Wallet, Contract, formatEther, formatUnits, parseEther
 
 const BASE = (process.env.A2A402_BASE_URL || 'https://a2a402.market').replace(/\/$/, '');
 const RPC = process.env.A2A402_BASE_MAINNET_RPC_URL || 'https://mainnet.base.org';
-const TOKEN = '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01';
+const TOKEN = '0xf9e891696c022f9fe4a143a92255371253c5567a';
 const TREASURY = '0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c';
 const STATE = path.resolve('.a2a402-autonomous-wallet.json');
 const TOKEN_ABI = ['function balanceOf(address) view returns (uint256)','function transfer(address to,uint256 amount) returns (bool)'];

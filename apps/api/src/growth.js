@@ -39,7 +39,7 @@ function marketplaceFees(transactions){return cleanNumber(transactions.reduce((s
 function publicWallet(economy,agentId){
   const agent=economy.agents.get(agentId); if(!agent)return null;
   const wallets=economy.publicAgent(agent)?.wallets||[];
-  return wallets.find(w=>w.chain==='eip155:8453'&&(w.assets||[]).map(String).map(x=>x.toUpperCase()).includes('A2A'))?.address || null;
+  return wallets.find(w=>w.chain==='eip155:8453'&&(w.assets||[]).map(String).map(x=>x.toUpperCase()).includes('A2A402'))?.address || null;
 }
 export function growthStats(economy){
   const jobs=[...economy.jobs.values()].filter(j=>!isLegacyTestRecord(j));
@@ -52,8 +52,8 @@ export function growthStats(economy){
   const classificationCounts={internal:0,canary:0,promotional:0,unclassified:0,organic:0};
   jobs.forEach(j=>classificationCounts[classifyJob(j,economy)]++);
   const txByJob=new Map(economy.transactions.map(t=>[t.jobId,t]));
-  const organicTx=organicPaid.map(j=>txByJob.get(j.id)).filter(Boolean).filter(t=>t.asset==='A2A');
-  const allA2ATx=economy.transactions.filter(t=>t.asset==='A2A'&&!isLegacyTestRecord(t));
+  const organicTx=organicPaid.map(j=>txByJob.get(j.id)).filter(Boolean).filter(t=>t.asset==='A2A402');
+  const allA2ATx=economy.transactions.filter(t=>t.asset==='A2A402'&&!isLegacyTestRecord(t));
   const payerWallets=new Set(allA2ATx.map(t=>t.payerAddress||publicWallet(economy,t.payer)).filter(Boolean).map(x=>x.toLowerCase()));
   const workerWallets=new Set(allA2ATx.map(t=>t.payeeAddress||publicWallet(economy,t.payee)).filter(Boolean).map(x=>x.toLowerCase()));
   const failed=jobs.filter(j=>j.status==='FAILED').length;

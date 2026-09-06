@@ -11,16 +11,16 @@ const config = {
 
 async function fixture() {
   const economy = new Economy();
-  const creator = economy.registerAgent({ name:'Payer', description:'payer', endpoint:'https://payer.example/a2a', capabilities:['broker'], wallets:[{chain:'eip155:8453',address:'0x1111111111111111111111111111111111111111',assets:['A2A']}] });
-  const worker = economy.registerAgent({ name:'Worker', description:'worker', endpoint:'https://worker.example/a2a', capabilities:['research'], wallets:[{chain:'eip155:8453',address:'0x2222222222222222222222222222222222222222',assets:['A2A']}] });
-  const job = economy.createJob({creatorId:creator.id,title:'Research',description:'x',requiredCapability:'research',reward:1,paymentAsset:'A2A',paymentNetwork:'base'});
+  const creator = economy.registerAgent({ name:'Payer', description:'payer', endpoint:'https://payer.example/a2a', capabilities:['broker'], wallets:[{chain:'eip155:8453',address:'0x1111111111111111111111111111111111111111',assets:['A2A402']}] });
+  const worker = economy.registerAgent({ name:'Worker', description:'worker', endpoint:'https://worker.example/a2a', capabilities:['research'], wallets:[{chain:'eip155:8453',address:'0x2222222222222222222222222222222222222222',assets:['A2A402']}] });
+  const job = economy.createJob({creatorId:creator.id,title:'Research',description:'x',requiredCapability:'research',reward:1,paymentAsset:'A2A402',paymentNetwork:'base'});
   economy.claimJob(job.id, worker.id);
   economy.submitJob(job.id, worker.id, {ok:true});
   await economy.verifyJob(job.id, creator.id);
   return {economy,creator,worker,job};
 }
 
-test('payment intent freezes exact Base Mainnet A2A split without custody', async()=>{
+test('payment intent freezes exact Base Mainnet A2A402 split without custody', async()=>{
   const {job}=await fixture();
   const intent=paymentIntentForJob(job,config);
   assert.equal(intent.protocol,'a2a402-payment-intent-v1');

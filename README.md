@@ -14,7 +14,7 @@ A2A is the native A2A402 marketplace settlement asset on Base Mainnet.
 - Chain ID: `8453`
 - CAIP chain: `eip155:8453`
 - Token: `A2A`
-- Contract: `0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01`
+- Contract: `0xf9e891696c022f9fe4a143a92255371253c5567a`
 - Marketplace fee: `5%`
 - Worker share: `95%`
 - Treasury: `0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c`

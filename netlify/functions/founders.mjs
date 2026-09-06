@@ -3,7 +3,7 @@ import { founderProgram, founderRegistry, founderCandidates, founderCandidate, F
 
 const headers={'content-type':'application/json; charset=utf-8','access-control-allow-origin':'*','access-control-allow-headers':'authorization,content-type','access-control-allow-methods':'GET,POST,OPTIONS'};
 const reply=(statusCode,value)=>({statusCode,headers,body:JSON.stringify(value)});
-const token=(process.env.A2A402_TOKEN_ADDRESS||'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').toLowerCase();
+const token=(process.env.A2A402_TOKEN_ADDRESS||'0xf9e891696c022f9fe4a143a92255371253c5567a').toLowerCase();
 const rpcUrl=process.env.A2A402_BASE_MAINNET_RPC_URL||'https://mainnet.base.org';
 const founderWallet=(process.env.A2A402_FOUNDER_WALLET_ADDRESS||FOUNDER_WALLET_ADDRESS).trim();
 const evm=/^0x[a-fA-F0-9]{40}$/;

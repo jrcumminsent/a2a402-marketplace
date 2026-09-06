@@ -10,8 +10,8 @@ const token=JSON.parse(fs.readFileSync('apps/dashboard/public/token.json','utf8'
 test('growth accounting does not expose IEEE-754 fee artifacts',()=>{
   const economy=new Economy();
   economy.transactions.push(
-    {id:'tx_a',asset:'A2A',network:'base',amount:0.95,feeAmount:0.05,payer:'external-a',payee:'external-b'},
-    {id:'tx_b',asset:'A2A',network:'base',amount:1.9,feeAmount:0.1,payer:'external-a',payee:'external-c'}
+    {id:'tx_a',asset:'A2A402',network:'base',amount:0.95,feeAmount:0.05,payer:'external-a',payee:'external-b'},
+    {id:'tx_b',asset:'A2A402',network:'base',amount:1.9,feeAmount:0.1,payer:'external-a',payee:'external-c'}
   );
   const stats=growthStats(economy);
   assert.equal(stats.marketplace.marketplaceFees,0.15);

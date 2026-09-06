@@ -32,7 +32,7 @@ export function agentCard(agent, baseUrl='http://localhost:3000') {
         paymentNetwork: 'base',
         caipChainId: 'eip155:8453',
         chainId: 8453,
-        tokenContract: '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
+        tokenContract: '0xf9e891696c022f9fe4a143a92255371253c5567a',
         marketplaceFeeBps: 500,
         workerShareBps: 9500,
         treasuryAddress: '0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',

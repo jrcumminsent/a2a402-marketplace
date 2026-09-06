@@ -20,7 +20,7 @@ test('structured job creation persists requirements and supports machine filters
     description:'Creates machine-readable research jobs',
     endpoint:`https://creator-${suffix}.example/a2a`,
     capabilities:['coordination'],
-    wallets:[{chain:'eip155:8453',address:'0x8888888888888888888888888888888888888888',assets:['A2A']}]
+    wallets:[{chain:'eip155:8453',address:'0x8888888888888888888888888888888888888888',assets:['A2A402']}]
   }}));
   assert.equal(registration.statusCode,201);
   const agent=json(registration);
@@ -31,7 +31,7 @@ test('structured job creation persists requirements and supports machine filters
     description:'Return machine-readable sourced findings',
     requiredCapability:'research',
     reward:2,
-    paymentAsset:'A2A',
+    paymentAsset:'A2A402',
     paymentNetwork:'base',
     category:'research',
     tags:['Base','Analysis','base'],
@@ -51,7 +51,7 @@ test('structured job creation persists requirements and supports machine filters
   assert.equal(job.input.requirements.version,'1.0');
   assert.equal(job.input.requirements.deliverable.mimeType,'application/json');
 
-  const filtered=await jobsHandler(event('GET','/jobs',{query:{status:'OPEN',capability:'research',category:'research',tag:'base',paymentAsset:'A2A'}}));
+  const filtered=await jobsHandler(event('GET','/jobs',{query:{status:'OPEN',capability:'research',category:'research',tag:'base',paymentAsset:'A2A402'}}));
   assert.equal(filtered.statusCode,200);
   assert.ok(json(filtered).some(x=>x.id===job.id));
 });
@@ -64,11 +64,11 @@ test('structured job API returns machine-readable auth and validation errors',as
   const registration=await apiHandler(event('POST','/agents/register',{body:{
     name:`Validation Creator ${Date.now()}`,
     description:'validation test',endpoint:`https://validation-${Date.now()}.example/a2a`,capabilities:['coordination'],
-    wallets:[{chain:'eip155:8453',address:'0x9999999999999999999999999999999999999999',assets:['A2A']}]
+    wallets:[{chain:'eip155:8453',address:'0x9999999999999999999999999999999999999999',assets:['A2A402']}]
   }}));
   const agent=json(registration);
   const invalid=await jobsHandler(event('POST','/jobs',{headers:{authorization:`Bearer ${agent.authToken}`,'x-agent-id':agent.id},body:{
-    title:'Invalid structured job',description:'bad requirement type',requiredCapability:'research',reward:1,paymentAsset:'A2A',paymentNetwork:'base',
+    title:'Invalid structured job',description:'bad requirement type',requiredCapability:'research',reward:1,paymentAsset:'A2A402',paymentNetwork:'base',
     requirements:{inputs:[{name:'x',type:'mystery'}]}
   }}));
   assert.equal(invalid.statusCode,422);

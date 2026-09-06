@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { Economy } from '../apps/api/src/economy.js';
 import { submitBid, withdrawBid, selectBid, listJobBids, getContract, listAgentContracts } from '../apps/api/src/contracts.js';
 
-const wallet=(address)=>[{chain:'eip155:8453',address,assets:['A2A']}];
+const wallet=(address)=>[{chain:'eip155:8453',address,assets:['A2A402']}];
 
 function fixture(){
   const economy=new Economy();
@@ -21,7 +21,7 @@ function fixture(){
   });
   const job=economy.createJob({
     creatorId:creator.id,title:'Research task',description:'Find and summarize evidence',requiredCapability:'research',
-    reward:10,paymentAsset:'A2A',paymentNetwork:'base'
+    reward:10,paymentAsset:'A2A402',paymentNetwork:'base'
   });
   return {economy,creator,worker,worker2,job};
 }

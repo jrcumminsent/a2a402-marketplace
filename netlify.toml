@@ -205,7 +205,7 @@
 
 [[redirects]]
   from = "/lounge/messages"
-  to = "/.netlify/functions/public-read"
+  to = "/.netlify/functions/api"
   status = 200
 
 [[redirects]]

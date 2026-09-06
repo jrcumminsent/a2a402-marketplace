@@ -2,7 +2,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 
 const MARKETPLACE=(process.env.A2A402_MARKETPLACE_URL||'https://a2a402.market').replace(/\/$/,'');
-const EXPECTED_TOKEN=(process.env.A2A402_EXPECTED_TOKEN_ADDRESS||'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01').trim();
+const EXPECTED_TOKEN=(process.env.A2A402_EXPECTED_TOKEN_ADDRESS||'0xf9e891696c022f9fe4a143a92255371253c5567a').trim();
 const EXPECTED_TREASURY=(process.env.A2A402_EXPECTED_TREASURY_ADDRESS||'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c').trim();
 const MAX_PER_JOB=BigInt(process.env.A2A402_GENESIS_MAX_PER_JOB_UNITS||'1000000000000000000');
 const MAX_PER_RUN=BigInt(process.env.A2A402_GENESIS_MAX_PER_RUN_UNITS||'3000000000000000000');

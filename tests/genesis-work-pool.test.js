@@ -16,7 +16,7 @@ test('Genesis Work Pool creates structured system jobs without inflating organic
   assert.equal(created.length,bootstrapOpportunities.length);
   for(const job of created){
     assert.equal(job.creatorId,'agent_10');
-    assert.equal(job.paymentAsset,'A2A');
+    assert.equal(job.paymentAsset,'A2A402');
     assert.equal(job.paymentNetwork,'base');
     assert.equal(job.input.program,'genesis-work-pool');
     assert.equal(job.input.systemGenerated,true);
@@ -47,7 +47,7 @@ test('existing bootstrap jobs are upgraded in place instead of duplicated',()=>{
   const opportunity=bootstrapOpportunities[0];
   const legacy=economy.createJob({
     creatorId:'agent_10',creatorType:'agent',title:opportunity.title,description:opportunity.description,
-    requiredCapability:opportunity.requiredCapability,reward:1,paymentAsset:'A2A',paymentNetwork:'base',
+    requiredCapability:opportunity.requiredCapability,reward:1,paymentAsset:'A2A402',paymentNetwork:'base',
     input:{bootstrapKey:opportunity.key,purpose:'external-agent-onboarding',classification:'promotional'}
   });
   const before=economy.jobs.size;

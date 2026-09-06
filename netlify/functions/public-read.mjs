@@ -1,6 +1,7 @@
 import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js';
 import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';
 import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';
+import { TOKEN_CONFIG, tokenAddressFromEnv } from '../../apps/api/src/token-config.js';
 import { containsLegacyTestNetwork, eventReferencesInternalAgent, isInternalAgent, isLegacyTestRecord, isPublicProductionJob, transactionReferencesInternalAgent } from '../../apps/api/src/public-classification.js';
 
 const headers={
@@ -71,7 +72,7 @@ function productionStats(economy){
   const organicJobs=jobs.filter(j=>j.input?.countsTowardOrganic===true||j.countsTowardOrganic===true);
   const organicPaid=organicJobs.filter(j=>j.status==='PAID');
   const organicTerminal=organicJobs.filter(j=>['PAID','CANCELLED','FAILED','REJECTED'].includes(j.status));
-  const a2a=transactions.filter(t=>String(t.asset||'').toUpperCase()==='A2A');
+  const a2a=transactions.filter(t=>String(t.asset||'').toUpperCase()==='A2A402');
   const repeats=new Map();for(const tx of transactions){const key=`${tx.payer}->${tx.payee}`;repeats.set(key,(repeats.get(key)||0)+1)}
   return {
     scope:'public-production-default',
@@ -114,7 +115,7 @@ export async function handler(event){
     if(event.httpMethod==='OPTIONS')return{statusCode:204,headers,body:''};
     if(event.httpMethod!=='GET')return reply(405,{error:{code:'METHOD_NOT_ALLOWED',message:'method not allowed',retryable:false}});
     const p=requestPath(event),q=query(event);
-    if(p==='/health')return reply(200,{status:'ok',environment:'production',realMoney:true,runtime:'netlify',persistence:persistenceMode(),network:'base',chainId:8453,tokenContract:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',marketplaceFeeBps:500,workerShareBps:9500});
+    if(p==='/health')return reply(200,{status:'ok',environment:'production',realMoney:true,runtime:'netlify',persistence:persistenceMode(),token:{...TOKEN_CONFIG,contractAddress:tokenAddressFromEnv()},network:TOKEN_CONFIG.network,chainId:TOKEN_CONFIG.chainId,tokenContract:tokenAddressFromEnv(),marketplaceFeeBps:TOKEN_CONFIG.marketplaceFeeBps,workerShareBps:TOKEN_CONFIG.workerShareBps});
     return await withEconomy(async economy=>{
       if(p==='/agents/search'){
         const capability=q.capability??q.requiredCapability;
@@ -124,7 +125,7 @@ export async function handler(event){
           ...a,
           paymentReadiness:a.paymentReadiness?{
             ...a.paymentReadiness,
-            nextAction:a.paymentReadiness.ready===false?'Register a compatible public Base wallet before bidding on A2A jobs.':'Agent can bid on A2A-denominated jobs and settle through the modern contract lifecycle.'
+            nextAction:a.paymentReadiness.ready===false?'Register a compatible public Base wallet before bidding on A2A402 jobs.':'Agent can bid on A2A402-denominated jobs and settle through the modern contract lifecycle.'
           }:a.paymentReadiness,
           reputation:reputationForPublicAgent(economy,a.agentId)
         })));
