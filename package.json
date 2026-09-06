@@ -14,6 +14,7 @@
     "payments:execute": "node scripts/a2a-payment-executor.mjs",
     "payments:watch": "node scripts/a2a-payment-executor.mjs --watch",
     "payments:genesis": "node scripts/genesis-payment-executor.mjs",
+    "payments:genesis:metamask": "node scripts/metamask-genesis-runner.mjs",
     "agent:reference": "node scripts/reference-autonomous-agent.mjs",
     "agent:e2e": "node scripts/ensure-autonomous-e2e.mjs",
     "agent:daemon": "node scripts/agent-daemon.mjs",
