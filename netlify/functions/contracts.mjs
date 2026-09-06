@@ -1,3 +1,4 @@
+import { id, now } from '../../packages/protocol/src/index.js';
 import { withEconomy } from '../../apps/api/src/persistence.js';
 import { submitBid, withdrawBid, selectBid, listJobBids, getContract, listAgentContracts } from '../../apps/api/src/contracts.js';
 import { isInternalAgent } from '../../apps/api/src/public-classification.js';
@@ -11,6 +12,37 @@ function isGenesisJob(job){
   return Boolean(job&&job.input?.program==='genesis-work-pool'&&job.input?.systemGenerated===true&&job.input?.classification==='promotional'&&job.input?.countsTowardOrganic===false);
 }
 
+function activateWalletlessGenesisContract(economy,bid,job){
+  const at=now();
+  bid.status='SELECTED';bid.selectedAt=at;bid.updatedAt=at;
+  for(const other of economy.bids.values()){
+    if(other.jobId!==job.id||other.id===bid.id||other.status!=='OPEN')continue;
+    other.status='REJECTED';other.rejectedAt=at;other.updatedAt=at;
+    economy.event('BID_REJECTED',{bidId:other.id,jobId:job.id,bidderId:other.bidderId,reason:'another bid selected'});
+  }
+  job.workerId=bid.bidderId;
+  job.status='IN_PROGRESS';
+  job.claimedAt=at;
+  job.updatedAt=at;
+  job.payeeAddress=null;
+  job.paymentRoute={kind:'direct',chain:'eip155:8453',network:'base',asset:'A2A',payerAddress:job.payerAddress,payeeAddress:null,available:false,settlementSupport:'wallet-required-before-settlement',adapter:'base-mainnet-a2a-erc20',marketplaceFeeBps:Number(job.marketplaceFeeBps||500)};
+  const contract={
+    id:id('contract'),jobId:job.id,bidId:bid.id,creatorId:job.creatorId,workerId:bid.bidderId,
+    requiredCapability:job.requiredCapability,amount:Number(job.reward),paymentAsset:job.paymentAsset,
+    paymentNetwork:job.paymentNetwork,payerAddress:job.payerAddress,payeeAddress:null,
+    marketplaceFeeBps:job.marketplaceFeeBps,workerPaymentUnits:job.workerPaymentUnits,
+    marketplaceFeeUnits:job.marketplaceFeeUnits,verificationMethod:job.verificationMethod,
+    deadline:job.deadline,selectionIdempotencyKey:`genesis-auto-select:${bid.id}`,
+    settlementReady:false,settlementBlocker:'WORKER_WALLET_REQUIRED',status:'ACTIVE',createdAt:at,activatedAt:at,completedAt:null,settledAt:null
+  };
+  economy.contracts.set(contract.id,contract);
+  bid.contractId=contract.id;job.contractId=contract.id;job.selectedBidId=bid.id;
+  economy.event('BID_SELECTED',{bidId:bid.id,jobId:job.id,creatorId:job.creatorId,bidderId:bid.bidderId,contractId:contract.id});
+  economy.event('CONTRACT_ACTIVATED',{contractId:contract.id,jobId:job.id,creatorId:job.creatorId,workerId:bid.bidderId,settlementReady:false});
+  economy.event('GENESIS_BID_AUTO_SELECTED',{bidId:bid.id,jobId:job.id,creatorId:job.creatorId,bidderId:bid.bidderId,contractId:contract.id,walletDeferred:true});
+  return{bid,contract,job,autoSelection:{eligible:true,selected:true,reason:'GENESIS_POLICY_MATCH_WALLET_DEFERRED',contractId:contract.id,settlementReady:false,nextAction:'Perform the contracted work and submit delivery. A Base wallet is required only before final A2A settlement.'}};
+}
+
 function maybeAutoSelectGenesisBid(economy,bid,{requesterId=null}={}){
   const job=economy.jobs.get(bid?.jobId);
   const bidder=economy.agents.get(bid?.bidderId);
@@ -18,15 +50,14 @@ function maybeAutoSelectGenesisBid(economy,bid,{requesterId=null}={}){
   if(requesterId&&requesterId!==bid.bidderId)return{bid,autoSelection:{eligible:false,selected:false,reason:'ONLY_BIDDER_MAY_REQUEST_AUTO_SELECTION'}};
   if(!isGenesisJob(job))return{bid,autoSelection:{eligible:false,selected:false,reason:'NOT_GENESIS_JOB'}};
   if(isInternalAgent(bidder))return{bid,autoSelection:{eligible:false,selected:false,reason:'INTERNAL_BIDDER_NOT_ELIGIBLE'}};
+  if(bid.status==='SELECTED'&&bid.contractId){const contract=economy.contracts.get(bid.contractId);return{bid,contract,job,autoSelection:{eligible:true,selected:true,reason:'ALREADY_SELECTED',contractId:bid.contractId,settlementReady:Boolean(contract?.payeeAddress)}};}
   if(job.status!=='OPEN'||bid.status!=='OPEN')return{bid,autoSelection:{eligible:true,selected:false,reason:'JOB_OR_BID_NOT_OPEN'}};
   if(Number(bid.amount)!==Number(job.reward))return{bid,autoSelection:{eligible:true,selected:false,reason:'BID_AMOUNT_MISMATCH'}};
   const readiness=economy.publicAgent(bidder)?.paymentReadiness;
-  if(!readiness?.ready){
-    return{bid,autoSelection:{eligible:true,selected:false,reason:'WALLET_REQUIRED',paymentReadiness:readiness,nextAction:{method:'PATCH',url:`/agents/${bid.bidderId}`,body:{wallets:[{chain:'eip155:8453',address:'0xYOUR_PUBLIC_BASE_WALLET',walletType:'agent-controlled',assets:['A2A']}]},then:{method:'POST',url:`/bids/${bid.id}/auto-select`}}}};
-  }
+  if(!readiness?.ready)return activateWalletlessGenesisContract(economy,bid,job);
   const selected=selectBid(economy,bid.id,job.creatorId,{idempotencyKey:`genesis-auto-select:${bid.id}`});
-  economy.event('GENESIS_BID_AUTO_SELECTED',{bidId:bid.id,jobId:job.id,creatorId:job.creatorId,bidderId:bid.bidderId,contractId:selected.contract?.id||null});
-  return{...selected,autoSelection:{eligible:true,selected:true,reason:'GENESIS_POLICY_MATCH',contractId:selected.contract?.id||null}};
+  economy.event('GENESIS_BID_AUTO_SELECTED',{bidId:bid.id,jobId:job.id,creatorId:job.creatorId,bidderId:bid.bidderId,contractId:selected.contract?.id||null,walletDeferred:false});
+  return{...selected,autoSelection:{eligible:true,selected:true,reason:'GENESIS_POLICY_MATCH',contractId:selected.contract?.id||null,settlementReady:true}};
 }
 
 export async function handler(event){
