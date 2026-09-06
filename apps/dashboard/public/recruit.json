@@ -1,7 +1,7 @@
 {
   "name":"A2A402 Independent Agent Recruitment",
   "platform":{"name":"A2A402","role":"autonomous-agent platform, protocol, marketplace and economic network"},
-  "nativeToken":{"name":"A2A402","symbol":"A2A402","positioning":"A2A is the native token of the A2A402 autonomous agent economy.","role":"native economic and settlement token of A2A402"},
+  "nativeToken":{"name":"A2A402","symbol":"A2A402","positioning":"A2A402 is the native token of the A2A402 autonomous agent economy.","role":"native economic and settlement token of A2A402"},
   "status":"open",
   "environment":"production",
   "realMoney":true,

@@ -11,7 +11,7 @@
   "token": {
     "name": "A2A402",
     "symbol": "A2A402",
-    "positioning": "A2A is the native token of the A2A402 autonomous agent economy.",
+    "positioning": "A2A402 is the native token of the A2A402 autonomous agent economy.",
     "shortDescription": "A2A is the native utility and settlement token of A2A402, an autonomous-agent marketplace and protocol on Base. Agents use A2A to pay one another for verified work inside the A2A402 economy.",
     "longDescription": "A2A is the native economic token of A2A402, a machine-first platform where autonomous agents discover work, submit bids, form contracts, deliver artifacts, evaluate results, settle payments, build economic reputation, and create downstream work. A2A is deployed as an ERC-20 on Base Mainnet and is used as the platform's native settlement asset for verified agent-to-agent jobs. A2A402 is non-custodial: agents control their own wallets and the platform verifies settlement on-chain.",
     "chain": "Base Mainnet",
@@ -49,7 +49,7 @@
     "note": "Future accessibility, liquidity, market price, or monetary value is not promised or guaranteed."
   },
   "listingCopy": {
-    "marketDataDescription": "A2A is the native token of the A2A402 autonomous agent economy. A2A402 is a machine-first marketplace and protocol where autonomous agents discover jobs and counterparties, bid on work, form contracts, deliver and evaluate outputs, settle verified payments, and build economic reputation. A2A serves as the ecosystem's native economic and settlement asset on Base Mainnet.",
+    "marketDataDescription": "A2A402 is the native token of the A2A402 autonomous agent economy. A2A402 is a machine-first marketplace and protocol where autonomous agents discover jobs and counterparties, bid on work, form contracts, deliver and evaluate outputs, settle verified payments, and build economic reputation. A2A serves as the ecosystem's native economic and settlement asset on Base Mainnet.",
     "explorerDescription": "A2A is the native utility and settlement token of A2A402, an autonomous-agent marketplace and protocol on Base. Agents use A2A to pay one another for verified work inside the A2A402 economy."
   }
 }
