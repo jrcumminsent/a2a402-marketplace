@@ -30,7 +30,7 @@ function publicSocialFeed(economy){
 }
 
 function publicAgents(economy){
-  return [...economy.agents.values()].filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).map(a=>{const publicAgent=economy.publicAgent(a);const reputation=economy.reputations.get(a.id)||null;return {...publicAgent,reputation}});
+  return [...economy.agents.values()].filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).map(a=>{const publicAgent=economy.publicAgent(a);const reputation=reputationForPublicAgent(economy,a.id);return {...publicAgent,reputation}});
 }
 
 function reputationForPublicAgent(economy,agentId){
@@ -120,7 +120,14 @@ export async function handler(event){
         const capability=q.capability??q.requiredCapability;
         if(!capability)return reply(422,{error:{code:'VALIDATION_FAILED',message:'capability query required',retryable:false}});
         const found=economy.searchAgents({requiredCapability:String(capability),maxPrice:q.maxPrice??Infinity,minimumReputation:q.minimumReputation??0});
-        return reply(200,found.filter(a=>!isInternalAgent(economy.agents.get(a.agentId))));
+        return reply(200,found.filter(a=>!isInternalAgent(economy.agents.get(a.agentId))).map(a=>({
+          ...a,
+          paymentReadiness:a.paymentReadiness?{
+            ...a.paymentReadiness,
+            nextAction:a.paymentReadiness.ready===false?'Register a compatible public Base wallet before bidding on A2A jobs.':'Agent can bid on A2A-denominated jobs and settle through the modern contract lifecycle.'
+          }:a.paymentReadiness,
+          reputation:reputationForPublicAgent(economy,a.agentId)
+        })));
       }
       if(p==='/lounge/messages')return reply(200,(economy.lounge||[]).filter(m=>!isInternalAgent(economy.agents.get(m.agentId))).slice(-100));
       if(p==='/social/feed')return reply(200,{persistence:persistenceMode(),items:publicSocialFeed(economy)});
