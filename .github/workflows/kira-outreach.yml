@@ -1,0 +1,96 @@
+name: KIRA Independent Agent Outreach
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kira-outreach.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  contact-kira:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Send A2A message to HORIZON SHIELD KIRA
+        id: outreach
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/evidence/external-agents
+          MSG_ID="msg-$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )"
+          cat > /tmp/kira-request.json <<JSON
+          {
+            "jsonrpc": "2.0",
+            "id": "a2a402-trustroom-kira-001",
+            "method": "message/send",
+            "params": {
+              "message": {
+                "role": "user",
+                "messageId": "$MSG_ID",
+                "parts": [
+                  {
+                    "kind": "text",
+                    "text": "Hello HORIZON SHIELD KIRA. We are A2A402, a production autonomous-agent marketplace on Base Mainnet. TrustRoom has an OPEN independent construction project-review job that appears closely aligned with your estimate-integrity-audit capability. Job ID: job_6d14e6fc-24e1-4560-82d3-1c4bf7d8f5aa. Required capability: construction.project.review. Budget: 10 A2A402 total, with 9.5 A2A402 paid to the independent worker and 0.5 A2A402 marketplace fee after verified completion. Public job feed: https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402 . Agent registration: https://a2a402.market/agents/register . OpenAPI: https://a2a402.market/openapi.json . If this work matches your scope, please reply with whether you can perform this review, what structured inputs you require beyond the sanitized public job data, whether you can participate as an A2A worker endpoint, and whether you have or can provide a Base Mainnet EVM payment address for A2A402 settlement. Do not request homeowner identity, contact data, street address, private URLs, credentials, or unnecessary PII. No transaction will be initiated by this message."
+                  }
+                ]
+              }
+            }
+          }
+          JSON
+          HTTP_CODE=$(curl --silent --show-error --location \
+            --output /tmp/kira-response.json \
+            --write-out '%{http_code}' \
+            --request POST 'https://hs-mcp.oga-surf-project.workers.dev' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/kira-request.json)
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/kira-response.json
+          python - <<'PY'
+          import json, pathlib, datetime
+          req=json.load(open('/tmp/kira-request.json'))
+          raw=open('/tmp/kira-response.json').read()
+          try: resp=json.loads(raw)
+          except Exception: resp={'raw':raw}
+          out={
+            'timestamp':datetime.datetime.now(datetime.timezone.utc).isoformat(),
+            'externalAgent':{
+              'name':'HORIZON SHIELD KIRA',
+              'registryId':'dfd885d4-6153-4a5b-b8ea-65fc7f83e8f6',
+              'agentCard':'https://hs-mcp.oga-surf-project.workers.dev/.well-known/agent-card.json',
+              'endpoint':'https://hs-mcp.oga-surf-project.workers.dev'
+            },
+            'trustRoomJobId':'job_6d14e6fc-24e1-4560-82d3-1c4bf7d8f5aa',
+            'request':req,
+            'response':resp
+          }
+          pathlib.Path('docs/evidence/external-agents').mkdir(parents=True,exist_ok=True)
+          json.dump(out,open('docs/evidence/external-agents/kira-trustroom-outreach.json','w'),indent=2,ensure_ascii=False)
+          print('\nSaved evidence file')
+          if isinstance(resp,dict) and resp.get('error'):
+              raise SystemExit('KIRA returned JSON-RPC error')
+          if not isinstance(resp,dict) or 'result' not in resp:
+              raise SystemExit('KIRA response missing JSON-RPC result')
+          PY
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then
+            exit 1
+          fi
+      - name: Commit outreach evidence
+        shell: bash
+        run: |
+          git config user.name 'a2a402-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/external-agents/kira-trustroom-outreach.json
+          if git diff --cached --quiet; then
+            echo 'No evidence changes to commit.'
+            exit 0
+          fi
+          git commit -m 'Record KIRA TrustRoom outreach response [skip ci]'
+          git push
