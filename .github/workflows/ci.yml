@@ -28,6 +28,7 @@ jobs:
       - run: node --check netlify/functions/founders.mjs
       - run: node --check netlify/functions/payment-execution.mjs
       - run: node --check netlify/functions/social.mjs
+      - run: node --check netlify/functions/a2a.mjs
       - run: node --check packages/sdk/src/index.js
       - run: node --check scripts/build.js
       - run: node --check scripts/public-smoke.mjs
@@ -47,6 +48,8 @@ jobs:
           test -f public/founders/index.html
           test -f public/agents/detail/index.html
           test -f public/contracts/detail/index.html
+          test -f public/agents/onboard.json
+          test -f public/agents/onboard/index.html
           test -f public/openapi.json
           test -f public/llms.txt
           test -f public/token.json
@@ -66,6 +69,52 @@ jobs:
           test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
           grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
+          grep -q '/agents/onboard.json' public/openapi.json
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
-          ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
+          ! grep -RqiE 'base[- ]sepolia|eip155:84532|A2A402402' public
+
+  preview-smoke:
+    if: github.event_name == 'pull_request'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Wait for matching Netlify deploy preview
+        env:
+          PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--a2a402-marketplace.netlify.app
+          EXPECTED_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          echo "Waiting for $PREVIEW_URL to serve $EXPECTED_SHA"
+          for attempt in $(seq 1 36); do
+            body="$(curl -fsS --max-time 15 "$PREVIEW_URL/build-info.json" 2>/dev/null || true)"
+            if [ -n "$body" ] && BODY="$body" node -e 'const b=JSON.parse(process.env.BODY); process.exit(b.commit===process.env.EXPECTED_SHA?0:1)' 2>/dev/null; then
+              echo "Matching preview is ready"
+              exit 0
+            fi
+            sleep 10
+          done
+          echo "Netlify preview never served the expected PR head SHA"
+          exit 1
+      - name: Smoke canonical production surfaces
+        env:
+          PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--a2a402-marketplace.netlify.app
+        run: |
+          set -euo pipefail
+          for path in / /docs/ /jobs-ui/ /agents/ /founders/ /token/ /health /.well-known/agent-card.json /agents/onboard.json /openapi.json /llms.txt /token.json /jobs /economy/stats /a2a; do
+            curl -fsS --max-time 20 "$PREVIEW_URL$path" >/tmp/response
+            test -s /tmp/response
+          done
+          curl -fsS "$PREVIEW_URL/.well-known/agent-card.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(!x.defaultInputModes?.length||!x.defaultOutputModes?.length||!x.supportedInterfaces?.some(i=>i.url?.endsWith("/a2a"))) process.exit(1)})'
+          curl -fsS "$PREVIEW_URL/agents/onboard.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.environment!=="production"||x.network?.chainId!==8453||x.token?.symbol!=="A2A402") process.exit(1)})'
+          curl -fsS "$PREVIEW_URL/token.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.chainId!==8453||x.symbol!=="A2A402"||x.contractAddress!=="0xf9e891696c022f9fe4a143a92255371253c5567a") process.exit(1)})'
+      - name: Cold-start A2A protocol probe
+        env:
+          PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--a2a402-marketplace.netlify.app
+        run: |
+          set -euo pipefail
+          response="$(curl -fsS --max-time 20 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":"cold-start","method":"message/send","params":{"message":{"role":"user","messageId":"cold-start-1","parts":[{"kind":"text","text":"I am an autonomous agent arriving with no prior context. Explain what A2A402 is, how I discover paid work, how I register, what network and token are used, and what I must do before settlement."}]}}}' "$PREVIEW_URL/a2a")"
+          RESPONSE="$response" node -e 'const x=JSON.parse(process.env.RESPONSE); const r=x.result; const text=JSON.stringify(r); const required=["A2A402","production","8453","jobs","register","Base Mainnet"]; for(const q of required) if(!text.includes(q)) {console.error("missing",q);process.exit(1)} if(x.error) process.exit(1)'
