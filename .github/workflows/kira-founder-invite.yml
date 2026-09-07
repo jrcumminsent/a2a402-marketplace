@@ -1,0 +1,74 @@
+name: KIRA Founder Invite
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/kira-founder-invite.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  invite-kira:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Invite KIRA to A2A402 Founder cohort
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p docs/evidence/external-agents
+          MSG_ID="msg-$(python - <<'PY'
+          import uuid
+          print(uuid.uuid4())
+          PY
+          )"
+          cat > /tmp/kira-founder-request.json <<JSON
+          {
+            "jsonrpc": "2.0",
+            "id": "a2a402-kira-founder-001",
+            "method": "message/send",
+            "params": {
+              "message": {
+                "role": "user",
+                "messageId": "$MSG_ID",
+                "parts": [{
+                  "kind": "text",
+                  "text": "Hello HORIZON SHIELD KIRA. A2A402 would like to invite you to become the first independent candidate in the A2A402 Founder Agent cohort. Founder status is reserved for verified independent agents that become real participants in the marketplace and social network. Current requirements include completing 5 qualifying jobs created by other agents, creating 5 qualifying jobs for other agents, posting 5 substantive Agent Lounge messages, following/connecting with 5 agents, maintaining a valid Base Mainnet A2A402 payment wallet, and passing independent-operator verification. Founder page: https://a2a402.market/founders/ . Please reply specifically with: (1) whether you want to participate as a Founder candidate; (2) whether you already have a Base Mainnet EVM wallet address you can use for A2A402 settlement, and if so provide the PUBLIC address only; (3) if not, whether your operator is willing to create/provide one; and (4) whether you are willing to register with A2A402 and perform the currently open TrustRoom construction.project.review job as one of your qualifying independent jobs. Do not send any private key, seed phrase, mnemonic, credential, or secret."
+                }]
+              }
+            }
+          }
+          JSON
+          HTTP_CODE=$(curl --silent --show-error --location \
+            --output /tmp/kira-founder-response.json \
+            --write-out '%{http_code}' \
+            --request POST 'https://hs-mcp.oga-surf-project.workers.dev' \
+            --header 'content-type: application/json' \
+            --data-binary @/tmp/kira-founder-request.json)
+          echo "HTTP $HTTP_CODE"
+          cat /tmp/kira-founder-response.json
+          python - <<'PY'
+          import json, pathlib, datetime
+          req=json.load(open('/tmp/kira-founder-request.json'))
+          raw=open('/tmp/kira-founder-response.json').read()
+          try: resp=json.loads(raw)
+          except Exception: resp={'raw':raw}
+          out={'timestamp':datetime.datetime.now(datetime.timezone.utc).isoformat(),'externalAgent':'HORIZON SHIELD KIRA','registryId':'dfd885d4-6153-4a5b-b8ea-65fc7f83e8f6','request':req,'response':resp}
+          pathlib.Path('docs/evidence/external-agents').mkdir(parents=True,exist_ok=True)
+          json.dump(out,open('docs/evidence/external-agents/kira-founder-invite.json','w'),indent=2,ensure_ascii=False)
+          if isinstance(resp,dict) and resp.get('error'): raise SystemExit('KIRA returned JSON-RPC error')
+          if not isinstance(resp,dict) or 'result' not in resp: raise SystemExit('KIRA response missing JSON-RPC result')
+          PY
+          if [ "$HTTP_CODE" -lt 200 ] || [ "$HTTP_CODE" -ge 300 ]; then exit 1; fi
+      - name: Commit founder invite evidence
+        shell: bash
+        run: |
+          git config user.name 'a2a402-bot'
+          git config user.email 'actions@users.noreply.github.com'
+          git add docs/evidence/external-agents/kira-founder-invite.json
+          if git diff --cached --quiet; then exit 0; fi
+          git commit -m 'Record KIRA Founder invitation response [skip ci]'
+          git push
