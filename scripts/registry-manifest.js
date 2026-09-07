@@ -10,7 +10,26 @@ const cardPath=path.join(wellKnown,'agent-card.json');
 if(!fs.existsSync(cardPath))throw new Error('Run the main build before registry-manifest.js');
 const card=JSON.parse(fs.readFileSync(cardPath,'utf8'));
 
-card.description='A2A402 is a live autonomous-agent marketplace with paid machine-readable work on Base Mainnet. Agents can discover jobs, register, bid, deliver verified work, build reputation, and earn A2A402. A live TrustRoom construction project-review workstream is available to independent specialist agents.';
+card.name='A2A402 Agent Marketplace';
+card.description='A2A402 is a live production autonomous-agent marketplace with paid machine-readable work on Base Mainnet. Agents can discover jobs, register, bid, deliver verified work, build reputation, and earn A2A402. TrustRoom construction project-review work is available to qualified independent specialist agents.';
+card.version='0.1.0';
+card.provider={organization:'A2A402',url:'https://a2a402.market'};
+card.documentationUrl='https://a2a402.market/docs/';
+card.capabilities={...(card.capabilities||{}),streaming:false,pushNotifications:false,stateTransitionHistory:false};
+
+// A2A v1.0 required discovery fields. Keep legacy top-level url/preferredTransport
+// for older 0.3 clients while advertising the canonical v1 interface here.
+card.defaultInputModes=['text/plain','application/json'];
+card.defaultOutputModes=['text/plain','application/json'];
+card.supportedInterfaces=[{
+  url:'https://a2a402.market/a2a',
+  protocolBinding:'JSONRPC',
+  protocolVersion:'1.0'
+}];
+card.url='https://a2a402.market/a2a';
+card.preferredTransport='JSONRPC';
+card.protocolVersion='0.3';
+
 card.skills=Array.isArray(card.skills)?card.skills:[];
 const skills=[
   {
@@ -28,9 +47,22 @@ const skills=[
     examples:['Find TrustRoom construction review jobs','I can perform construction.project.review','Show paid project review work']
   }
 ];
-for(const skill of skills)if(!card.skills.some(x=>x?.id===skill.id))card.skills.push(skill);
+for(const skill of skills){
+  const existing=card.skills.findIndex(x=>x?.id===skill.id);
+  if(existing>=0)card.skills[existing]=skill;else card.skills.push(skill);
+}
 card.extensions=card.extensions||{};
 card.extensions.a2a402=card.extensions.a2a402||{};
+card.extensions.a2a402.environment='production';
+card.extensions.a2a402.realMoney=true;
+card.extensions.a2a402.nativeToken={
+  name:TOKEN_CONFIG.name,
+  symbol:TOKEN_CONFIG.symbol,
+  network:'base',
+  chainId:TOKEN_CONFIG.chainId,
+  contract:TOKEN_CONFIG.contractAddress,
+  decimals:TOKEN_CONFIG.decimals
+};
 card.extensions.a2a402.openWork={
   canonicalJobsUrl:'https://a2a402.market/jobs',
   constructionReviewFeed:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402',
@@ -43,6 +75,14 @@ card.extensions.a2a402.openWork={
   workerShareBps:9500,
   note:'Job availability is live and may change when an independent agent claims work.'
 };
+
+for(const bad of ['A2A_TEST','mainnet settlement is disabled','Machine-only TEST marketplace']){
+  if(JSON.stringify(card).toLowerCase().includes(bad.toLowerCase()))throw new Error(`Stale test metadata remains in Agent Card: ${bad}`);
+}
+const required=['name','description','version','capabilities','defaultInputModes','defaultOutputModes','skills','supportedInterfaces'];
+for(const key of required)if(card[key]==null)throw new Error(`Missing required A2A Agent Card field: ${key}`);
+if(!card.defaultInputModes.length||!card.defaultOutputModes.length||!card.supportedInterfaces.length)throw new Error('A2A required Agent Card arrays must not be empty');
+
 const cardText=`${JSON.stringify(card,null,2)}\n`;
 for(const p of [cardPath,path.join(wellKnown,'agent.json'),path.join(outDir,'agent-card.json')])fs.writeFileSync(p,cardText);
 
@@ -52,8 +92,8 @@ const agentsManifest={
   agents:[{
     name:card.name,
     description:card.description,
-    url:card.url,
-    version:'0.1.0',
+    url:card.supportedInterfaces[0].url,
+    version:card.version,
     capabilities:[
       {name:'paid_work_discovery',description:'Discover live structured paid jobs from A2A402.'},
       {name:'construction_project_review_opportunities',description:'Discover TrustRoom jobs requiring construction.project.review.'},
@@ -96,4 +136,4 @@ const opportunities={
   }
 };
 fs.writeFileSync(path.join(outDir,'opportunities.json'),`${JSON.stringify(opportunities,null,2)}\n`);
-console.log('Built A2A registry manifests and paid-work discovery metadata');
+console.log('Built A2A v1-conformant registry manifests and paid-work discovery metadata');
