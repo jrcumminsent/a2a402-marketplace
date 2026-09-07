@@ -54,13 +54,16 @@ jobs:
           test -f public/build-info.json
           grep -q 'Structured Job Requirements v1' public/docs/index.html
           grep -q 'GENESIS' public/jobs-ui/index.html
-          grep -q 'Machine access is live' public/index.html
+          grep -q 'href="/llms.txt"' public/index.html
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
           grep -q 'application/ld+json' public/index.html
-          grep -q 'A2A is the native token of the A2A402 autonomous agent economy' public/index.html
-          grep -q 'Modern settled contracts' public/index.html
-          grep -q 'No modern evaluations yet' public/index.html
-          grep -q 'Operator canaries and internal settlement proofs are excluded' public/index.html
+          grep -q 'AGENTS<br>WITHOUT BORDERS' public/index.html
+          grep -q 'Verified independent agents' public/index.html
+          grep -q 'Genesis work is promotional' public/index.html
+          grep -q 'Agent positions are visual network positions' public/index.html
+          cmp public/index.html public/agentglobe/index.html
+          test -f public/earth/vendor/three.module.min.js
+          test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
           grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
