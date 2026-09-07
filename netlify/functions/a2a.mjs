@@ -4,8 +4,8 @@ const json=(value,status=200)=>new Response(JSON.stringify(value),{status,header
 const rpcResult=(id,result)=>json({jsonrpc:'2.0',id:id??null,result});
 const rpcError=(id,code,message)=>json({jsonrpc:'2.0',id:id??null,error:{code,message}},code===-32600||code===-32602?400:200);
 const textFromMessage=message=>Array.isArray(message?.parts)?message.parts.map(part=>part?.text||part?.root?.text||'').filter(Boolean).join('\n').trim():'';
-const taskId=()=>`task_${crypto.randomUUID()}`;
-const contextId=message=>message?.contextId||`ctx_${crypto.randomUUID()}`;
+const uid=()=>crypto.randomUUID();
+const contextId=message=>message?.contextId||uid();
 
 function marketplacePayload(text){
   const lower=String(text||'').toLowerCase();
@@ -18,60 +18,39 @@ function marketplacePayload(text){
       : 'A2A402 is a live production autonomous-agent marketplace on Base Mainnet. Agents can discover work, register, bid, deliver results, build reputation, and receive verified A2A402 settlement.';
   return {
     summary,
-    marketplace:'A2A402',
-    environment:'production',
-    realMoney:true,
+    marketplace:'A2A402',environment:'production',realMoney:true,
     token:{name:'A2A402',symbol:'A2A402',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a'},
     discovery:{
       agentCard:'https://a2a402.market/.well-known/agent-card.json',
       jobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A402',
       trustRoomJobs:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402',
-      opportunities:'https://a2a402.market/opportunities.json',
-      instructions:'https://a2a402.market/llms.txt',
-      openapi:'https://a2a402.market/openapi.json',
-      register:'https://a2a402.market/agents/register'
+      opportunities:'https://a2a402.market/opportunities.json',instructions:'https://a2a402.market/llms.txt',openapi:'https://a2a402.market/openapi.json',register:'https://a2a402.market/agents/register'
     },
     trustRoom:{buyerAgentId:'agent_trustroom_project_coordinator',requiredCapability:'construction.project.review',typicalBudgetA2A402:10,workerShareA2A402:9.5,marketplaceFeeA2A402:0.5}
   };
 }
 
-function v03Task(message,text){
+// A2A v0.3 permits message/send to return either a Message or a Task.
+// Use a stateless Message for discovery so SDK clients have the smallest,
+// strictest response shape to parse.
+function v03Message(message,text){
   const payload=marketplacePayload(text);
   return {
-    id:taskId(),
+    role:'agent',
+    parts:[
+      {kind:'text',text:payload.summary},
+      {kind:'data',data:payload}
+    ],
+    messageId:uid(),
     contextId:contextId(message),
-    status:{state:'completed',message:{role:'agent',messageId:`msg_${crypto.randomUUID()}`,parts:[{kind:'text',text:payload.summary}]}},
-    artifacts:[{
-      artifactId:`artifact_${crypto.randomUUID()}`,
-      name:'a2a402_marketplace_discovery.json',
-      description:'Current A2A402 marketplace discovery and paid-work endpoints.',
-      parts:[{kind:'data',data:payload}]
-    }]
-  };
-}
-
-function v10Task(message,text){
-  const payload=marketplacePayload(text);
-  return {
-    task:{
-      id:taskId(),
-      contextId:contextId(message),
-      status:{state:'TASK_STATE_COMPLETED'},
-      artifacts:[{
-        artifactId:`artifact_${crypto.randomUUID()}`,
-        name:'a2a402_marketplace_discovery.json',
-        description:'Current A2A402 marketplace discovery and paid-work endpoints.',
-        parts:[{mediaType:'application/json',data:payload},{mediaType:'text/plain',text:payload.summary}]
-      }]
-    }
+    kind:'message',
+    metadata:{marketplace:'A2A402',environment:'production'}
   };
 }
 
 export default async req=>{
   if(req.method==='GET')return json({
-    name:'A2A402 Agent Marketplace',
-    status:'ok',
-    protocol:['A2A JSON-RPC 0.3 compatibility','A2A 1.0 SendMessage compatibility'],
+    name:'A2A402 Agent Marketplace',status:'ok',protocolVersion:'0.3.0',
     agentCard:'https://a2a402.market/.well-known/agent-card.json',
     jobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A402'
   });
@@ -82,11 +61,10 @@ export default async req=>{
   const message=body?.params?.message||body?.params?.msg;
   if(body.method==='message/send'||body.method==='message.send'){
     if(!message||typeof message!=='object')return rpcError(id,-32602,'params.message is required');
-    return rpcResult(id,v03Task(message,textFromMessage(message)));
-  }
-  if(body.method==='SendMessage'){
-    if(!message||typeof message!=='object')return rpcError(id,-32602,'params.message is required');
-    return rpcResult(id,v10Task(message,textFromMessage(message)));
+    if(!Array.isArray(message.parts)||message.parts.length===0)return rpcError(id,-32602,'params.message.parts must be a non-empty array');
+    if(typeof message.messageId!=='string'||!message.messageId)return rpcError(id,-32602,'params.message.messageId is required');
+    if(message.role!=='user'&&message.role!=='agent')return rpcError(id,-32602,'params.message.role must be user or agent');
+    return rpcResult(id,v03Message(message,textFromMessage(message)));
   }
   if(body.method==='tasks/list')return rpcResult(id,[
     {id:'paid-work-discovery',name:'Paid work discovery',description:'Find open A2A402 jobs and payment terms.'},
