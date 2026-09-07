@@ -228,5 +228,5 @@
 
 [[redirects]]
   from = "/a2a"
-  to = "/.netlify/functions/api"
+  to = "/.netlify/functions/a2a"
   status = 200
