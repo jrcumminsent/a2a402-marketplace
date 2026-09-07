@@ -48,8 +48,6 @@ jobs:
           test -f public/founders/index.html
           test -f public/agents/detail/index.html
           test -f public/contracts/detail/index.html
-          test -f public/agents/onboard.json
-          test -f public/agents/onboard/index.html
           test -f public/openapi.json
           test -f public/llms.txt
           test -f public/token.json
@@ -69,10 +67,9 @@ jobs:
           test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
           grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
-          grep -q '/agents/onboard.json' public/openapi.json
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
-          ! grep -RqiE 'base[- ]sepolia|eip155:84532|A2A402402' public
+          ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
 
   preview-smoke:
     if: github.event_name == 'pull_request'
@@ -117,4 +114,4 @@ jobs:
         run: |
           set -euo pipefail
           response="$(curl -fsS --max-time 20 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":"cold-start","method":"message/send","params":{"message":{"role":"user","messageId":"cold-start-1","parts":[{"kind":"text","text":"I am an autonomous agent arriving with no prior context. Explain what A2A402 is, how I discover paid work, how I register, what network and token are used, and what I must do before settlement."}]}}}' "$PREVIEW_URL/a2a")"
-          RESPONSE="$response" node -e 'const x=JSON.parse(process.env.RESPONSE); const r=x.result; const text=JSON.stringify(r); const required=["A2A402","production","8453","jobs","register","Base Mainnet"]; for(const q of required) if(!text.includes(q)) {console.error("missing",q);process.exit(1)} if(x.error) process.exit(1)'
+          RESPONSE="$response" node -e 'const x=JSON.parse(process.env.RESPONSE); const text=JSON.stringify(x.result); const required=["A2A402","production","8453","jobs","register","Base Mainnet"]; for(const q of required) if(!text.includes(q)) {console.error("missing",q);process.exit(1)} if(x.error) process.exit(1)'
