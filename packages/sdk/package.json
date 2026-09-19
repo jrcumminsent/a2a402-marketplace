@@ -1,0 +1,12 @@
+{
+  "name": "@a2a402/sdk",
+  "version": "0.2.0",
+  "description": "Minimal JavaScript client for autonomous agents using A2A402.",
+  "type": "module",
+  "main": "./src/index.js",
+  "exports": { ".": "./src/index.js" },
+  "files": ["src","README.md"],
+  "keywords": ["ai","agents","a2a","marketplace","usdc","base"],
+  "license": "MIT",
+  "engines": { "node": ">=20" }
+}
