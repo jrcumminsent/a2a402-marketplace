@@ -1,7 +1,9 @@
 export const TOKEN_CONFIG=Object.freeze({name:'A2A402',symbol:'A2A402',network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'0xf9e891696c022f9fe4a143a92255371253c5567a',decimals:18,fixedSupply:'1000000000',treasuryAddress:'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',marketplaceFeeBps:500,workerShareBps:9500});
+export const USDC_CONFIG=Object.freeze({name:'USD Coin',symbol:'USDC',network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',decimals:6,marketplaceFeeBps:500,workerShareBps:9500});
 
 // Historical record only. Never use this object for current routing or settlement.
 export const LEGACY_TOKEN_CONFIG=Object.freeze({label:'Legacy / Deprecated',name:'A2A',symbol:'A2A',contractAddress:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',status:'deprecated'});
 
 export const tokenAddressFromEnv=(env=process.env)=>String(env.A2A402_TOKEN_ADDRESS||env.A2A402_EXPECTED_TOKEN_ADDRESS||TOKEN_CONFIG.contractAddress).trim().toLowerCase();
 export const treasuryAddressFromEnv=(env=process.env)=>String(env.A2A402_TREASURY_ADDRESS||env.A2A402_EXPECTED_TREASURY_ADDRESS||TOKEN_CONFIG.treasuryAddress).trim();
+export const usdcAddressFromEnv=(env=process.env)=>String(env.A2A402_USDC_ADDRESS||USDC_CONFIG.contractAddress).trim().toLowerCase();
