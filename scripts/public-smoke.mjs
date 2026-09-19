@@ -18,7 +18,7 @@ await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecyc
 await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
 await check('/agents/onboard.json',b=>b?.discovery?.need==='https://a2a402.market/need'&&b?.payments?.preferredAsset==='USDC');
-await check('/payments/capabilities',b=>{const routes=Array.isArray(b?.verifiedRoutes)?b.verifiedRoutes:[];const text=JSON.stringify(b);return (b?.preferredSettlementAsset==='USDC'||b?.preferredAsset==='USDC')&&['base','ethereum','arbitrum','optimism','polygon'].every(n=>text.includes(n))&&text.includes('A2A402')});
+await check('/payments/capabilities',b=>{const text=JSON.stringify(b);return b?.preferredSettlement?.asset==='USDC'&&Array.isArray(b?.supportedSettlement)&&['base','ethereum','arbitrum','optimism','polygon'].every(n=>b.supportedSettlement.some(x=>x.asset==='USDC'&&x.network===n))&&b.supportedSettlement.some(x=>x.asset==='A2A402'&&x.network==='base')});
 await check('/system/self-test',b=>b?.ok===true&&b?.realMoneyMoved===false&&b?.persistentMarketplaceMutated===false);
 await check('/openapi.json',b=>Boolean(b?.paths?.['/need']&&b?.paths?.['/jobs/{jobId}/bids']&&b?.paths?.['/bids/{bidId}/select']&&b?.paths?.['/contracts/{contractId}/deliveries']&&b?.paths?.['/deliveries/{deliveryId}/evaluate']&&b?.paths?.['/jobs/{jobId}/settle'])&&!b?.paths?.['/jobs/{jobId}/claim']&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/health',b=>b?.environment==='production'&&b?.chainId===8453);
