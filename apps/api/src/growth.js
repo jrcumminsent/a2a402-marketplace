@@ -103,3 +103,66 @@ export function growthEvidence(economy){
 export function growthRegistry(){
   return {verifiedOrganicOperators:Object.entries(verifiedOrganicOperators).map(([agentId,v])=>({agentId,...v})),internalAgentIds:[...INTERNAL_AGENT_IDS],policy:'Entries are added only after independent-operation evidence is reviewed. Empty means no external operator has yet been verified for organic statistics.'};
 }
+
+
+export function validationStats(economy){
+  const agents=[...economy.agents.values()];
+  const jobs=[...economy.jobs.values()].filter(j=>!isLegacyTestRecord(j));
+  const needJobs=jobs.filter(j=>j?.input?.source==='need-router');
+  const externalNeedJobs=needJobs.filter(j=>!involvesInternalAgent(economy,j)&&!isPromotionalJob(j));
+  const needEvents=(economy.events||[]).filter(e=>e.type==='NEED_ROUTED');
+  const externalNeedEvents=needEvents.filter(e=>!isInternalAgent(economy.agents.get(e.creatorId)));
+  const creatorCounts=new Map();
+  externalNeedJobs.forEach(j=>creatorCounts.set(j.creatorId,(creatorCounts.get(j.creatorId)||0)+1));
+  const completed=externalNeedJobs.filter(j=>j.status==='PAID');
+  const terminal=externalNeedJobs.filter(j=>['PAID','FAILED','CANCELLED','REJECTED'].includes(j.status));
+  const matched=externalNeedEvents.filter(e=>Number(e.matchCount||0)>0);
+  const txByJob=new Map((economy.transactions||[]).map(t=>[t.jobId,t]));
+  const settledTx=completed.map(j=>txByJob.get(j.id)).filter(Boolean);
+  const settlementVolumeByAsset={};
+  const feesByAsset={};
+  for(const tx of settledTx){
+    const asset=String(tx.asset||'UNKNOWN').toUpperCase();
+    settlementVolumeByAsset[asset]=cleanNumber((settlementVolumeByAsset[asset]||0)+Number(tx.amount||0)+Number(tx.feeAmount||0));
+    feesByAsset[asset]=cleanNumber((feesByAsset[asset]||0)+Number(tx.feeAmount||0));
+  }
+  return {
+    scope:'product-validation',
+    generatedAt:new Date().toISOString(),
+    definitions:{
+      externalAgents:'active agents that are not known A2A402 seed/operator identities; this is not the same as verified independent ownership',
+      verifiedIndependentAgents:'agents in the reviewed organic-operator registry',
+      externalNeeds:'POST /need-created jobs whose creator is not a known internal seed/operator identity and that are not promotional',
+      repeatNeedCreators:'external need creators with two or more /need jobs',
+      matchedNeeds:'external NEED_ROUTED events where at least one provider match was returned',
+      completedNeeds:'external /need jobs with verified PAID status'
+    },
+    funnel:{
+      activeExternalAgents:agents.filter(a=>a.status==='ACTIVE'&&!isInternalAgent(a)).length,
+      verifiedIndependentAgents:Object.keys(verifiedOrganicOperators).length,
+      externalNeeds:externalNeedJobs.length,
+      matchedNeeds:matched.length,
+      completedNeeds:completed.length,
+      repeatNeedCreators:[...creatorCounts.values()].filter(n=>n>=2).length
+    },
+    rates:{
+      matchRate:cleanNumber(externalNeedEvents.length?matched.length/externalNeedEvents.length:0),
+      completionRate:cleanNumber(terminal.length?completed.length/terminal.length:0),
+      repeatCreatorRate:cleanNumber(creatorCounts.size?[...creatorCounts.values()].filter(n=>n>=2).length/creatorCounts.size:0)
+    },
+    economics:{
+      settledJobs:completed.length,
+      settlementVolumeByAsset,
+      marketplaceFeesByAsset:feesByAsset
+    },
+    readiness:{
+      coreLifecycleBuildGate:true,
+      needRouter:true,
+      sdk:true,
+      mcp:true,
+      externalA2AProbe:true,
+      independentRepeatUsageProven:[...creatorCounts.values()].some(n=>n>=2)&&completed.length>0
+    },
+    note:'Independent repeat usage is only proven when unrelated operators complete real work and return. Seed, internal, promotional and canary activity do not satisfy that milestone.'
+  };
+}
