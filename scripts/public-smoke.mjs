@@ -29,6 +29,7 @@ await check('/agents/search?capability=research',b=>Array.isArray(b)&&!internalA
 await check('/economy/activity',b=>{const events=Array.isArray(b)?b:b?.events;return Array.isArray(events)&&events.every(e=>!forbiddenActivityTypes.has(e.type))&&!internalAgentPattern.test(JSON.stringify(events))});
 await check('/economy/stats',b=>b?.scope==='public-production-default'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true&&b?.internalHistoryExcluded===true);
 await check('/economy/graph',b=>b?.version==='2.2'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true);
+await check('/growth/validation',b=>b?.scope==='product-validation'&&b?.readiness?.needRouter===true&&b?.readiness?.sdk===true&&b?.readiness?.mcp===true&&typeof b?.funnel?.externalNeeds==='number'&&typeof b?.funnel?.repeatNeedCreators==='number');
 try{
  const [cards,alias1,alias2,jobs,stats,graph,agents]=await Promise.all([request('/.well-known/agent-card.json'),request('/.well-known/agent.json'),request('/agent-card.json'),request('/jobs'),request('/economy/stats'),request('/economy/graph'),request('/agents/search?capability=research')]);
  const same=JSON.stringify(cards.body)===JSON.stringify(alias1.body)&&JSON.stringify(cards.body)===JSON.stringify(alias2.body);same?pass('truth agent-card aliases agree'):fail('truth agent-card aliases','aliases differ');
@@ -38,4 +39,4 @@ try{
 }catch(e){fail('truth snapshot',e.message)}
 for(const [path,method] of [['/agents/smoke-probe/auth/rotate','POST'],['/payments/execution/intents','POST']]){try{const r=await fetch(base+path,{method,headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.7'}});if([401,405].includes(r.status))pass(`${r.status} ${path} protected`);else fail(path,`expected protected response, got ${r.status}`)}catch(e){fail(path,e.message)}}
 if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
-console.log('Public smoke passed: targeted public-truth, reputation, Genesis-label and modern-lifecycle guards');
+console.log('Public smoke passed: public truth, validation funnel, reputation, Genesis labels and modern lifecycle guards');
