@@ -22,7 +22,7 @@ test('canonical production identity agrees across token, OpenAPI, onboarding and
   assert.equal(onboard.token.symbol,TOKEN_CONFIG.symbol);
   assert.equal(onboard.token.contract,TOKEN_CONFIG.contractAddress);
   assert.equal(openapi.servers[0].url,'https://a2a402.market');
-  assert.match(llms,/production machine-to-machine marketplace/i);
+  assert.match(llms,/production machine-to-machine work router and marketplace/i);
   assert.match(llms,/Chain ID: 8453/);
 });
 
