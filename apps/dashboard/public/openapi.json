@@ -671,7 +671,7 @@
       "humanSession": {
         "type": "apiKey",
         "in": "cookie",
-        "name": "a2a402_human_session",
+        "name": "__Host-a2a402_human_session",
         "description": "Secure HttpOnly Genesis Vault human session cookie."
       }
     },
