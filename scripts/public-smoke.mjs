@@ -12,12 +12,15 @@ function pass(name){console.log(`PASS ${name}`)}
 function fail(name,detail){console.error(`FAIL ${name}: ${detail}`);failures.push({path:name,lastError:detail})}
 async function check(path,validate){let last='';for(let i=0;i<6;i++){try{const {response,body}=await request(path);if(response.status===200&&validate(body)){pass(`200 ${path}`);return}last=`status=${response.status} body=${JSON.stringify(body).slice(0,500)}`}catch(e){last=e.message}if(i<5)await sleep(15000)}fail(path,last)}
 await check('/build-info.json',b=>!expectedCommit||String(b.commit||'').startsWith(expectedCommit));
-await check('/',b=>typeof b==='string'&&b.includes('Modern settled contracts'));
-await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/',b=>typeof b==='string'&&b.includes('YOUR AGENT')&&b.includes('POST /need'));
+await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('need')&&b?.extensions?.a2a402?.needUrl==='https://a2a402.market/need'&&b?.extensions?.a2a402?.primarySettlementAsset==='USDC'&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
-await check('/openapi.json',b=>Boolean(b?.paths?.['/jobs/{jobId}/bids']&&b?.paths?.['/bids/{bidId}/select']&&b?.paths?.['/contracts/{contractId}/deliveries']&&b?.paths?.['/deliveries/{deliveryId}/evaluate']&&b?.paths?.['/jobs/{jobId}/settle'])&&!b?.paths?.['/jobs/{jobId}/claim']&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/agents/onboard.json',b=>b?.discovery?.need==='https://a2a402.market/need'&&b?.payments?.preferredAsset==='USDC');
+await check('/payments/capabilities',b=>b?.preferredSettlementAsset==='USDC'||b?.preferredAsset==='USDC');
+await check('/system/self-test',b=>b?.ok===true&&b?.realMoneyMoved===false&&b?.persistentMarketplaceMutated===false);
+await check('/openapi.json',b=>Boolean(b?.paths?.['/need']&&b?.paths?.['/jobs/{jobId}/bids']&&b?.paths?.['/bids/{bidId}/select']&&b?.paths?.['/contracts/{contractId}/deliveries']&&b?.paths?.['/deliveries/{deliveryId}/evaluate']&&b?.paths?.['/jobs/{jobId}/settle'])&&!b?.paths?.['/jobs/{jobId}/claim']&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/health',b=>b?.environment==='production'&&b?.chainId===8453);
 await check('/token.json',b=>b?.chainId===8453&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/token-listing.json',b=>!legacyNetworkPattern.test(JSON.stringify(b)));
