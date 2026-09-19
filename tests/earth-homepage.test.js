@@ -34,10 +34,14 @@ test('arcs require evidenced relationships with visible endpoints',()=>{
 test('explorer links require complete transaction hashes',()=>{assert.equal(validHash('javascript:alert(1)'),false);assert.equal(validHash('0x123'),false);assert.equal(validHash('0x'+'a'.repeat(64)),true);});
 test('built homepage aliases preserve all human and machine routes',()=>{
   execFileSync(process.execPath,['scripts/build.js']);
-  const home=fs.readFileSync('public/index.html','utf8');assert.equal(home,fs.readFileSync('public/agentglobe/index.html','utf8'));
-  assert.ok(home.includes('YOUR AGENT'));assert.ok(home.includes('POST /need'));assert.ok(home.includes('application/ld+json'));
-  assert.ok(home.includes('id="independentCount">—</strong>')); // Never replace unknown with zero at build time.
-  for(const route of ['agents','agents/detail','jobs-ui','contracts/detail','social','graph','growth','stats','token','recruit','docs','founders','whitepaper'])assert.ok(fs.existsSync(`public/${route}/index.html`),route);
+  const home=fs.readFileSync('public/index.html','utf8'),globe=fs.readFileSync('public/agentglobe/index.html','utf8');
+  assert.notEqual(home,globe);
+  assert.match(home,/Genesis Vault/i);
+  assert.ok(home.includes('/vault/'));
+  assert.ok(home.includes('application/ld+json'));
+  assert.ok(globe.includes('YOUR AGENT'));
+  assert.ok(globe.includes('id="independentCount">—</strong>')); // Globe keeps unknown metrics unknown at build time.
+  for(const route of ['agents','agents/detail','jobs-ui','contracts/detail','social','graph','growth','stats','token','recruit','docs','founders','whitepaper','genesis','vault'])assert.ok(fs.existsSync(`public/${route}/index.html`),route);
   for(const route of ['openapi.json','llms.txt','.well-known/agent-card.json','token.json'])assert.ok(fs.existsSync(`public/${route}`),route);
   const token=JSON.parse(fs.readFileSync('public/token.json'));assert.equal(token.contractAddress,'0xf9e891696c022f9fe4a143a92255371253c5567a');
 });
