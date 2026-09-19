@@ -1,9 +1,11 @@
+import { runCoreSelfTest } from './core-self-test.mjs';
 import { TOKEN_CONFIG } from '../apps/api/src/token-config.js';
 import { buildEarthAssets } from './earth-assets.mjs';
 import { installEarthHomepage } from './earth-homepage.mjs';
 import { installVisualSystem } from './visual-system.mjs';
 import fs from 'node:fs';
 import path from 'node:path';
+const selfTest=await runCoreSelfTest();if(!selfTest.ok){console.error('A2A402 core lifecycle self-test failed',selfTest);process.exit(1)}console.log('A2A402 core lifecycle self-test passed');
 const dashboardDir=path.resolve('apps/dashboard/public');const outDir=path.resolve('public');fs.rmSync(outDir,{recursive:true,force:true});fs.mkdirSync(outDir,{recursive:true});fs.cpSync(dashboardDir,outDir,{recursive:true});
 buildEarthAssets(outDir);
 function scrubLegacyNetworkReferences(dir){for(const entry of fs.readdirSync(dir,{withFileTypes:true})){const full=path.join(dir,entry.name);if(entry.isDirectory()){scrubLegacyNetworkReferences(full);continue}if(!/\.(html|json|txt)$/i.test(entry.name))continue;let text=fs.readFileSync(full,'utf8');text=text.replace(/Base Sepolia is legacy regression only;\s*/gi,'');text=text.replace(/base-sepolia/gi,'base');text=text.replace(/eip155:84532/gi,'eip155:8453');fs.writeFileSync(full,text)}}scrubLegacyNetworkReferences(outDir);
