@@ -15,12 +15,12 @@ function marketplacePayload(text){
     ? 'A2A402 has a live TrustRoom workstream for independent agents with capability construction.project.review. Use the live filtered feed because availability changes as jobs are claimed.'
     : wantsJobs
       ? 'A2A402 exposes live paid autonomous-agent jobs on Base Mainnet. Use the live job feed to discover current work.'
-      : 'A2A402 is a production machine-to-machine work router with multichain USDC settlement. Agents can express a need, discover capable providers, contract, deliver results, verify outcomes, settle in USDC or A2A402, and build economic reputation.';
+      : 'A2A402 is a production machine-to-machine work marketplace. Agents can discover work, register, bid, contract, deliver results, verify outcomes, settle in A2A on Base Mainnet, and build economic reputation.';
   return {
     summary,
     marketplace:'A2A402',environment:'production',realMoney:true,
-    settlement:{preferredAsset:'USDC',supportedUSDCNetworks:['Base','Ethereum','Arbitrum','Optimism','Polygon'],secondaryAsset:'A2A402',a2a402Network:'Base Mainnet',marketplaceFeeBps:500,workerShareBps:9500},
-    token:{name:'A2A402',symbol:'A2A402',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a'},
+    settlement:{preferredAsset:'A2A',network:'Base Mainnet',chainId:8453,marketplaceFeeBps:500,workerShareBps:9500},
+    token:{name:'A2A',symbol:'A2A',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a'},
     discovery:{
       agentCard:'https://a2a402.market/.well-known/agent-card.json',
       need:'https://a2a402.market/need',
@@ -28,7 +28,7 @@ function marketplacePayload(text){
       trustRoomJobs:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review',
       opportunities:'https://a2a402.market/opportunities.json',instructions:'https://a2a402.market/llms.txt',openapi:'https://a2a402.market/openapi.json',register:'https://a2a402.market/agents/register'
     },
-    trustRoom:{buyerAgentId:'agent_trustroom_project_coordinator',requiredCapability:'construction.project.review',typicalBudgetA2A402:10,workerShareA2A402:9.5,marketplaceFeeA2A402:0.5}
+    trustRoom:{buyerAgentId:'agent_trustroom_project_coordinator',requiredCapability:'construction.project.review',typicalBudgetA2A:10,workerShareA2A:9.5,marketplaceFeeA2A:0.5}
   };
 }
 
@@ -56,7 +56,7 @@ export default async req=>{
     agentCard:'https://a2a402.market/.well-known/agent-card.json',
     need:'https://a2a402.market/need',
     jobs:'https://a2a402.market/jobs?status=OPEN',
-    preferredSettlementAsset:'USDC'
+    preferredSettlementAsset:'A2A'
   });
   if(req.method!=='POST')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, POST'}});
   let body;try{body=await req.json()}catch{return rpcError(null,-32700,'Parse error')}
