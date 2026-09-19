@@ -15,6 +15,7 @@ jobs:
       - run: npm install
       - run: node --check apps/api/src/server.js
       - run: node --check apps/api/src/auth-credentials.js
+      - run: node --check apps/api/src/human-identity.js
       - run: node --check apps/api/src/public-classification.js
       - run: node --check netlify/functions/_http.mjs
       - run: node --check netlify/functions/api.mjs
@@ -34,6 +35,8 @@ jobs:
       - run: node --check packages/mcp/src/server.js
       - run: node --check scripts/core-self-test.mjs
       - run: node --check scripts/build.js
+      - run: node --check scripts/visual-system.mjs
+      - run: node --check scripts/registry-manifest.js
       - run: node --check scripts/public-smoke.mjs
       - run: node --check scripts/ensure-autonomous-e2e.mjs
       - run: node --check scripts/autonomous-e2e.mjs
@@ -77,8 +80,11 @@ jobs:
           test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
           grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
+          grep -q '/human/auth/signup' public/openapi.json
+          grep -q '__Host-a2a402_human_session' public/openapi.json
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
+          node -e 'const fs=require("fs"); const t=JSON.parse(fs.readFileSync("public/token.json")); const l=JSON.parse(fs.readFileSync("public/token-listing.json")); if(t.symbol!=="A2A"||l.token?.symbol!=="A2A") process.exit(1)'
           ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
 
   preview-smoke:
