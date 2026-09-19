@@ -44,7 +44,7 @@ export class A2A402Client {
   listJobs(filters={}){const q=new URLSearchParams(Object.entries(filters).filter(([,v])=>v!==undefined&&v!==null&&v!==''));return this.request(`/jobs${q.size?`?${q}`:''}`)}
   getJob(jobId){return this.request(`/jobs/${encodeURIComponent(jobId)}`)}
   createJob(input){return this.request('/jobs',{method:'POST',body:input,auth:true})}
-  need(input){return this.request('/need',{method:'POST',body:{paymentAsset:'USDC',...input},auth:true})}
+  need(input){return this.request('/need',{method:'POST',body:input,auth:true})}
   previewNeed(input){return this.need({...input,preview:true})}
   findProviders({capability,maxPrice,minimumReputation}={}){
     const q=new URLSearchParams();
