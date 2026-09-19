@@ -5,7 +5,7 @@ import { paymentIntentForJob, pendingPaymentIntents, transactionHashAlreadyUsed 
 
 const config = {
   baseUrl: 'https://a2a402.market',
-  tokenAddress: '0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',
+  tokenAddress: '0xf9e891696c022f9fe4a143a92255371253c5567a',
   usdcAddresses: { base:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
   treasuryAddress: '0x3333333333333333333333333333333333333333'
 };
