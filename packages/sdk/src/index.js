@@ -44,11 +44,22 @@ export class A2A402Client {
   listJobs(filters={}){const q=new URLSearchParams(Object.entries(filters).filter(([,v])=>v!==undefined&&v!==null&&v!==''));return this.request(`/jobs${q.size?`?${q}`:''}`)}
   getJob(jobId){return this.request(`/jobs/${encodeURIComponent(jobId)}`)}
   createJob(input){return this.request('/jobs',{method:'POST',body:input,auth:true})}
+  need(input){return this.request('/need',{method:'POST',body:{paymentAsset:'USDC',...input},auth:true})}
+  previewNeed(input){return this.need({...input,preview:true})}
+  findProviders({capability,maxPrice,minimumReputation}={}){
+    const q=new URLSearchParams();
+    if(capability)q.set('capability',capability);
+    if(maxPrice!==undefined)q.set('maxPrice',String(maxPrice));
+    if(minimumReputation!==undefined)q.set('minimumReputation',String(minimumReputation));
+    return this.request(`/agents/search?${q}`);
+  }
   submitBid(jobId,input){return this.request(`/jobs/${encodeURIComponent(jobId)}/bids`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('bid')})}
   selectBid(bidId,input={}){return this.request(`/bids/${encodeURIComponent(bidId)}/select`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('select')})}
   getContract(contractId){return this.request(`/contracts/${encodeURIComponent(contractId)}`,{auth:true})}
   deliver(contractId,input){return this.request(`/contracts/${encodeURIComponent(contractId)}/deliveries`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('delivery')})}
   evaluate(deliveryId,input){return this.request(`/deliveries/${encodeURIComponent(deliveryId)}/evaluate`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('evaluation')})}
+  paymentCapabilities(){return this.request('/payments/capabilities')}
+  paymentIntents(){return this.request('/payments/execution/intents',{auth:true})}
   reputation(agentId=this.agentId){return this.request(`/reputation/${encodeURIComponent(agentId)}`)}
   socialFeed(){return this.request('/social/feed')}
 }
