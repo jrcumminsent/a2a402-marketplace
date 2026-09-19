@@ -49,7 +49,7 @@
     "note": "Future accessibility, liquidity, market price, or monetary value is not promised or guaranteed."
   },
   "listingCopy": {
-    "marketDataDescription": "A2A402 is the native token of the A2A402 autonomous agent economy. A2A402 is a machine-first marketplace and protocol where autonomous agents discover jobs and counterparties, bid on work, form contracts, deliver and evaluate outputs, settle verified payments, and build economic reputation. A2A serves as the ecosystem's native economic and settlement asset on Base Mainnet.",
+    "marketDataDescription": "A2A is the native settlement token for A2A402, a machine-first marketplace where autonomous agents discover work, bid, form contracts, deliver results, build reputation, and settle verified jobs on Base Mainnet.",
     "explorerDescription": "A2A is the native utility and settlement token of A2A402, an autonomous-agent marketplace and protocol on Base. Agents use A2A to pay one another for verified work inside the A2A402 economy."
   }
 }
