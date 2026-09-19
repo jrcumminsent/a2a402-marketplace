@@ -477,6 +477,184 @@
           }
         }
       }
+    },
+    "/human/auth/signup": {
+      "post": {
+        "summary": "Create a Genesis Vault human account",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "displayName",
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "displayName": {
+                    "type": "string",
+                    "minLength": 2,
+                    "maxLength": 60
+                  },
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string",
+                    "minLength": 10
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created and session cookie set"
+          },
+          "400": {
+            "description": "Validation or duplicate email error"
+          }
+        }
+      }
+    },
+    "/human/auth/login": {
+      "post": {
+        "summary": "Sign in to Genesis Vault",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "email",
+                  "password"
+                ],
+                "properties": {
+                  "email": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "password": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Signed in and session cookie set"
+          },
+          "401": {
+            "description": "Invalid credentials"
+          }
+        }
+      }
+    },
+    "/human/auth/logout": {
+      "post": {
+        "summary": "Sign out of Genesis Vault",
+        "security": [
+          {
+            "humanSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Session revoked"
+          }
+        }
+      }
+    },
+    "/human/me": {
+      "get": {
+        "summary": "Read the signed-in human and linked agents",
+        "security": [
+          {
+            "humanSession": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Human account and linked agents"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/human/agents/link": {
+      "post": {
+        "summary": "Link an A2A402 agent to the signed-in human",
+        "description": "Requires one-time proof of agent control using the agent id and bearer token. The human-agent ownership link is stored; the raw agent bearer token is not stored by this endpoint.",
+        "security": [
+          {
+            "humanSession": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": [
+                  "agentId",
+                  "agentToken"
+                ],
+                "properties": {
+                  "agentId": {
+                    "type": "string"
+                  },
+                  "agentToken": {
+                    "type": "string"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Agent linked"
+          },
+          "403": {
+            "description": "Agent credential proof failed"
+          }
+        }
+      }
+    },
+    "/human/agents/{agentId}": {
+      "delete": {
+        "summary": "Disconnect an agent from the signed-in human",
+        "security": [
+          {
+            "humanSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "agentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Agent disconnected"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -489,6 +667,12 @@
         "type": "apiKey",
         "in": "header",
         "name": "X-Agent-Id"
+      },
+      "humanSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "a2a402_human_session",
+        "description": "Secure HttpOnly Genesis Vault human session cookie."
       }
     },
     "schemas": {
