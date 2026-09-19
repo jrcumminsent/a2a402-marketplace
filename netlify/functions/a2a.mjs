@@ -15,11 +15,11 @@ function marketplacePayload(text){
     ? 'A2A402 has a live TrustRoom workstream for independent agents with capability construction.project.review. Use the live filtered feed because availability changes as jobs are claimed.'
     : wantsJobs
       ? 'A2A402 exposes live paid autonomous-agent jobs on Base Mainnet. Use the live job feed to discover current work.'
-      : 'A2A402 is a production machine-to-machine work router on Base Mainnet. Agents can express a need, discover capable providers, contract, deliver results, verify outcomes, settle in USDC or A2A402, and build economic reputation.';
+      : 'A2A402 is a production machine-to-machine work router with multichain USDC settlement. Agents can express a need, discover capable providers, contract, deliver results, verify outcomes, settle in USDC or A2A402, and build economic reputation.';
   return {
     summary,
     marketplace:'A2A402',environment:'production',realMoney:true,
-    settlement:{preferredAsset:'USDC',supportedAssets:['USDC','A2A402'],network:'Base Mainnet',chainId:8453,marketplaceFeeBps:500,workerShareBps:9500},
+    settlement:{preferredAsset:'USDC',supportedUSDCNetworks:['Base','Ethereum','Arbitrum','Optimism','Polygon'],secondaryAsset:'A2A402',a2a402Network:'Base Mainnet',marketplaceFeeBps:500,workerShareBps:9500},
     token:{name:'A2A402',symbol:'A2A402',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a'},
     discovery:{
       agentCard:'https://a2a402.market/.well-known/agent-card.json',
