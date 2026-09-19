@@ -6,23 +6,23 @@ const forbiddenActivityTypes=new Set(['JOB_CLAIMED','JOB_SUBMITTED','JOB_VERIFYI
 const modernLifecyclePattern=/bid\s*->\s*contract\s*->\s*(?:artifact\/?delivery|artifact\s*->\s*delivery)\s*->\s*evaluation\s*->\s*settlement/i;
 const claimLanguage=/\bclaim(?:ing|ed)?\s+(?:an?\s+)?A2A(?:-denominated)?\s+jobs?\b/i;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
-async function request(path){const response=await fetch(base+path,{headers:{accept:path==='/'||path==='/llms.txt'?'text/html':'application/json','user-agent':'a2a402-public-smoke/1.7'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
+async function request(path){const wantsText=path==='/'||path==='/llms.txt'||path==='/robots.txt'||path==='/sitemap.xml'||path==='/vault/';const response=await fetch(base+path,{headers:{accept:wantsText?'text/html,text/plain,application/xml;q=0.9':'application/json','user-agent':'a2a402-public-smoke/1.8'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
 let failures=[];
 function pass(name){console.log(`PASS ${name}`)}
 function fail(name,detail){console.error(`FAIL ${name}: ${detail}`);failures.push({path:name,lastError:detail})}
 async function check(path,validate){let last='';for(let i=0;i<6;i++){try{const {response,body}=await request(path);if(response.status===200&&validate(body)){pass(`200 ${path}`);return}last=`status=${response.status} body=${JSON.stringify(body).slice(0,500)}`}catch(e){last=e.message}if(i<5)await sleep(15000)}fail(path,last)}
 await check('/build-info.json',b=>!expectedCommit||String(b.commit||'').startsWith(expectedCommit));
-await check('/',b=>typeof b==='string'&&b.includes('YOUR AGENT')&&b.includes('POST /need')&&b.includes('Ethereum')&&b.includes('Arbitrum')&&b.includes('Optimism')&&b.includes('Polygon'));
-await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('need')&&b?.extensions?.a2a402?.needUrl==='https://a2a402.market/need'&&b?.extensions?.a2a402?.primarySettlementAsset==='USDC'&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/',b=>typeof b==='string'&&/Genesis Vault/i.test(b)&&b.includes('href="/vault/"')&&b.includes('rel="canonical" href="https://a2a402.market/"')&&b.includes('property="og:title"')&&b.includes('name="twitter:card"'));
+await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!b?.extensions?.a2a402?.canonicalLifecycle?.includes('need')&&b?.extensions?.a2a402?.needUrl==='https://a2a402.market/need'&&b?.extensions?.a2a402?.primarySettlementAsset==='A2A'&&b?.extensions?.a2a402?.nativeToken?.symbol==='A2A'&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
-await check('/agents/onboard.json',b=>b?.discovery?.need==='https://a2a402.market/need'&&b?.payments?.preferredAsset==='USDC');
-await check('/payments/capabilities',b=>{const text=JSON.stringify(b);return b?.preferredSettlement?.asset==='USDC'&&Array.isArray(b?.supportedSettlement)&&['base','ethereum','arbitrum','optimism','polygon'].every(n=>b.supportedSettlement.some(x=>x.asset==='USDC'&&x.network===n))&&b.supportedSettlement.some(x=>x.asset==='A2A402'&&x.network==='base')});
+await check('/agents/onboard.json',b=>b?.environment==='production'&&b?.network?.primaryNetwork?.chainId===8453&&b?.token?.symbol==='A2A'&&b?.payments?.preferredAsset==='A2A');
+await check('/payments/capabilities',b=>Array.isArray(b?.supportedSettlement)&&b?.preferredSettlement?.asset==='A2A'&&b?.preferredSettlement?.chain==='eip155:8453'&&b.supportedSettlement.some(x=>x.asset==='A2A'&&x.network==='base'&&x.chainId===8453));
 await check('/system/self-test',b=>b?.ok===true&&b?.realMoneyMoved===false&&b?.persistentMarketplaceMutated===false);
 await check('/openapi.json',b=>Boolean(b?.paths?.['/need']&&b?.paths?.['/jobs/{jobId}/bids']&&b?.paths?.['/bids/{bidId}/select']&&b?.paths?.['/contracts/{contractId}/deliveries']&&b?.paths?.['/deliveries/{deliveryId}/evaluate']&&b?.paths?.['/jobs/{jobId}/settle'])&&!b?.paths?.['/jobs/{jobId}/claim']&&!legacyNetworkPattern.test(JSON.stringify(b)));
-await check('/health',b=>b?.environment==='production'&&b?.chainId===8453);
-await check('/token.json',b=>b?.chainId===8453&&!legacyNetworkPattern.test(JSON.stringify(b)));
+await check('/health',b=>b?.environment==='production'&&(b?.chainId===8453||b?.a2aToken?.chainId===8453));
+await check('/token.json',b=>b?.chainId===8453&&b?.symbol==='A2A'&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/token-listing.json',b=>!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/jobs',b=>Array.isArray(b)&&b.every(j=>!legacyNetworkPattern.test(JSON.stringify(j)))&&b.filter(j=>j.input?.program==='genesis-work-pool'||/genesis/i.test(String(j.input?.program||j.program||''))).every(j=>j.input?.classification==='promotional'&&j.input?.systemGenerated===true&&j.input?.countsTowardOrganic===false));
 await check('/agents/search?capability=research',b=>Array.isArray(b)&&!internalAgentPattern.test(JSON.stringify(b))&&!claimLanguage.test(JSON.stringify(b))&&b.every(a=>a.reputation&&a.reputation.agentId===a.agentId));
@@ -37,6 +37,9 @@ try{
  for(const a of agents.body){const {response,body}=await request(`/reputation/${encodeURIComponent(a.agentId)}`);if(response.status!==200||body?.agentId!==a.agentId||body?.error)fail(`reputation ${a.agentId}`,`status=${response.status} body=${JSON.stringify(body).slice(0,300)}`)}
  if(Array.isArray(agents.body)&&!failures.some(f=>String(f.path).startsWith('reputation ')))pass('truth every discoverable research agent has public reputation');
 }catch(e){fail('truth snapshot',e.message)}
+await check('/robots.txt',b=>typeof b==='string'&&b.includes('Sitemap: https://a2a402.market/sitemap.xml')&&b.includes('Disallow: /human/'));
+await check('/sitemap.xml',b=>typeof b==='string'&&b.includes('https://a2a402.market/whitepaper/')&&b.includes('https://a2a402.market/stats/')&&!b.includes('https://a2a402.market/vault/'));
+await check('/vault/',b=>typeof b==='string'&&b.includes('noindex,follow')&&b.includes('Create Account')&&b.includes('Sign In'));
 for(const [path,method] of [['/agents/smoke-probe/auth/rotate','POST'],['/payments/execution/intents','POST']]){try{const r=await fetch(base+path,{method,headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.7'}});if([401,405].includes(r.status))pass(`${r.status} ${path} protected`);else fail(path,`expected protected response, got ${r.status}`)}catch(e){fail(path,e.message)}}
 if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
 console.log('Public smoke passed: public truth, validation funnel, reputation, Genesis labels and modern lifecycle guards');
