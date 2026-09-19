@@ -50,7 +50,7 @@ async function bidForWork(){
   if(!candidate)return null;
   try{
     const bid=await post(`/jobs/${candidate.id}/bids`,{amount:Number(candidate.reward),message:`Autonomous daemon bid for ${candidate.requiredCapability}.`,estimatedSeconds:300,idempotencyKey:`daemon-bid-${AGENT_ID}-${candidate.id}`});
-    await postSocial(`Bid on ${candidate.title} for ${Number(candidate.reward||0)} ${candidate.paymentAsset||'A2A'}.`,'work');
+    await postSocial(`Bid on ${candidate.title} for ${Number(candidate.reward||0)} ${candidate.paymentAsset||'USDC'}.`,'work');
     return{jobId:candidate.id,bidId:bid.id,status:bid.status};
   }catch(error){if(/already has an open bid|job not open/.test(error.message))return null;throw error}
 }
@@ -84,9 +84,9 @@ async function maybeHire(){
   if(!AUTO_HIRE||MAX_ACTIVE_CREATED<1)return null;
   const [balance,jobs,directory]=await Promise.all([api(`/agents/${AGENT_ID}/balance`),api('/jobs'),api('/social/agents')]);const a2a=Number(balance?.a2aBalance?.balance||0);if(a2a<HIRE_THRESHOLD)return null;
   const active=(Array.isArray(jobs)?jobs:[]).filter(j=>j.creatorId===AGENT_ID&&['OPEN','IN_PROGRESS','SUBMITTED','VERIFYING','AWAITING_PAYMENT'].includes(j.status));if(active.length>=MAX_ACTIVE_CREATED)return null;
-  const candidates=(directory.agents||[]).filter(a=>a.id!==AGENT_ID&&(a.wallets||[]).some(w=>w.chain==='eip155:8453'&&(w.assets||[]).includes('A2A')));if(!candidates.length)return null;
+  const candidates=(directory.agents||[]).filter(a=>a.id!==AGENT_ID&&(a.wallets||[]).some(w=>w.chain==='eip155:8453'&&(w.assets||[]).some(asset=>asset==='USDC'||asset==='A2A402')));if(!candidates.length)return null;
   candidates.sort((a,b)=>(b.reputation?.successRate||0)-(a.reputation?.successRate||0)||(b.economy?.jobsPaid||0)-(a.economy?.jobsPaid||0));const target=candidates[0];const capability=(target.capabilities||[]).map(c=>typeof c==='string'?{name:c,availability:true}:c).find(c=>c.availability!==false)?.name;if(!capability)return null;
-  const job=await post('/jobs',{title:`Autonomous rehire: ${target.name} for ${capability}`,description:'Agent-created job funded from earned A2A. This job proves autonomous capital circulation.',requiredCapability:capability,reward:HIRE_REWARD,paymentAsset:'A2A',paymentNetwork:'base',verificationMethod:'deterministic',input:{task:'normalize',value:`A2A402 autonomous rehire ${new Date().toISOString()}`,purpose:'a2a402-economy'}});
+  const job=await post('/jobs',{title:`Autonomous rehire: ${target.name} for ${capability}`,description:'Agent-created downstream job for useful work. This records genuine autonomous economic activity.',requiredCapability:capability,reward:HIRE_REWARD,paymentAsset:'USDC',paymentNetwork:'base',verificationMethod:'deterministic',input:{task:'normalize',value:`A2A402 useful downstream work ${new Date().toISOString()}`,purpose:'a2a402-economy'}});
   await postSocial(`Created a ${HIRE_REWARD} A2A job for ${capability} after accumulating earned A2A.`,'economy');return{jobId:job.id,targetAgentId:target.id};
 }
 
