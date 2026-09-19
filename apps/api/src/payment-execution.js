@@ -4,8 +4,8 @@ import { usdcNetworkConfig } from './token-config.js';
 const EVM_ADDRESS=/^0x[a-fA-F0-9]{40}$/;
 const normalizeNetwork=value=>String(value||'').trim().toLowerCase();
 const chainConfigForJob=(job,config)=>{
-  if(job.paymentAsset==='A2A402'){
-    if(!['base','eip155:8453'].includes(normalizeNetwork(job.paymentNetwork)))throw new Error('A2A402 settlement remains on Base');
+  if(job.paymentAsset==='A2A'){
+    if(!['base','eip155:8453'].includes(normalizeNetwork(job.paymentNetwork)))throw new Error('A2A settlement remains on Base');
     return{network:'base',chain:'eip155:8453',chainId:8453,tokenContract:config.tokenAddress};
   }
   if(job.paymentAsset==='USDC'){
@@ -19,7 +19,7 @@ const chainConfigForJob=(job,config)=>{
 export function normalizePaymentExecutor(input={}){
   if(!input||typeof input!=='object')throw new Error('paymentExecutor must be an object');
   const mode=String(input.mode||'pull').toLowerCase();if(mode!=='pull')throw new Error('paymentExecutor.mode must be pull');
-  return{mode:'pull',protocol:'a2a402-payment-intent-v1',autoExecute:input.autoExecute!==false,chain:input.chain?String(input.chain):null,asset:String(input.asset||'USDC').toUpperCase(),signerType:input.signerType?String(input.signerType):'agent-controlled',maxPerJobUnits:input.maxPerJobUnits?String(input.maxPerJobUnits):null};
+  return{mode:'pull',protocol:'a2a402-payment-intent-v1',autoExecute:input.autoExecute!==false,chain:input.chain?String(input.chain):null,asset:String(input.asset||'A2A').toUpperCase(),signerType:input.signerType?String(input.signerType):'agent-controlled',maxPerJobUnits:input.maxPerJobUnits?String(input.maxPerJobUnits):null};
 }
 export function paymentIntentForJob(job,config){
   if(!job)throw new Error('job not found');if(job.status!=='AWAITING_PAYMENT')throw new Error('job not awaiting payment');
@@ -30,5 +30,5 @@ export function paymentIntentForJob(job,config){
   const intentId='pay_'+crypto.createHash('sha256').update(payload).digest('hex').slice(0,32);
   return{protocol:'a2a402-payment-intent-v1',intentId,jobId:job.id,status:job.status,chain:chain.chain,network:chain.network,chainId:chain.chainId,asset:job.paymentAsset,tokenContract:chain.tokenContract,payerAddress:job.payerAddress,totalAmountUnits:String(job.paymentAmountUnits),transfers:[{purpose:'worker',to:job.payeeAddress,amountUnits:String(job.workerPaymentUnits)},{purpose:'marketplace-fee',to:treasuryAddress,amountUnits:String(job.marketplaceFeeUnits)}],safety:{exactChain:true,exactContract:true,exactRecipients:true,exactAmounts:true,twoDistinctTransactionsRequired:true,privateKeyNeverSharedWithMarketplace:true,signerMustBeControlledByPayerAgent:true},verifyBeforeSigning:config.baseUrl+'/jobs/'+job.id,submitSettlement:{method:'POST',url:config.baseUrl+'/jobs/'+job.id+'/settle',body:{workerTxHash:'<0x...>',feeTxHash:'<0x...>'}}};
 }
-export function pendingPaymentIntents(economy,agentId,config){return[...economy.jobs.values()].filter(job=>job.creatorId===agentId&&job.status==='AWAITING_PAYMENT'&&['A2A402','USDC'].includes(job.paymentAsset)).map(job=>paymentIntentForJob(job,config))}
+export function pendingPaymentIntents(economy,agentId,config){return[...economy.jobs.values()].filter(job=>job.creatorId===agentId&&job.status==='AWAITING_PAYMENT'&&['A2A','USDC'].includes(job.paymentAsset)).map(job=>paymentIntentForJob(job,config))}
 export function transactionHashAlreadyUsed(economy,txHash){const needle=String(txHash||'').toLowerCase();if(!needle)return false;return economy.transactions.some(tx=>[tx.reference,tx.feeReference].some(ref=>String(ref||'').toLowerCase()===needle))}
