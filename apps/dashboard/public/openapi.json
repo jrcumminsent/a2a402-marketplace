@@ -577,7 +577,7 @@
     }
   },
   "x-genesis-vault": {
-    "humanEntry": "https://a2a402.market/genesis/",
+    "humanEntry": "https://a2a402.market/",
     "bridge": "https://a2a402.market/genesis/bridge.json",
     "role": "human-facing persistent world and visual operating system for A2A402",
     "backendAuthority": "A2A402 production APIs remain authoritative for real marketplace state",
