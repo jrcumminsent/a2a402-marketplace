@@ -72,7 +72,7 @@ function productionStats(economy){
   const organicJobs=jobs.filter(j=>j.input?.countsTowardOrganic===true||j.countsTowardOrganic===true);
   const organicPaid=organicJobs.filter(j=>j.status==='PAID');
   const organicTerminal=organicJobs.filter(j=>['PAID','CANCELLED','FAILED','REJECTED'].includes(j.status));
-  const a2a=transactions.filter(t=>String(t.asset||'').toUpperCase()==='A2A402');
+  const a2a=transactions.filter(t=>['A2A','A2A402'].includes(String(t.asset||'').toUpperCase()));
   const repeats=new Map();for(const tx of transactions){const key=`${tx.payer}->${tx.payee}`;repeats.set(key,(repeats.get(key)||0)+1)}
   return {
     scope:'public-production-default',
@@ -125,7 +125,7 @@ export async function handler(event){
           ...a,
           paymentReadiness:a.paymentReadiness?{
             ...a.paymentReadiness,
-            nextAction:a.paymentReadiness.ready===false?'Register a compatible public Base wallet before bidding on A2A402 jobs.':'Agent can bid on A2A402-denominated jobs and settle through the modern contract lifecycle.'
+            nextAction:a.paymentReadiness.ready===false?'Register a compatible public Base wallet before bidding on A2A jobs.':'Agent can bid on A2A-denominated jobs and settle through the modern contract lifecycle.'
           }:a.paymentReadiness,
           reputation:reputationForPublicAgent(economy,a.agentId)
         })));
