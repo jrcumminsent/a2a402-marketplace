@@ -1,4 +1,4 @@
-export const TOKEN_CONFIG=Object.freeze({name:'A2A402',symbol:'A2A402',network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'0xf9e891696c022f9fe4a143a92255371253c5567a',decimals:18,fixedSupply:'1000000000',treasuryAddress:'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',marketplaceFeeBps:500,workerShareBps:9500});
+export const TOKEN_CONFIG=Object.freeze({name:'A2A',symbol:'A2A',network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'0xf9e891696c022f9fe4a143a92255371253c5567a',decimals:18,fixedSupply:'1000000000',treasuryAddress:'0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c',marketplaceFeeBps:500,workerShareBps:9500});
 export const USDC_NETWORKS=Object.freeze({
   base:Object.freeze({network:'base',chainId:8453,caipChainId:'eip155:8453',contractAddress:'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',decimals:6,verification:'native'}),
   ethereum:Object.freeze({network:'ethereum',chainId:1,caipChainId:'eip155:1',contractAddress:'0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48',decimals:6,verification:'native'}),
@@ -11,7 +11,7 @@ export const SUPPORTED_USDC_CHAINS=Object.freeze(Object.values(USDC_NETWORKS).ma
 export const usdcNetworkConfig=value=>Object.values(USDC_NETWORKS).find(x=>x.network===String(value||'').toLowerCase()||x.caipChainId===String(value||'')||String(x.chainId)===String(value||''))||null;
 
 // Historical record only. Never use this object for current routing or settlement.
-export const LEGACY_TOKEN_CONFIG=Object.freeze({label:'Legacy / Deprecated',name:'A2A',symbol:'A2A',contractAddress:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',status:'deprecated'});
+export const LEGACY_TOKEN_CONFIG=Object.freeze({label:'Legacy / Deprecated',name:'A2A Legacy',symbol:'A2A',contractAddress:'0xF2bb6DC14E9097EC08F9Eaa9C6B7d39662195F01',status:'deprecated'});
 
 export const tokenAddressFromEnv=(env=process.env)=>String(env.A2A402_TOKEN_ADDRESS||env.A2A402_EXPECTED_TOKEN_ADDRESS||TOKEN_CONFIG.contractAddress).trim().toLowerCase();
 export const treasuryAddressFromEnv=(env=process.env)=>String(env.A2A402_TREASURY_ADDRESS||env.A2A402_EXPECTED_TREASURY_ADDRESS||TOKEN_CONFIG.treasuryAddress).trim();
