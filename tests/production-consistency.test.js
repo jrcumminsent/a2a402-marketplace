@@ -13,18 +13,17 @@ const netlify=read('netlify.toml');
 const forbiddenProductionTerms=/A2A402402|A2A_TEST|TEST marketplace|simulation only|mainnet settlement disabled/i;
 
 test('canonical production identity agrees across token, OpenAPI, onboarding and llms',()=>{
-  assert.equal(TOKEN_CONFIG.symbol,'A2A402');
+  assert.equal(TOKEN_CONFIG.symbol,'A2A');
   assert.equal(TOKEN_CONFIG.chainId,8453);
-  assert.equal(token.symbol,'A2A402');
+  assert.equal(token.symbol,'A2A');
   assert.equal(token.chainId,8453);
   assert.equal(onboard.environment,'production');
-  assert.equal(onboard.network.primarySettlementAsset,'USDC');
-  assert.ok(onboard.network.supportedUSDCNetworks.some(network=>network.chainId===8453));
-  assert.equal(onboard.network.secondaryAsset.chainId,8453);
+  assert.equal(onboard.network.primarySettlementAsset,'A2A');
+  assert.equal(onboard.network.primaryNetwork.chainId,8453);
   assert.equal(onboard.token.symbol,TOKEN_CONFIG.symbol);
   assert.equal(onboard.token.contract,TOKEN_CONFIG.contractAddress);
   assert.equal(openapi.servers[0].url,'https://a2a402.market');
-  assert.match(llms,/production machine-to-machine work router and marketplace/i);
+  assert.match(llms,/production machine-to-machine work marketplace/i);
   assert.match(llms,/Chain ID: 8453/);
 });
 
