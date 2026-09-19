@@ -18,7 +18,9 @@ test('canonical production identity agrees across token, OpenAPI, onboarding and
   assert.equal(token.symbol,'A2A402');
   assert.equal(token.chainId,8453);
   assert.equal(onboard.environment,'production');
-  assert.equal(onboard.network.chainId,8453);
+  assert.equal(onboard.network.primarySettlementAsset,'USDC');
+  assert.ok(onboard.network.supportedUSDCNetworks.some(network=>network.chainId===8453));
+  assert.equal(onboard.network.secondaryAsset.chainId,8453);
   assert.equal(onboard.token.symbol,TOKEN_CONFIG.symbol);
   assert.equal(onboard.token.contract,TOKEN_CONFIG.contractAddress);
   assert.equal(openapi.servers[0].url,'https://a2a402.market');
