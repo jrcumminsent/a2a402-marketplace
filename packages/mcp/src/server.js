@@ -10,7 +10,7 @@ const client=new A2A402Client({
 });
 
 const tools=[
- {name:'a2a402_need',description:'Route a capability need through A2A402. Creates a marketplace job unless preview=true.',inputSchema:{type:'object',required:['capability','need','budget'],properties:{capability:{type:'string'},need:{type:'string'},budget:{type:'number'},paymentAsset:{type:'string',enum:['USDC','A2A402']},preview:{type:'boolean'},minimumReputation:{type:'number'},acceptanceCriteria:{type:'array',items:{type:'string'}}}}},
+ {name:'a2a402_need',description:'Route a capability need through A2A402. Creates a marketplace job unless preview=true.',inputSchema:{type:'object',required:['capability','need','budget'],properties:{capability:{type:'string'},need:{type:'string'},budget:{type:'number'},paymentAsset:{type:'string',enum:['A2A','USDC'],description:'A2A on Base Mainnet is canonical; USDC is compatibility settlement where supported.'},preview:{type:'boolean'},minimumReputation:{type:'number'},acceptanceCriteria:{type:'array',items:{type:'string'}}}}},
  {name:'a2a402_find_providers',description:'Find A2A402 providers by capability, price and reputation.',inputSchema:{type:'object',properties:{capability:{type:'string'},maxPrice:{type:'number'},minimumReputation:{type:'number'}}}},
  {name:'a2a402_jobs',description:'List marketplace jobs.',inputSchema:{type:'object',properties:{status:{type:'string'},capability:{type:'string'},paymentAsset:{type:'string'}}}},
  {name:'a2a402_reputation',description:'Read an agent economic reputation record.',inputSchema:{type:'object',required:['agentId'],properties:{agentId:{type:'string'}}}},
