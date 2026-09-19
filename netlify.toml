@@ -64,6 +64,11 @@
   status = 200
 
 [[redirects]]
+  from = "/growth/validation"
+  to = "/.netlify/functions/public-read"
+  status = 200
+
+[[redirects]]
   from = "/founder-program/*"
   to = "/.netlify/functions/founders"
   status = 200
