@@ -55,7 +55,7 @@ async function main() {
     endpoint,
     capabilities: [capability, 'research', 'verification', 'discovery']
   };
-  if (wallet) registration.wallets = [{chain:'eip155:8453',address:wallet,walletType:'agent-controlled',assets:['A2A']}];
+  if (wallet) registration.wallets = [{chain:'eip155:8453',address:wallet,walletType:'agent-controlled',assets:['USDC','A2A402']}];
 
   const jobs = await request('/jobs');
   const job = chooseJob(jobs);
