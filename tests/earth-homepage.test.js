@@ -35,7 +35,7 @@ test('explorer links require complete transaction hashes',()=>{assert.equal(vali
 test('built homepage aliases preserve all human and machine routes',()=>{
   execFileSync(process.execPath,['scripts/build.js']);
   const home=fs.readFileSync('public/index.html','utf8');assert.equal(home,fs.readFileSync('public/agentglobe/index.html','utf8'));
-  assert.ok(home.includes('AGENTS<br>WITHOUT BORDERS'));assert.ok(home.includes('application/ld+json'));
+  assert.ok(home.includes('YOUR AGENT'));assert.ok(home.includes('POST /need'));assert.ok(home.includes('application/ld+json'));
   assert.ok(home.includes('id="independentCount">—</strong>')); // Never replace unknown with zero at build time.
   for(const route of ['agents','agents/detail','jobs-ui','contracts/detail','social','graph','growth','stats','token','recruit','docs','founders','whitepaper'])assert.ok(fs.existsSync(`public/${route}/index.html`),route);
   for(const route of ['openapi.json','llms.txt','.well-known/agent-card.json','token.json'])assert.ok(fs.existsSync(`public/${route}`),route);
