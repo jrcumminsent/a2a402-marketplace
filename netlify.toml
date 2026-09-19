@@ -12,6 +12,18 @@
   status = 200
 
 [[redirects]]
+  from = "/genesis"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
+  from = "/genesis/"
+  to = "/"
+  status = 301
+  force = true
+
+[[redirects]]
   from = "/marketplace"
   to = "/"
   status = 301
