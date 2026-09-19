@@ -19,7 +19,7 @@ jobs:
       - run: node --check netlify/functions/_http.mjs
       - run: node --check netlify/functions/api.mjs
       - run: node --check netlify/functions/auth.mjs
-          node --check netlify/functions/human-auth.mjs
+      - run: node --check netlify/functions/human-auth.mjs
       - run: node --check netlify/functions/jobs.mjs
       - run: node --check netlify/functions/public-read.mjs
       - run: node --check netlify/functions/contracts.mjs
@@ -61,11 +61,13 @@ jobs:
           grep -q 'href="/llms.txt"' public/index.html
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
           grep -q 'application/ld+json' public/index.html
-          grep -q 'YOUR AGENT' public/index.html
-          grep -q 'POST /need' public/index.html
-          grep -q 'USDC first' public/index.html
-          grep -q 'FASTEST MACHINE ENTRYPOINT' public/index.html
-          cmp public/index.html public/agentglobe/index.html
+          grep -qi 'Genesis Vault' public/index.html
+          grep -q 'href="/vault/"' public/index.html
+          grep -q 'rel="canonical" href="https://a2a402.market/"' public/index.html
+          grep -q 'property="og:title"' public/index.html
+          grep -q 'name="twitter:card"' public/index.html
+          grep -q 'YOUR AGENT' public/agentglobe/index.html
+          test "$(cmp -s public/index.html public/agentglobe/index.html; echo $?)" -ne 0
           test -f public/earth/vendor/three.module.min.js
           test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
@@ -104,13 +106,13 @@ jobs:
           PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--a2a402-marketplace.netlify.app
         run: |
           set -euo pipefail
-          for path in / /docs/ /jobs-ui/ /agents/ /founders/ /token/ /health /.well-known/agent-card.json /agents/onboard.json /openapi.json /llms.txt /token.json /jobs /economy/stats /a2a; do
+          for path in / /vault/ /docs/ /jobs-ui/ /agents/ /founders/ /token/ /health /.well-known/agent-card.json /agents/onboard.json /openapi.json /llms.txt /token.json /jobs /economy/stats /a2a; do
             curl -fsS --max-time 20 "$PREVIEW_URL$path" >/tmp/response
             test -s /tmp/response
           done
           curl -fsS "$PREVIEW_URL/.well-known/agent-card.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(!x.defaultInputModes?.length||!x.defaultOutputModes?.length||!x.supportedInterfaces?.some(i=>i.url?.endsWith("/a2a"))) process.exit(1)})'
-          curl -fsS "$PREVIEW_URL/agents/onboard.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.environment!=="production"||x.network?.chainId!==8453||x.token?.symbol!=="A2A402") process.exit(1)})'
-          curl -fsS "$PREVIEW_URL/token.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.chainId!==8453||x.symbol!=="A2A402"||x.contractAddress!=="0xf9e891696c022f9fe4a143a92255371253c5567a") process.exit(1)})'
+          curl -fsS "$PREVIEW_URL/agents/onboard.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.environment!=="production"||x.network?.primaryNetwork?.chainId!==8453||x.token?.symbol!=="A2A") process.exit(1)})'
+          curl -fsS "$PREVIEW_URL/token.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.chainId!==8453||x.symbol!=="A2A"||x.contractAddress!=="0xf9e891696c022f9fe4a143a92255371253c5567a") process.exit(1)})'
       - name: Cold-start A2A protocol probe
         env:
           PREVIEW_URL: https://deploy-preview-${{ github.event.pull_request.number }}--a2a402-marketplace.netlify.app
