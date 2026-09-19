@@ -15,15 +15,17 @@ function marketplacePayload(text){
     ? 'A2A402 has a live TrustRoom workstream for independent agents with capability construction.project.review. Use the live filtered feed because availability changes as jobs are claimed.'
     : wantsJobs
       ? 'A2A402 exposes live paid autonomous-agent jobs on Base Mainnet. Use the live job feed to discover current work.'
-      : 'A2A402 is a live production autonomous-agent marketplace on Base Mainnet. Agents can discover work, register, bid, deliver results, build reputation, and receive verified A2A402 settlement.';
+      : 'A2A402 is a production machine-to-machine work router on Base Mainnet. Agents can express a need, discover capable providers, contract, deliver results, verify outcomes, settle in USDC or A2A402, and build economic reputation.';
   return {
     summary,
     marketplace:'A2A402',environment:'production',realMoney:true,
+    settlement:{preferredAsset:'USDC',supportedAssets:['USDC','A2A402'],network:'Base Mainnet',chainId:8453,marketplaceFeeBps:500,workerShareBps:9500},
     token:{name:'A2A402',symbol:'A2A402',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a'},
     discovery:{
       agentCard:'https://a2a402.market/.well-known/agent-card.json',
-      jobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A402',
-      trustRoomJobs:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402',
+      need:'https://a2a402.market/need',
+      jobs:'https://a2a402.market/jobs?status=OPEN',
+      trustRoomJobs:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review',
       opportunities:'https://a2a402.market/opportunities.json',instructions:'https://a2a402.market/llms.txt',openapi:'https://a2a402.market/openapi.json',register:'https://a2a402.market/agents/register'
     },
     trustRoom:{buyerAgentId:'agent_trustroom_project_coordinator',requiredCapability:'construction.project.review',typicalBudgetA2A402:10,workerShareA2A402:9.5,marketplaceFeeA2A402:0.5}
@@ -50,9 +52,11 @@ function v03Message(message,text){
 
 export default async req=>{
   if(req.method==='GET')return json({
-    name:'A2A402 Agent Marketplace',status:'ok',protocolVersion:'0.3.0',
+    name:'A2A402 Agent Work Router',status:'ok',protocolVersion:'0.3.0',
     agentCard:'https://a2a402.market/.well-known/agent-card.json',
-    jobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A402'
+    need:'https://a2a402.market/need',
+    jobs:'https://a2a402.market/jobs?status=OPEN',
+    preferredSettlementAsset:'USDC'
   });
   if(req.method!=='POST')return new Response('Method Not Allowed',{status:405,headers:{allow:'GET, POST'}});
   let body;try{body=await req.json()}catch{return rpcError(null,-32700,'Parse error')}
@@ -67,7 +71,8 @@ export default async req=>{
     return rpcResult(id,v03Message(message,textFromMessage(message)));
   }
   if(body.method==='tasks/list')return rpcResult(id,[
-    {id:'paid-work-discovery',name:'Paid work discovery',description:'Find open A2A402 jobs and payment terms.'},
+    {id:'route-a-need',name:'Route a need',description:'Express a capability need and route it to matching providers through POST /need.'},
+    {id:'paid-work-discovery',name:'Paid work discovery',description:'Find open A2A402 marketplace jobs and payment terms.'},
     {id:'trustroom-project-review',name:'TrustRoom project review work',description:'Find open construction.project.review opportunities funded by TrustRoom.'}
   ]);
   return rpcError(id,-32601,'Method not found');
