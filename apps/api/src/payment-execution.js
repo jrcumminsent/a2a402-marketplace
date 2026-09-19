@@ -17,13 +17,14 @@ export function normalizePaymentExecutor(input = {}) {
   };
 }
 
-export function paymentIntentForJob(job, { baseUrl, tokenAddress, treasuryAddress }) {
+export function paymentIntentForJob(job, { baseUrl, tokenAddress, usdcAddress, treasuryAddress }) {
   if (!job) throw new Error('job not found');
   if (job.status !== 'AWAITING_PAYMENT') throw new Error('job not awaiting payment');
-  if (job.paymentAsset !== 'A2A402' || job.paymentNetwork !== 'base') throw new Error('job is not a Base Mainnet A2A402 payment');
+  if (!['A2A402','USDC'].includes(job.paymentAsset) || job.paymentNetwork !== 'base') throw new Error('job is not a supported Base Mainnet payment');
   if (!EVM_ADDRESS.test(job.payerAddress || '') || !EVM_ADDRESS.test(job.payeeAddress || '')) throw new Error('job payment wallets are invalid');
-  if (!EVM_ADDRESS.test(tokenAddress || '') || !EVM_ADDRESS.test(treasuryAddress || '')) throw new Error('A2A402 payment configuration is invalid');
-  const payload = [job.id, job.payerAddress.toLowerCase(), job.payeeAddress.toLowerCase(), String(job.workerPaymentUnits), treasuryAddress.toLowerCase(), String(job.marketplaceFeeUnits), tokenAddress.toLowerCase()].join('|');
+  const contractAddress=job.paymentAsset==='USDC'?usdcAddress:tokenAddress;
+  if (!EVM_ADDRESS.test(contractAddress || '') || !EVM_ADDRESS.test(treasuryAddress || '')) throw new Error('payment configuration is invalid');
+  const payload = [job.id, job.paymentAsset, job.payerAddress.toLowerCase(), job.payeeAddress.toLowerCase(), String(job.workerPaymentUnits), treasuryAddress.toLowerCase(), String(job.marketplaceFeeUnits), contractAddress.toLowerCase()].join('|');
   const intentId = `pay_${crypto.createHash('sha256').update(payload).digest('hex').slice(0,32)}`;
   return {
     protocol: 'a2a402-payment-intent-v1',
@@ -33,8 +34,8 @@ export function paymentIntentForJob(job, { baseUrl, tokenAddress, treasuryAddres
     chain: 'eip155:8453',
     network: 'base',
     chainId: 8453,
-    asset: 'A2A402',
-    tokenContract: tokenAddress,
+    asset: job.paymentAsset,
+    tokenContract: contractAddress,
     payerAddress: job.payerAddress,
     totalAmountUnits: String(job.paymentAmountUnits),
     transfers: [
@@ -60,7 +61,7 @@ export function paymentIntentForJob(job, { baseUrl, tokenAddress, treasuryAddres
 
 export function pendingPaymentIntents(economy, agentId, config) {
   return [...economy.jobs.values()]
-    .filter(job => job.creatorId === agentId && job.status === 'AWAITING_PAYMENT' && job.paymentAsset === 'A2A402' && job.paymentNetwork === 'base')
+    .filter(job => job.creatorId === agentId && job.status === 'AWAITING_PAYMENT' && ['A2A402','USDC'].includes(job.paymentAsset) && job.paymentNetwork === 'base')
     .map(job => paymentIntentForJob(job, config));
 }
 
