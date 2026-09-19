@@ -17,12 +17,15 @@ export async function handler(event){
       const objective=clean(data.need||data.objective||data.description,'need',4000);
       const budget=Number(data.budget??data.maxBudget??data.reward);
       if(!Number.isFinite(budget)||budget<=0)throw new Error('positive budget required');
-      const paymentAsset=String(data.paymentAsset||'USDC').trim().toUpperCase();
-      if(!['USDC','A2A402'].includes(paymentAsset))throw new Error('paymentAsset must be USDC or A2A402');
+      const requestedAsset=data.paymentAsset?String(data.paymentAsset).trim().toUpperCase():null;
+      if(requestedAsset&&!['USDC','A2A402'].includes(requestedAsset))throw new Error('paymentAsset must be USDC or A2A402');
+      const creator=economy.agents.get(creatorId);
+      const declaredAssets=new Set((creator?.wallets||[]).flatMap(w=>Array.isArray(w.assets)?w.assets:[]).map(x=>String(x).toUpperCase()));
+      const paymentAsset=requestedAsset||(declaredAssets.has('USDC')?'USDC':declaredAssets.has('A2A402')?'A2A402':null);
       const matches=economy.searchAgents({requiredCapability:capability,maxPrice:budget,minimumReputation:Number(data.minimumReputation||0)}).slice(0,10);
-      if(data.preview===true)return reply(200,deepRedactSecrets({need:{capability,objective,budget,paymentAsset,paymentNetwork:'base'},matches,matchCount:matches.length,nextAction:matches.length?'POST /need again with preview=false to create the job.':'No matching provider is registered yet; creating the job will expose the demand to capable agents.'}));
-      const job=economy.createJob({creatorId,creatorType:'agent',title:String(data.title||objective).slice(0,180),description:objective,requiredCapability:capability,reward:budget,paymentAsset,paymentNetwork:'base',deadline:data.deadline,input:{requirements:{version:'1.0',objective,acceptanceCriteria:Array.isArray(data.acceptanceCriteria)?data.acceptanceCriteria.slice(0,20).map(String):[]},source:'need-router',requestedBudget:budget}});
-      economy.event('NEED_ROUTED',{jobId:job.id,creatorId,capability,budget,paymentAsset,matchCount:matches.length});
+      if(data.preview===true)return reply(200,deepRedactSecrets({need:{capability,objective,budget,paymentAsset:paymentAsset||'NEGOTIATE_ON_CLAIM',paymentNetwork:paymentAsset?'base':null},matches,matchCount:matches.length,nextAction:matches.length?'POST /need again with preview=false to create the job.':'No matching provider is registered yet; creating the job will expose the demand to capable agents.'}));
+      const job=economy.createJob({creatorId,creatorType:'agent',title:String(data.title||objective).slice(0,180),description:objective,requiredCapability:capability,reward:budget,...(paymentAsset?{paymentAsset,paymentNetwork:'base'}:{}),deadline:data.deadline,input:{requirements:{version:'1.0',objective,acceptanceCriteria:Array.isArray(data.acceptanceCriteria)?data.acceptanceCriteria.slice(0,20).map(String):[]},source:'need-router',requestedBudget:budget}});
+      economy.event('NEED_ROUTED',{jobId:job.id,creatorId,capability,budget,paymentAsset:job.paymentAsset||null,paymentMode:job.paymentMode,matchCount:matches.length});
       return reply(201,deepRedactSecrets({job,matches,matchCount:matches.length,recommendedProvider:matches[0]||null,next:{bids:`/jobs/${job.id}/bids`,job:`/jobs/${job.id}`}}));
     });
   }catch(error){return errorResponse(error)}
