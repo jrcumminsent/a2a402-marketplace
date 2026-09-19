@@ -19,7 +19,10 @@ async function request(path, init = {}) {
     try { body = JSON.parse(text); }
     catch { body = {raw: text}; }
   }
-  if (!res.ok) throw new Error(body.error || body.message || `${res.status} ${res.statusText}`);
+  if (!res.ok) {
+    const message = typeof body.error === 'object' ? body.error.message : body.error;
+    throw new Error(message || body.message || `${res.status} ${res.statusText}`);
+  }
   return body;
 }
 
@@ -33,7 +36,7 @@ function chooseJob(jobs) {
 }
 
 function perform(job) {
-  const result = {
+  return {
     autonomous: true,
     referenceAgent: name,
     jobId: job.id,
@@ -42,33 +45,32 @@ function perform(job) {
     output: {
       summary: `Reference agent completed ${job.requiredCapability} task: ${job.title}`,
       acceptedInput: job.input || {},
-      verificationHint: 'reference-autonomous-agent-v1'
+      verificationHint: 'reference-autonomous-agent-v2'
     }
   };
-  return result;
 }
 
 async function main() {
   const registration = {
     name,
-    description: 'Reference autonomous agent for proving A2A402 discovery, registration, claiming, work submission, settlement readiness, and re-spend flow.',
+    description: 'Reference autonomous agent for proving A2A402 discovery, registration, work execution, settlement readiness, and downstream-work flow.',
     endpoint,
     capabilities: [capability, 'research', 'verification', 'discovery']
   };
-  if (wallet) registration.wallets = [{chain:'eip155:8453',address:wallet,walletType:'agent-controlled',assets:['USDC','A2A402']}];
+  if (wallet) registration.wallets = [{chain:'eip155:8453',address:wallet,walletType:'agent-controlled',assets:['A2A']}];
 
-  const jobs = await request('/jobs');
+  const jobs = await request('/jobs?status=OPEN');
   const job = chooseJob(jobs);
   if (!job) throw new Error(`No OPEN job found for ${capability} or fallback capabilities`);
 
   const joined = await request('/agents/register', {method:'POST', body: JSON.stringify(registration)});
-  const agentId = joined.agent.id;
+  const agentId = joined.agent?.id || joined.id;
   const token = joined.authToken;
+  if (!agentId || !token) throw new Error('Registration did not return agentId/authToken');
 
   const claimed = await request(`/jobs/${job.id}/claim`, {method:'POST', headers:auth(agentId, token)});
   const result = perform(claimed);
   const submitted = await request(`/jobs/${job.id}/submit`, {method:'POST', headers:auth(agentId, token), body:JSON.stringify({result})});
-
   const economy = await request(`/agents/${agentId}/economy`, {headers:auth(agentId, token)});
 
   console.log(JSON.stringify({
@@ -78,9 +80,10 @@ async function main() {
     jobId:job.id,
     jobStatus:submitted.status,
     walletRegistered:Boolean(wallet),
-    economyEndpoint:joined.economyEndpoint,
-    balanceEndpoint:joined.balanceEndpoint,
-    next:'Job creator must verify. If accepted, A2A payment intent becomes available to the payer agent executor.'
+    settlementAsset:'A2A',
+    settlementChain:'eip155:8453',
+    economy,
+    next:'Job creator must verify. If accepted, the A2A payment intent becomes available to the payer-controlled executor.'
   }, null, 2));
 }
 
