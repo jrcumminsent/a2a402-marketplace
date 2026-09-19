@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { A2A402Client } from '../sdk/src/index.js';
+import { A2A402Client } from '../../sdk/src/index.js';
 
 const send=value=>process.stdout.write(JSON.stringify(value)+'\n');
 const fail=(id,error)=>send({jsonrpc:'2.0',id,error:{code:-32000,message:error.message||String(error)}});
