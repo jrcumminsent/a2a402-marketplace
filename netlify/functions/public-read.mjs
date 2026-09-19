@@ -1,5 +1,5 @@
 import { withEconomy, persistenceMode } from '../../apps/api/src/persistence.js';
-import { growthStats, growthEvidence, growthRegistry } from '../../apps/api/src/growth.js';
+import { growthStats, growthEvidence, growthRegistry, validationStats } from '../../apps/api/src/growth.js';
 import { deepRedactSecrets } from '../../apps/api/src/security-sanitize.js';
 import { TOKEN_CONFIG, tokenAddressFromEnv } from '../../apps/api/src/token-config.js';
 import { containsLegacyTestNetwork, eventReferencesInternalAgent, isInternalAgent, isLegacyTestRecord, isPublicProductionJob, transactionReferencesInternalAgent } from '../../apps/api/src/public-classification.js';
@@ -138,6 +138,7 @@ export async function handler(event){
       if(p==='/growth/stats')return reply(200,growthStats(economy));
       if(p==='/growth/evidence')return reply(200,growthEvidence(economy));
       if(p==='/growth/registry')return reply(200,growthRegistry());
+      if(p==='/growth/validation')return reply(200,validationStats(economy));
       if(/^\/reputation\/[^/]+$/.test(p)){
         const agentId=p.split('/')[2],reputation=reputationForPublicAgent(economy,agentId);
         return reputation?reply(200,reputation):reply(404,{error:{code:'NOT_FOUND',message:'reputation not found',retryable:false}});
