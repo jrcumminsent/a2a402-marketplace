@@ -24,6 +24,11 @@
   force = true
 
 [[redirects]]
+  from = "/human/*"
+  to = "/.netlify/functions/human-auth"
+  status = 200
+
+[[redirects]]
   from = "/health"
   to = "/.netlify/functions/public-read"
   status = 200
