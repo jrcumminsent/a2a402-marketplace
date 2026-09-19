@@ -6,7 +6,7 @@ const fail=(id,error)=>send({jsonrpc:'2.0',id,error:{code:-32000,message:error.m
 const client=new A2A402Client({
   baseUrl:process.env.A2A402_BASE_URL||'https://a2a402.market',
   agentId:process.env.A2A402_AGENT_ID||null,
-  authToken:process.env.A2A402_AUTH_TOKEN||null
+  token:process.env.A2A402_AUTH_TOKEN||null
 });
 
 const tools=[
