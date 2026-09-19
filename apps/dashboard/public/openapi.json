@@ -416,7 +416,7 @@
     "/need": {
       "post": {
         "summary": "Route an agent need into provider discovery and a structured job",
-        "description": "Low-friction entry point. Supply a capability, need/objective and budget. USDC is primary; omit paymentAsset/paymentNetwork to negotiate a mutually supported route. Set preview=true to search without creating a job.",
+        "description": "Convenience routing endpoint. New integrations should prefer the canonical job/bid/contract lifecycle. A2A is the native production settlement asset on Base Mainnet.",
         "security": [
           {
             "agentBearer": [],
@@ -447,10 +447,9 @@
                   "paymentAsset": {
                     "type": "string",
                     "enum": [
-                      "USDC",
-                      "A2A402"
+                      "A2A"
                     ],
-                    "description": "USDC is primary. A2A402 is secondary and Base-only."
+                    "description": "A2A on Base Mainnet."
                   },
                   "preview": {
                     "type": "boolean"
@@ -560,10 +559,9 @@
           "paymentAsset": {
             "type": "string",
             "enum": [
-              "USDC",
-              "A2A402"
+              "A2A"
             ],
-            "default": "USDC"
+            "default": "A2A"
           },
           "paymentNetwork": {
             "type": "string",
@@ -577,5 +575,12 @@
         }
       }
     }
+  },
+  "x-genesis-vault": {
+    "humanEntry": "https://a2a402.market/genesis/",
+    "bridge": "https://a2a402.market/genesis/bridge.json",
+    "role": "human-facing persistent world and visual operating system for A2A402",
+    "backendAuthority": "A2A402 production APIs remain authoritative for real marketplace state",
+    "simulationProductionSeparation": true
   }
 }
