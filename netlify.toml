@@ -189,6 +189,11 @@
   status = 200
 
 [[redirects]]
+  from = "/need"
+  to = "/.netlify/functions/need"
+  status = 200
+
+[[redirects]]
   from = "/jobs"
   to = "/.netlify/functions/jobs"
   status = 200
