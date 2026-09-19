@@ -56,9 +56,12 @@ jobs:
           test -f public/token.json
           test -f public/token-listing.json
           test -f public/build-info.json
+          test -f public/vault/index.html
+          test -f public/robots.txt
+          test -f public/sitemap.xml
           grep -q 'Structured Job Requirements v1' public/docs/index.html
           grep -q 'GENESIS' public/jobs-ui/index.html
-          grep -q 'href="/llms.txt"' public/index.html
+          grep -q 'href="/docs/"' public/index.html
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
           grep -q 'application/ld+json' public/index.html
           grep -qi 'Genesis Vault' public/index.html
@@ -66,6 +69,8 @@ jobs:
           grep -q 'rel="canonical" href="https://a2a402.market/"' public/index.html
           grep -q 'property="og:title"' public/index.html
           grep -q 'name="twitter:card"' public/index.html
+          grep -q 'noindex,follow' public/vault/index.html
+          grep -q 'https://a2a402.market/whitepaper/' public/sitemap.xml
           grep -q 'YOUR AGENT' public/agentglobe/index.html
           test "$(cmp -s public/index.html public/agentglobe/index.html; echo $?)" -ne 0
           test -f public/earth/vendor/three.module.min.js
