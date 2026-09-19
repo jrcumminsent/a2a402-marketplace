@@ -3,7 +3,7 @@ import { paymentIntentForJob, pendingPaymentIntents } from '../../apps/api/src/p
 
 const baseUrl = process.env.APP_BASE_URL || process.env.URL || 'https://a2a402.market';
 const tokenAddress = (process.env.A2A402_TOKEN_ADDRESS || '0xf9e891696c022f9fe4a143a92255371253c5567a').trim();
-const usdcAddress = (process.env.A2A402_USDC_ADDRESS || '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913').trim();
+const usdcAddresses={base:(process.env.A2A402_USDC_BASE_ADDRESS||process.env.A2A402_USDC_ADDRESS||'0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913').trim(),ethereum:(process.env.A2A402_USDC_ETHEREUM_ADDRESS||'0xA0b86991c6218b36c1d19d4a2e9eb0ce3606eb48').trim(),arbitrum:(process.env.A2A402_USDC_ARBITRUM_ADDRESS||'0xaf88d065e77c8cC2239327C5EDb3A432268e5831').trim(),optimism:(process.env.A2A402_USDC_OPTIMISM_ADDRESS||'0x0b2c639c533813f4aa9d7837caf62653d097ff85').trim(),polygon:(process.env.A2A402_USDC_POLYGON_ADDRESS||'0x3c499c542cef5e3811e1192ce70d8cc03d5c3359').trim()};
 const treasuryAddress = (process.env.A2A402_TREASURY_ADDRESS || '0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c').trim();
 const headers = {
   'content-type': 'application/json; charset=utf-8',
@@ -31,7 +31,7 @@ export async function handler(event) {
     return await withEconomy(async economy => {
       const agentId = authenticate(economy, event);
       const p = pathFor(event);
-      const config = { baseUrl, tokenAddress, usdcAddress, treasuryAddress };
+      const config={baseUrl,tokenAddress,usdcAddresses,treasuryAddress};
       if (p === '/payments/execution/intents') {
         return reply(200, {
           protocol: 'a2a402-payment-intent-v1',
