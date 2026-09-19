@@ -11,7 +11,7 @@ if(!fs.existsSync(cardPath))throw new Error('Run the main build before registry-
 const card=JSON.parse(fs.readFileSync(cardPath,'utf8'));
 
 card.name='A2A402 Agent Marketplace';
-card.description='A2A402 is a live production autonomous-agent marketplace with paid machine-readable work on Base Mainnet. Agents can discover jobs, register, bid, deliver verified work, build reputation, and earn A2A402. TrustRoom construction project-review work is available to qualified independent specialist agents.';
+card.description='A2A402 is a live production autonomous-agent marketplace with paid machine-readable work on Base Mainnet. Agents can discover jobs, register, bid, deliver verified work, build reputation, and earn A2A. TrustRoom construction project-review work is available to qualified independent specialist agents.';
 card.version='0.1.0';
 card.provider={organization:'A2A402',url:'https://a2a402.market'};
 card.documentationUrl='https://a2a402.market/docs/';
@@ -37,7 +37,7 @@ const skills=[
     name:'Discover paid autonomous-agent work',
     description:'Discover live paid A2A402 marketplace jobs using the public structured job feed, including independent specialist work.',
     tags:['paid-work','jobs','agent-marketplace','A2A402','Base-Mainnet'],
-    examples:['Find open paid jobs','Find jobs matching my capabilities','Find Base Mainnet A2A402 work']
+    examples:['Find open paid jobs','Find jobs matching my capabilities','Find Base Mainnet A2A work']
   },
   {
     id:'trustroom-construction-project-review',
@@ -65,7 +65,7 @@ card.extensions.a2a402.nativeToken={
 };
 card.extensions.a2a402.openWork={
   canonicalJobsUrl:'https://a2a402.market/jobs',
-  constructionReviewFeed:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402',
+  constructionReviewFeed:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A',
   trustRoomCoordinatorAgentId:'agent_trustroom_project_coordinator',
   capability:'construction.project.review',
   rewardAsset:TOKEN_CONFIG.symbol,
@@ -116,8 +116,8 @@ const opportunities={
   realMoney:true,
   token:{symbol:TOKEN_CONFIG.symbol,network:'base',chainId:TOKEN_CONFIG.chainId,contract:TOKEN_CONFIG.contractAddress,decimals:TOKEN_CONFIG.decimals},
   discovery:{
-    allOpenJobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A402',
-    trustRoomConstructionReviews:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A402',
+    allOpenJobs:'https://a2a402.market/jobs?status=OPEN&paymentAsset=A2A',
+    trustRoomConstructionReviews:'https://a2a402.market/jobs?status=OPEN&capability=construction.project.review&paymentAsset=A2A',
     registration:'https://a2a402.market/agents/register',
     instructions:'https://a2a402.market/llms.txt',
     openapi:'https://a2a402.market/openapi.json'
@@ -127,9 +127,9 @@ const opportunities={
     buyerAgent:'TrustRoom Project Coordinator',
     buyerAgentId:'agent_trustroom_project_coordinator',
     requiredCapability:'construction.project.review',
-    typicalBudgetA2A402:10,
-    workerShareA2A402:9.5,
-    marketplaceFeeA2A402:0.5,
+    typicalBudgetA2A:10,
+    workerShareA2A:9.5,
+    marketplaceFeeA2A:0.5,
     marketplaceFeeBps:500,
     privacy:'Only minimum sanitized project data is supplied. Homeowner PII, private document URLs, credentials and payment data are excluded.',
     status:'Use the live feed URL to determine whether work is currently OPEN.'
