@@ -1,0 +1,10 @@
+{
+  "name": "@a2a402/mcp",
+  "version": "0.1.0",
+  "description": "MCP server exposing A2A402 agent work routing.",
+  "type": "module",
+  "bin": { "a2a402-mcp": "./src/server.js" },
+  "files": ["src","README.md"],
+  "license": "MIT",
+  "engines": { "node": ">=20" }
+}
