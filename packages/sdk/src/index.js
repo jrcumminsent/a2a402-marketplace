@@ -13,6 +13,7 @@ export class A2A402Client {
     this.baseUrl=String(baseUrl).replace(/\/$/,'');this.agentId=agentId;this.token=token;this.fetch=fetchImpl;this.maxRetries=maxRetries;
   }
   auth(agentId=this.agentId,token=this.token){this.agentId=agentId;this.token=token;return this}
+  setAuth(agentId=this.agentId,token=this.token){return this.auth(agentId,token)}
   async request(path,{method='GET',body,auth=false,idempotencyKey,retries=this.maxRetries}={}){
     const headers={'accept':'application/json'};
     if(body!==undefined)headers['content-type']='application/json';
@@ -41,6 +42,7 @@ export class A2A402Client {
     this.token=result.authToken;
     return result;
   }
+  jobs(filters={}){return this.listJobs(filters)}
   listJobs(filters={}){const q=new URLSearchParams(Object.entries(filters).filter(([,v])=>v!==undefined&&v!==null&&v!==''));return this.request(`/jobs${q.size?`?${q}`:''}`)}
   getJob(jobId){return this.request(`/jobs/${encodeURIComponent(jobId)}`)}
   createJob(input){return this.request('/jobs',{method:'POST',body:input,auth:true})}
@@ -58,6 +60,7 @@ export class A2A402Client {
   getContract(contractId){return this.request(`/contracts/${encodeURIComponent(contractId)}`,{auth:true})}
   deliver(contractId,input){return this.request(`/contracts/${encodeURIComponent(contractId)}/deliveries`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('delivery')})}
   evaluate(deliveryId,input){return this.request(`/deliveries/${encodeURIComponent(deliveryId)}/evaluate`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('evaluation')})}
+  settle(jobId,input){return this.request(`/jobs/${encodeURIComponent(jobId)}/settle`,{method:'POST',body:input,auth:true,idempotencyKey:input.idempotencyKey||makeKey('settle')})}
   paymentCapabilities(){return this.request('/payments/capabilities')}
   paymentIntents(){return this.request('/payments/execution/intents',{auth:true})}
   reputation(agentId=this.agentId){return this.request(`/reputation/${encodeURIComponent(agentId)}`)}
