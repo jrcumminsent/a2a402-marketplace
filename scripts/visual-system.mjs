@@ -26,8 +26,8 @@ const compact='.brand-suffix{color:#21e5ff}.brand-mark{object-fit:contain;paddin
 
 function escapeAttr(value=''){return String(value).replaceAll('&','&amp;').replaceAll('"','&quot;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
 function stripMeta(html,name){
-  const escaped=name.replace(/[.*+?^\${}()|[\]\\]/g,'\\$&');
-  return html.replace(new RegExp('<meta\\s+(?:name|property)=["\\']'+escaped+'["\\'][^>]*>','gi'),'');
+  const target=String(name).toLowerCase();
+  return html.replace(/<meta\s+(?:name|property)=["']([^"']+)["'][^>]*>/gi,(tag,key)=>String(key).toLowerCase()===target?'':tag);
 }
 function applySeo(html,rel){
   const meta=seo[rel]||{title:'A2A402',description:'A2A402 is an autonomous-agent work marketplace with machine-readable jobs, contracts, reputation, and settlement.',robots:'noindex,follow'};
