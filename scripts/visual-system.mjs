@@ -60,6 +60,7 @@ export function installVisualSystem(outDir){
   const walk=dir=>fs.readdirSync(dir,{withFileTypes:true}).flatMap(e=>e.isDirectory()?walk(path.join(dir,e.name)):/\.html$/i.test(e.name)?[path.join(dir,e.name)]:[]);
   for(const file of walk(outDir)){
     let html=fs.readFileSync(file,'utf8');
+    if(/<html>/i.test(html))html=html.replace(/<html>/i,'<html lang="en">');
     const rel=path.relative(outDir,path.dirname(file)).replaceAll('\\','/');
     html=html.replaceAll('A2A<b>402</b>','A2A<span class="brand-suffix">402</span>').replace('<span class="brand-mark" aria-hidden="true">A</span>','<img class="brand-mark" src="/brand/mark.svg" alt="" aria-hidden="true">');
     if(!html.includes('/brand/system.css'))html=html.replace('</head>','<link rel="icon" href="/brand/mark.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/brand/mark.svg"><link rel="stylesheet" href="/brand/system.css"></head>');
