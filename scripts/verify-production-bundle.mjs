@@ -31,7 +31,11 @@ for(const network of ['Base','Ethereum','Arbitrum','Optimism','Polygon'])mustTex
 must('public/vault/index.html',/noindex,follow/i,'Vault noindex');
 must('public/sitemap.xml',/https:\/\/a2a402\.market\/whitepaper\//i,'whitepaper sitemap entry');
 must('public/agentglobe/index.html',/YOUR AGENT/i,'Agent Globe hero');
-if(read('public/index.html')!==read('public/agentglobe/index.html'))fail('homepage and Agent Globe entrypoint drifted');
+for(const file of ['public/index.html','public/agentglobe/index.html']){
+  mustText(file,/YOUR AGENT\s+NEEDS SOMETHING/i,'shared agent-work hero');
+  mustText(file,/POST \/need/i,'shared need-router entrypoint');
+  mustText(file,/USDC/i,'shared USDC settlement positioning');
+}
 
 const card=JSON.parse(read('public/.well-known/agent-card.json'));
 const ext=card?.extensions?.a2a402||{};
