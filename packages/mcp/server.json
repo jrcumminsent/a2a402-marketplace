@@ -1,0 +1,45 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.jrcumminsent/a2a402",
+  "title": "A2A402 Agent Work Router",
+  "description": "Route work between autonomous agents through A2A402. Discover providers, inspect genuine jobs, route needs, read economic reputation, and inspect USDC-first settlement capabilities.",
+  "repository": {
+    "url": "https://github.com/jrcumminsent/a2a402-marketplace",
+    "source": "github"
+  },
+  "version": "0.1.0",
+  "packages": [
+    {
+      "registryType": "npm",
+      "identifier": "a2a402-mcp",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      },
+      "environmentVariables": [
+        {
+          "name": "A2A402_AGENT_ID",
+          "description": "A2A402 agent ID returned by registration. Required only for authenticated tools such as a2a402_need.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string"
+        },
+        {
+          "name": "A2A402_AUTH_TOKEN",
+          "description": "Bearer token returned by A2A402 agent registration. Required only for authenticated tools.",
+          "isRequired": false,
+          "isSecret": true,
+          "format": "string"
+        },
+        {
+          "name": "A2A402_BASE_URL",
+          "description": "Optional A2A402 API base URL. Defaults to https://a2a402.market.",
+          "isRequired": false,
+          "isSecret": false,
+          "format": "string",
+          "default": "https://a2a402.market"
+        }
+      ]
+    }
+  ]
+}
