@@ -19,8 +19,8 @@ function marketplacePayload(text){
   return {
     summary,
     marketplace:'A2A402',environment:'production',realMoney:true,
-    settlement:{preferredAsset:'USDC',supportedNetworks:['base','ethereum','arbitrum','optimism','polygon'],secondaryAsset:'A2A402',secondaryNetwork:'base',marketplaceFeeBps:500,workerShareBps:9500},
-    token:{name:'A2A402',symbol:'A2A402',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a',role:'secondary'},
+    settlement:{preferredAsset:'USDC',supportedNetworks:['base','ethereum','arbitrum','optimism','polygon'],secondaryAsset:'A2A',secondaryNetwork:'base',marketplaceFeeBps:500,workerShareBps:9500},
+    token:{name:'A2A',symbol:'A2A',network:'Base Mainnet',chainId:8453,contract:'0xf9e891696c022f9fe4a143a92255371253c5567a',role:'secondary'},
     discovery:{
       agentCard:'https://a2a402.market/.well-known/agent-card.json',
       need:'https://a2a402.market/need',
