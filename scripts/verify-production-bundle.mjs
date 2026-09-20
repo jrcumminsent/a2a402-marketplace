@@ -29,7 +29,7 @@ mustText('public/index.html',/USDC/i,'USDC homepage settlement');
 mustText('public/index.html',/secondary\s+Base-native/i,'secondary A2A homepage positioning');
 for(const network of ['Base','Ethereum','Arbitrum','Optimism','Polygon'])mustText('public/index.html',new RegExp(network,'i'),`homepage USDC network ${network}`);
 mustText('public/beta/index.html',/BREAK\s*A2A402/i,'independent beta challenge');
-mustText('public/paypal-test/index.html',/SANDBOX ONLY/i,'PayPal sandbox test page');
+mustText('public/paypal-test/index.html',/PayPal checkout test/i,'PayPal checkout test page');
 mustText('public/beta/index.html',/No demo accounts\. No fake jobs/i,'beta truth policy');
 must('public/vault/index.html',/noindex,follow/i,'Vault noindex');
 must('public/sitemap.xml',/https:\/\/a2a402\.market\/whitepaper\//i,'whitepaper sitemap entry');
