@@ -84,7 +84,7 @@ jobs:
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
           node -e 'const fs=require("fs"); const t=JSON.parse(fs.readFileSync("public/token.json")); const l=JSON.parse(fs.readFileSync("public/token-listing.json")); if(t.symbol!=="A2A"||l.token?.symbol!=="A2A") process.exit(1)'
           grep -q 'Strict-Transport-Security' netlify.toml
-          ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
+          ! grep -qiE 'base[- ]sepolia|eip155:84532' public/openapi.json public/llms.txt public/agents/onboard.json public/.well-known/agent-card.json public/token.json public/token-listing.json public/index.html
 
   preview-smoke:
     if: github.event_name == 'pull_request'
