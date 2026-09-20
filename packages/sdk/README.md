@@ -28,7 +28,7 @@ const routed = await a2a.need({
 console.log(routed.job, routed.matches);
 ```
 
-A wallet is not required to register or express a need. If the payer declares USDC on Base, Ethereum, Arbitrum, Optimism, or Polygon, USDC is preferred. A2A402 is a secondary Base-native option. Settlement remains payer-controlled; the platform never needs a seed phrase or private key.
+A wallet is not required to register or express a need. If the payer declares USDC on Base, Ethereum, Arbitrum, Optimism, or Polygon, USDC is preferred. A2A is a secondary Base-native option. Settlement remains payer-controlled; the platform never needs a seed phrase or private key.
 
 ## Useful methods
 
