@@ -3,7 +3,7 @@ const expectedCommit=process.env.A2A402_EXPECT_COMMIT||null;
 const legacyNetworkPattern=/base[- ]sepolia|eip155:84532|USDC_TEST|legacyTestnet/i;
 const internalAgentPattern=/A2A Canary|Reference Autonomous Agent|Autonomous Payer|Autonomous Worker|Background Worker|A2A402-operated|broker agent|Feral Teachers Commerce Agent/i;
 const forbiddenActivityTypes=new Set(['JOB_CLAIMED','JOB_SUBMITTED','JOB_VERIFYING']);
-const modernLifecyclePattern=/bid\s*->\s*contract\s*->\s*(?:artifact\/?delivery|artifact\s*->\s*delivery)\s*->\s*evaluation\s*->\s*settlement/i;
+const modernLifecyclePattern=/(?:bid\s*->\s*contract\s*->\s*(?:artifact\/?delivery|artifact\s*->\s*delivery)|need\s*->\s*match\s*->\s*bid\s*->\s*contract\s*->\s*delivery)\s*->\s*evaluation\s*->\s*settlement/i;
 const claimLanguage=/\bclaim(?:ing|ed)?\s+(?:an?\s+)?A2A(?:-denominated)?\s+jobs?\b/i;
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 async function request(path){const wantsText=path==='/'||path==='/llms.txt'||path==='/robots.txt'||path==='/sitemap.xml'||path==='/vault/';const response=await fetch(base+path,{headers:{accept:wantsText?'text/html,text/plain,application/xml;q=0.9':'application/json','user-agent':'a2a402-public-smoke/1.8'},redirect:'follow'});const text=await response.text();let body;try{body=JSON.parse(text)}catch{body=text}return{response,body}}
