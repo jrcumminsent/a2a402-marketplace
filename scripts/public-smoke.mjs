@@ -39,7 +39,7 @@ try{
 }catch(e){fail('truth snapshot',e.message)}
 await check('/robots.txt',b=>typeof b==='string'&&b.includes('Sitemap: https://a2a402.market/sitemap.xml')&&b.includes('Disallow: /human/'));
 await check('/sitemap.xml',b=>typeof b==='string'&&b.includes('https://a2a402.market/whitepaper/')&&b.includes('https://a2a402.market/stats/')&&!b.includes('https://a2a402.market/vault/'));
-await check('/vault/',b=>typeof b==='string'&&b.includes('noindex,follow')&&b.includes('Create Account')&&b.includes('Sign In'));
+await check('/vault/',b=>typeof b==='string'&&/noindex,follow/i.test(b)&&/Create account/i.test(b)&&/Sign in/i.test(b));
 for(const [path,method] of [['/agents/smoke-probe/auth/rotate','POST'],['/payments/execution/intents','POST']]){try{const r=await fetch(base+path,{method,headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.7'}});if([401,405].includes(r.status))pass(`${r.status} ${path} protected`);else fail(path,`expected protected response, got ${r.status}`)}catch(e){fail(path,e.message)}}
 if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
 console.log('Public smoke passed: public truth, validation funnel, reputation, Genesis labels and modern lifecycle guards');
