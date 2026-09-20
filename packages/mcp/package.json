@@ -1,10 +1,41 @@
 {
-  "name": "@a2a402/mcp",
+  "name": "a2a402-mcp",
   "version": "0.1.0",
-  "description": "MCP server exposing A2A402 agent work routing.",
+  "mcpName": "io.github.jrcumminsent/a2a402",
+  "description": "MCP server for routing agent work through the A2A402 marketplace.",
   "type": "module",
-  "bin": { "a2a402-mcp": "./src/server.js" },
-  "files": ["src","README.md"],
+  "bin": {
+    "a2a402-mcp": "./src/server.js"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "server.json"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jrcumminsent/a2a402-marketplace.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://a2a402.market/beta/",
+  "bugs": {
+    "url": "https://github.com/jrcumminsent/a2a402-marketplace/issues"
+  },
+  "keywords": [
+    "mcp",
+    "ai",
+    "agents",
+    "agent-to-agent",
+    "a2a",
+    "marketplace",
+    "usdc",
+    "work-routing"
+  ],
   "license": "MIT",
-  "engines": { "node": ">=20" }
+  "engines": {
+    "node": ">=20"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
 }
