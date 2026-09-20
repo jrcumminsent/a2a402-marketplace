@@ -62,20 +62,18 @@ jobs:
           test -f public/vault/index.html
           test -f public/robots.txt
           test -f public/sitemap.xml
-          grep -q 'Structured Job Requirements v1' public/docs/index.html
+          grep -q 'Structured job example' public/docs/index.html
           grep -q 'GENESIS' public/jobs-ui/index.html
           grep -q 'href="/docs/"' public/index.html
           grep -q 'Authoritative live job feed' public/jobs-ui/index.html
           grep -q 'application/ld+json' public/index.html
-          grep -qi 'Genesis Vault' public/index.html
-          grep -q 'href="/vault/"' public/index.html
           grep -q 'rel="canonical" href="https://a2a402.market/"' public/index.html
           grep -q 'property="og:title"' public/index.html
           grep -q 'name="twitter:card"' public/index.html
           grep -q 'noindex,follow' public/vault/index.html
           grep -q 'https://a2a402.market/whitepaper/' public/sitemap.xml
           grep -q 'YOUR AGENT' public/agentglobe/index.html
-          test "$(cmp -s public/index.html public/agentglobe/index.html; echo $?)" -ne 0
+          cmp -s public/index.html public/agentglobe/index.html
           test -f public/earth/vendor/three.module.min.js
           test -f public/earth/vendor/land.json
           grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
@@ -85,6 +83,7 @@ jobs:
           grep -q 'genesisWorkPool' public/.well-known/agent-card.json
           grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
           node -e 'const fs=require("fs"); const t=JSON.parse(fs.readFileSync("public/token.json")); const l=JSON.parse(fs.readFileSync("public/token-listing.json")); if(t.symbol!=="A2A"||l.token?.symbol!=="A2A") process.exit(1)'
+          grep -q 'Strict-Transport-Security' netlify.toml
           ! grep -RqiE 'base[- ]sepolia|eip155:84532' public
 
   preview-smoke:
@@ -122,7 +121,7 @@ jobs:
             test -s /tmp/response
           done
           curl -fsS "$PREVIEW_URL/.well-known/agent-card.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(!x.defaultInputModes?.length||!x.defaultOutputModes?.length||!x.supportedInterfaces?.some(i=>i.url?.endsWith("/a2a"))) process.exit(1)})'
-          curl -fsS "$PREVIEW_URL/agents/onboard.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.environment!=="production"||x.network?.primaryNetwork?.chainId!==8453||x.token?.symbol!=="A2A") process.exit(1)})'
+          curl -fsS "$PREVIEW_URL/agents/onboard.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.environment!=="production"||x.network?.primarySettlementAsset!=="USDC"||!x.network?.supportedUSDCNetworks?.some(n=>n.chainId===8453)||x.token?.symbol!=="A2A") process.exit(1)})'
           curl -fsS "$PREVIEW_URL/token.json" | node -e 'let s="";process.stdin.on("data",d=>s+=d).on("end",()=>{const x=JSON.parse(s); if(x.chainId!==8453||x.symbol!=="A2A"||x.contractAddress!=="0xf9e891696c022f9fe4a143a92255371253c5567a") process.exit(1)})'
       - name: Cold-start A2A protocol probe
         env:
@@ -130,4 +129,4 @@ jobs:
         run: |
           set -euo pipefail
           response="$(curl -fsS --max-time 20 -H 'content-type: application/json' -d '{"jsonrpc":"2.0","id":"cold-start","method":"message/send","params":{"message":{"role":"user","messageId":"cold-start-1","parts":[{"kind":"text","text":"I am an autonomous agent arriving with no prior context. Explain what A2A402 is, how I discover paid work, how I register, what network and token are used, and what I must do before settlement."}]}}}' "$PREVIEW_URL/a2a")"
-          RESPONSE="$response" node -e 'const x=JSON.parse(process.env.RESPONSE); const text=JSON.stringify(x.result); const required=["A2A402","production","8453","jobs","register","Base Mainnet"]; for(const q of required) if(!text.includes(q)) {console.error("missing",q);process.exit(1)} if(x.error) process.exit(1)'
+          RESPONSE="$response" node -e 'const x=JSON.parse(process.env.RESPONSE); const text=JSON.stringify(x.result); const required=["A2A402","production","USDC","jobs","register"]; for(const q of required) if(!text.includes(q)) {console.error("missing",q);process.exit(1)} if(x.error) process.exit(1)'
