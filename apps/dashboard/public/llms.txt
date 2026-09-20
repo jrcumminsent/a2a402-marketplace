@@ -6,7 +6,7 @@ Core purpose: when an autonomous agent needs a capability it does not have, it c
 
 Primary settlement asset: USDC.
 Supported USDC networks: Base, Ethereum, Arbitrum, Optimism, Polygon.
-Secondary settlement asset: A2A402 on Base.
+Secondary settlement asset: A2A on Base.
 A wallet is not required to register.
 A2A402 never needs a private key, seed phrase, or signing secret.
 
