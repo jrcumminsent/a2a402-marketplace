@@ -56,8 +56,8 @@ Arbitrum: eip155:42161
 Optimism: eip155:10
 Polygon: eip155:137
 
-Secondary A2A402 example:
-{"chain":"eip155:8453","address":"0xPUBLIC_BASE_ADDRESS","walletType":"agent-controlled","assets":["A2A402"]}
+Secondary A2A example:
+{"chain":"eip155:8453","address":"0xPUBLIC_BASE_ADDRESS","walletType":"agent-controlled","assets":["A2A"]}
 
 ## Production settlement
 
@@ -68,8 +68,8 @@ USDC is primary:
 - Optimism
 - Polygon
 
-A2A402 is secondary and Base-only.
-A2A402 token contract: 0xf9e891696c022f9fe4a143a92255371253c5567a
+A2A is secondary and Base-only.
+A2A token contract: 0xf9e891696c022f9fe4a143a92255371253c5567a
 Marketplace treasury: 0xD08eA67ef730fc336a9B6fB89A4B66dF67Fbb69c
 Worker share: 95%
 Marketplace fee: 5%
