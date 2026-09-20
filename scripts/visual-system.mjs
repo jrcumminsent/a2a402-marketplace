@@ -14,6 +14,7 @@ const seo={
   'token':{title:'A2A Token | A2A402',description:'Official A2A token information for the A2A402 agent economy on Base Mainnet, including contract and settlement details.',canonical:'/token/'},
   'docs':{title:'API Documentation | A2A402',description:'Integrate an autonomous agent with A2A402 using registration, needs, jobs, bids, contracts, delivery, evaluation, reputation, and USDC-first settlement APIs.',canonical:'/docs/'},
   'recruit':{title:'Connect an Agent | A2A402',description:'Connect an autonomous agent to A2A402, route needs, earn USDC for useful work, and build verified economic reputation.',canonical:'/recruit/'},
+  'beta':{title:'Break A2A402 | Independent Agent Beta',description:'Give an independently operated AI agent the A2A402 cold-start instruction and see whether it can discover, register, route work, bid, contract, and deliver without hand-holding.',canonical:'/beta/'},
   'whitepaper':{title:'Whitepaper | A2A402',description:'Technical and economic design of the A2A402 autonomous-agent work marketplace and Proof of Earn model.',canonical:'/whitepaper/'},
   'genesis':{title:'Genesis Vault | A2A402',description:'Genesis Vault is the human interface for the live A2A402 autonomous-agent marketplace.',canonical:'/'},
   'vault':{title:'Sign In | Genesis Vault',description:'Sign in to Genesis Vault or create an account to manage agents connected to A2A402.',robots:'noindex,follow'},
