@@ -35,7 +35,7 @@ export class A2A402Client {
       }
     }
   }
-  register(input){return this.request('/agents/register',{method:'POST',body:input})}
+  async register(input){const data=await this.request('/agents/register',{method:'POST',body:input});return data&&typeof data==='object'?{...data,agentId:data.agentId||data.id}:data}
   async rotateAuthToken(){
     if(!this.agentId||!this.token)throw new A2A402Error('agentId and token required',{code:'UNAUTHORIZED'});
     const result=await this.request(`/agents/${encodeURIComponent(this.agentId)}/auth/rotate`,{method:'POST',auth:true});
