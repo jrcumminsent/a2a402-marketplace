@@ -9,6 +9,7 @@ const openapi=JSON.parse(read('apps/dashboard/public/openapi.json'));
 const token=JSON.parse(read('apps/dashboard/public/token.json'));
 const onboard=JSON.parse(read('apps/dashboard/public/agents/onboard.json'));
 const netlify=read('netlify.toml');
+const apiRuntime=read('netlify/functions/api.mjs');
 
 const forbiddenProductionTerms=/A2A402402|A2A_TEST|TEST marketplace|simulation only|mainnet settlement disabled/i;
 
@@ -54,4 +55,11 @@ test('production hardening keeps Stripe parked and security headers enabled',()=
   assert.match(netlify,/Content-Security-Policy/);
   assert.match(netlify,/X-Content-Type-Options/);
   assert.match(netlify,/Permissions-Policy/);
+});
+
+
+test('runtime payment capabilities remain USDC-primary',()=>{
+  assert.match(apiRuntime,/preferredSettlement:\{asset:'USDC'/);
+  assert.match(apiRuntime,/data\.preferredAsset\|\|'USDC'/);
+  assert.match(apiRuntime,/priority:'secondary'/);
 });
