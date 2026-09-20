@@ -10,9 +10,8 @@
   "version": "0.1.0",
   "packages": [
     {
-      "registryType": "npm",
-      "identifier": "a2a402-mcp",
-      "version": "0.1.0",
+      "registryType": "oci",
+      "identifier": "ghcr.io/jrcumminsent/a2a402-mcp:0.1.0",
       "transport": {
         "type": "stdio"
       },
