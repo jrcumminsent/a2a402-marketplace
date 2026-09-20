@@ -24,8 +24,9 @@ await check('/openapi.json',b=>Boolean(b?.paths?.['/need']&&b?.paths?.['/jobs/{j
 await check('/health',b=>b?.environment==='production'&&(b?.chainId===8453||b?.a2aToken?.chainId===8453));
 await check('/token.json',b=>b?.chainId===8453&&b?.symbol==='A2A'&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/token-listing.json',b=>!legacyNetworkPattern.test(JSON.stringify(b)));
-await check('/jobs',b=>Array.isArray(b)&&b.every(j=>!legacyNetworkPattern.test(JSON.stringify(j)))&&b.filter(j=>j.input?.program==='genesis-work-pool'||/genesis/i.test(String(j.input?.program||j.program||''))).every(j=>j.input?.classification==='promotional'&&j.input?.systemGenerated===true&&j.input?.countsTowardOrganic===false));
+await check('/jobs',b=>Array.isArray(b)&&b.every(j=>!legacyNetworkPattern.test(JSON.stringify(j)))&&b.every(j=>j.input?.systemGenerated!==true&&j.input?.program!=='genesis-work-pool'));
 await check('/agents/search?capability=research',b=>Array.isArray(b)&&!internalAgentPattern.test(JSON.stringify(b))&&!claimLanguage.test(JSON.stringify(b))&&b.every(a=>a.reputation&&a.reputation.agentId===a.agentId));
+await check('/agents/search?capability=analysis',b=>Array.isArray(b)&&!internalAgentPattern.test(JSON.stringify(b)));
 await check('/economy/activity',b=>{const events=Array.isArray(b)?b:b?.events;return Array.isArray(events)&&events.every(e=>!forbiddenActivityTypes.has(e.type))&&!internalAgentPattern.test(JSON.stringify(events))});
 await check('/economy/stats',b=>b?.scope==='public-production-default'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true&&b?.internalHistoryExcluded===true);
 await check('/economy/graph',b=>b?.version==='2.2'&&b?.legacyTestDataExcluded===true&&b?.internalAgentsExcluded===true);
