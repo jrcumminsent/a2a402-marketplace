@@ -100,6 +100,12 @@
   to = "/.netlify/functions/payment-execution"
   status = 200
 
+
+[[redirects]]
+  from = "/payments/paypal/webhook"
+  to = "/.netlify/functions/paypal-webhook"
+  status = 200
+
 [[redirects]]
   from = "/payments/*"
   to = "/.netlify/functions/api"
