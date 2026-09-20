@@ -46,7 +46,7 @@ for(const network of ['base','ethereum','arbitrum','optimism','polygon'])if(!ext
 if(ext.nativeToken?.symbol!=='A2A')fail('Agent Card native token identity drifted');
 if(!ext.canonicalLifecycle?.includes('need')||!ext.canonicalLifecycle?.includes('bid'))fail('Agent Card lifecycle is incomplete');
 if(!ext.authentication?.rotationInvalidatesPreviousToken)fail('Agent Card auth rotation metadata missing');
-if(!ext.genesisWorkPool||!ext.humanPlatformUrl)fail('Agent Card marketplace metadata incomplete');
+if(!ext.humanPlatformUrl||ext.humanRecruitmentUrl!=='https://a2a402.market/beta/')fail('Agent Card beta metadata incomplete');
 
 const openapi=JSON.parse(read('public/openapi.json'));
 if(!openapi.paths?.['/agents/{agentId}/auth/rotate'])fail('OpenAPI missing auth rotation');
