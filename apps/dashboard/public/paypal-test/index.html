@@ -1,0 +1,32 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>A2A402 PayPal Sandbox Test</title><style>body{margin:0;background:#06101b;color:#eef6ff;font:16px/1.55 system-ui}.wrap{max-width:720px;margin:auto;padding:48px 22px}.card{background:#0b1a2a;border:1px solid #25435f;border-radius:14px;padding:24px}.eyebrow{font:800 12px/1 ui-monospace,monospace;letter-spacing:2px;color:#64e89a}.btn{display:inline-block;border:0;border-radius:9px;padding:12px 18px;background:#1677ff;color:white;font-weight:800;cursor:pointer}.muted{color:#9eb3c5}.ok{color:#64e89a}.err{color:#ff8d8d}input{width:120px;padding:10px;border-radius:8px;border:1px solid #31506d;background:#081522;color:white}.row{display:flex;gap:12px;align-items:center;flex-wrap:wrap}</style></head><body><div class="wrap"><div class="eyebrow">SANDBOX ONLY</div><h1>PayPal checkout test</h1><p class="muted">This uses PayPal Sandbox. No real money moves.</p><div class="card"><div class="row"><label>Amount $ <input id="amount" type="number" min="0.01" max="500" step="0.01" value="5.00"></label><button id="start" class="btn">Start sandbox checkout</button></div><p id="status" class="muted">Ready.</p></div></div><script>
+const status=document.getElementById('status');
+const params=new URLSearchParams(location.search);
+const saved=localStorage.getItem('a2a402_paypal_order');
+
+async function capture(id){
+  status.textContent='Capturing sandbox payment...';
+  try{
+    const r=await fetch('/payments/paypal/order/'+encodeURIComponent(id)+'/capture',{method:'POST'});
+    const b=await r.json();
+    if(!r.ok)throw new Error(b.error||'Capture failed');
+    status.className='ok';status.textContent='Sandbox payment captured: '+b.status+' — order '+b.orderId;
+    localStorage.removeItem('a2a402_paypal_order');
+  }catch(e){status.className='err';status.textContent=e.message}
+}
+
+if(params.get('approved')==='1'&&saved)capture(saved);
+else if(params.get('cancelled')==='1'){status.className='err';status.textContent='Sandbox checkout was cancelled.'}
+
+document.getElementById('start').onclick=async()=>{
+  status.className='muted';status.textContent='Creating PayPal sandbox order...';
+  try{
+    const amount=Number(document.getElementById('amount').value);
+    const r=await fetch('/payments/paypal/order',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({amount,referenceId:'manual-sandbox-test',description:'A2A402 PayPal sandbox checkout test'})});
+    const b=await r.json();
+    if(!r.ok)throw new Error(b.error||'Order creation failed');
+    if(!b.approveUrl)throw new Error('PayPal did not return an approval URL');
+    localStorage.setItem('a2a402_paypal_order',b.orderId);
+    location.href=b.approveUrl;
+  }catch(e){status.className='err';status.textContent=e.message}
+};
+</script></body></html>
