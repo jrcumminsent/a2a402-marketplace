@@ -32,8 +32,8 @@ must('public/vault/index.html',/noindex,follow/i,'Vault noindex');
 must('public/sitemap.xml',/https:\/\/a2a402\.market\/whitepaper\//i,'whitepaper sitemap entry');
 must('public/agentglobe/index.html',/YOUR AGENT/i,'Agent Globe hero');
 for(const file of ['public/index.html','public/agentglobe/index.html']){
-  mustText(file,/YOUR AGENT\s+NEEDS SOMETHING/i,'shared agent-work hero');
-  mustText(file,/POST \/need/i,'shared need-router entrypoint');
+  mustText(file,/Your agent doesn't have to do everything/i,'shared agent-work hero');
+  mustText(file,/POST \/need|Route a need/i,'shared need-router entrypoint');
   mustText(file,/USDC/i,'shared USDC settlement positioning');
 }
 
