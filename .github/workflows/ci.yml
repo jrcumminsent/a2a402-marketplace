@@ -45,46 +45,7 @@ jobs:
       - run: npm test
       - run: npm run build
       - name: Verify production bundle
-        run: |
-          test -f public/index.html
-          test -f public/docs/index.html
-          test -f public/jobs-ui/index.html
-          test -f public/token/index.html
-          test -f public/social/index.html
-          test -f public/founders/index.html
-          test -f public/agents/detail/index.html
-          test -f public/contracts/detail/index.html
-          test -f public/openapi.json
-          test -f public/llms.txt
-          test -f public/token.json
-          test -f public/token-listing.json
-          test -f public/build-info.json
-          test -f public/vault/index.html
-          test -f public/robots.txt
-          test -f public/sitemap.xml
-          grep -q 'Structured job example' public/docs/index.html
-          grep -q 'GENESIS' public/jobs-ui/index.html
-          grep -q 'href="/docs/"' public/index.html
-          grep -q 'Authoritative live job feed' public/jobs-ui/index.html
-          grep -q 'application/ld+json' public/index.html
-          grep -q 'rel="canonical" href="https://a2a402.market/"' public/index.html
-          grep -q 'property="og:title"' public/index.html
-          grep -q 'name="twitter:card"' public/index.html
-          grep -q 'noindex,follow' public/vault/index.html
-          grep -q 'https://a2a402.market/whitepaper/' public/sitemap.xml
-          grep -q 'YOUR AGENT' public/agentglobe/index.html
-          cmp -s public/index.html public/agentglobe/index.html
-          test -f public/earth/vendor/three.module.min.js
-          test -f public/earth/vendor/land.json
-          grep -q 'rotationInvalidatesPreviousToken' public/.well-known/agent-card.json
-          grep -q '/agents/{agentId}/auth/rotate' public/openapi.json
-          grep -q '/human/auth/signup' public/openapi.json
-          grep -q '__Host-a2a402_human_session' public/openapi.json
-          grep -q 'genesisWorkPool' public/.well-known/agent-card.json
-          grep -q 'humanPlatformUrl' public/.well-known/agent-card.json
-          node -e 'const fs=require("fs"); const t=JSON.parse(fs.readFileSync("public/token.json")); const l=JSON.parse(fs.readFileSync("public/token-listing.json")); if(t.symbol!=="A2A"||l.token?.symbol!=="A2A") process.exit(1)'
-          grep -q 'Strict-Transport-Security' netlify.toml
-          ! grep -qiE 'base[- ]sepolia|eip155:84532' public/openapi.json public/llms.txt public/agents/onboard.json public/.well-known/agent-card.json public/token.json public/token-listing.json public/index.html
+        run: node scripts/verify-production-bundle.mjs
 
   preview-smoke:
     if: github.event_name == 'pull_request'
