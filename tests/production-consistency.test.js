@@ -39,3 +39,19 @@ test('canonical A2A route uses the dedicated protocol handler',()=>{
   assert.match(netlify,/from = "\/a2a"\s+to = "\/\.netlify\/functions\/a2a"/m);
   assert.doesNotMatch(netlify,/from = "\/a2a"\s+to = "\/\.netlify\/functions\/api"/m);
 });
+
+
+test('OpenAPI advertises every supported USDC network',()=>{
+  const networks=openapi.components.schemas.JobCreateRequest.properties.paymentNetwork.enum;
+  assert.deepEqual(networks,['base','ethereum','arbitrum','optimism','polygon']);
+  const needNetworks=openapi.paths['/need'].post.requestBody.content['application/json'].schema.properties.paymentNetwork.enum;
+  assert.deepEqual(needNetworks,['base','ethereum','arbitrum','optimism','polygon']);
+});
+
+test('production hardening keeps Stripe parked and security headers enabled',()=>{
+  assert.doesNotMatch(netlify,/stripe-funding/i);
+  assert.match(netlify,/Strict-Transport-Security/);
+  assert.match(netlify,/Content-Security-Policy/);
+  assert.match(netlify,/X-Content-Type-Options/);
+  assert.match(netlify,/Permissions-Policy/);
+});
