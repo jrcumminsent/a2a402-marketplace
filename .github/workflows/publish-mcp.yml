@@ -8,9 +8,6 @@ on:
         required: true
         default: 0.1.0
   push:
-    branches: [main]
-    paths:
-      - "packages/mcp/.publish-0.1.0"
     tags:
       - "mcp-v*"
 
@@ -32,10 +29,8 @@ jobs:
         run: |
           if [ "${GITHUB_EVENT_NAME}" = "workflow_dispatch" ]; then
             VERSION="${{ inputs.version }}"
-          elif [ "${GITHUB_REF_TYPE}" = "tag" ]; then
-            VERSION="${GITHUB_REF_NAME#mcp-v}"
           else
-            VERSION="0.1.0"
+            VERSION="${GITHUB_REF_NAME#mcp-v}"
           fi
           if ! [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
             echo "Invalid version: $VERSION" >&2
