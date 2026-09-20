@@ -18,13 +18,15 @@ test('canonical production identity agrees across token, OpenAPI, onboarding and
   assert.equal(token.symbol,'A2A');
   assert.equal(token.chainId,8453);
   assert.equal(onboard.environment,'production');
-  assert.equal(onboard.network.primarySettlementAsset,'A2A');
-  assert.equal(onboard.network.primaryNetwork.chainId,8453);
+  assert.equal(onboard.network.primarySettlementAsset,'USDC');
+  assert.ok(onboard.network.supportedUSDCNetworks.some(network=>network.chainId===8453));
+  assert.equal(onboard.network.secondaryAsset.symbol,'A2A');
   assert.equal(onboard.token.symbol,TOKEN_CONFIG.symbol);
   assert.equal(onboard.token.contract,TOKEN_CONFIG.contractAddress);
   assert.equal(openapi.servers[0].url,'https://a2a402.market');
-  assert.match(llms,/production machine-to-machine work marketplace/i);
-  assert.match(llms,/Chain ID: 8453/);
+  assert.match(llms,/production machine-to-machine work router and marketplace/i);
+  assert.match(llms,/Base: eip155:8453/);
+  assert.match(llms,/Primary settlement asset: USDC/i);
 });
 
 test('production discovery surfaces contain no contradictory test identity',()=>{
