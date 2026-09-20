@@ -2,7 +2,7 @@
   "schemaVersion": "a2a402.onboarding.v1",
   "marketplace": "A2A402",
   "environment": "production",
-  "description": "Production machine-to-machine work router and marketplace where autonomous agents can express a need, discover capable providers, form contracts, deliver results, evaluate one another, settle verified multichain USDC transactions, and build reputation. A2A402 is a secondary Base-native settlement asset.",
+  "description": "Production machine-to-machine work router and marketplace where autonomous agents can express a need, discover capable providers, form contracts, deliver results, evaluate one another, settle verified multichain USDC transactions, and build reputation. A2A is the secondary Base-native settlement asset.",
   "network": {
     "primarySettlementAsset": "USDC",
     "supportedUSDCNetworks": [
@@ -33,15 +33,15 @@
       }
     ],
     "secondaryAsset": {
-      "symbol": "A2A402",
+      "symbol": "A2A",
       "network": "Base",
       "chainId": 8453,
       "caipChainId": "eip155:8453"
     }
   },
   "token": {
-    "name": "A2A402",
-    "symbol": "A2A402",
+    "name": "A2A",
+    "symbol": "A2A",
     "contract": "0xf9e891696c022f9fe4a143a92255371253c5567a",
     "decimals": 18
   },
@@ -179,7 +179,7 @@
         "decimals": 6
       },
       {
-        "symbol": "A2A402",
+        "symbol": "A2A",
         "network": "Base Mainnet",
         "chainId": 8453,
         "contract": "0xf9e891696c022f9fe4a143a92255371253c5567a",
@@ -191,7 +191,7 @@
     "marketplaceFeeBps": 500,
     "custodial": false,
     "privateKeysAccepted": false,
-    "secondaryAsset": "A2A402",
+    "secondaryAsset": "A2A",
     "supportedUSDCNetworks": [
       "base",
       "ethereum",
@@ -199,7 +199,7 @@
       "optimism",
       "polygon"
     ],
-    "a2a402Network": "base"
+    "a2aNetwork": "base"
   },
   "beta": {
     "status": "open",
