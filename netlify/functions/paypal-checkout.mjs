@@ -34,11 +34,11 @@ async function paypal(path,{method='GET',body,requestId}={}){
 export default async (req,context)=>{
   try{
     const environment=env('PAYPAL_ENVIRONMENT')||'sandbox';
-    if(environment!=='sandbox')return json({error:'Live PayPal checkout is disabled until sandbox validation is complete.'},403);
+    if(!['sandbox','live'].includes(environment))return json({error:'PAYPAL_ENVIRONMENT must be sandbox or live'},500);
 
     if(req.method==='GET'){
       await token();
-      return json({ok:true,environment:'sandbox',mode:'sandbox-only'});
+      return json({ok:true,environment,mode:environment==='live'?'live-test':'sandbox'});
     }
 
     if(req.method!=='POST')return json({error:'method not allowed'},405);
@@ -54,8 +54,9 @@ export default async (req,context)=>{
     }
 
     const input=await req.json();
-    const amount=Number(input.amount??5);
-    if(!Number.isFinite(amount)||amount<0.01||amount>500)throw new Error('Sandbox amount must be between 0.01 and 500.00 USD');
+    const amount=Number(input.amount??(environment==='live'?1:5));
+    const maxAmount=environment==='live'?5:500;
+    if(!Number.isFinite(amount)||amount<0.01||amount>maxAmount)throw new Error(`${environment==='live'?'Live test':'Sandbox'} amount must be between 0.01 and ${maxAmount.toFixed(2)} USD`);
 
     const order=await paypal('/v2/checkout/orders',{
       method:'POST',
@@ -63,8 +64,8 @@ export default async (req,context)=>{
       body:{
         intent:'CAPTURE',
         purchase_units:[{
-          reference_id:String(input.referenceId||'a2a402-sandbox').slice(0,127),
-          description:String(input.description||'A2A402 PayPal sandbox checkout test').slice(0,127),
+          reference_id:String(input.referenceId||`a2a402-${environment}-test`).slice(0,127),
+          description:String(input.description||`A2A402 PayPal ${environment} checkout test`).slice(0,127),
           amount:{currency_code:'USD',value:amount.toFixed(2)}
         }],
         payment_source:{
@@ -82,7 +83,7 @@ export default async (req,context)=>{
     });
 
     const approveUrl=Array.isArray(order.links)?order.links.find(x=>x.rel==='payer-action' || x.rel==='approve')?.href:null;
-    return json({ok:true,environment:'sandbox',orderId:order.id,status:order.status,approveUrl});
+    return json({ok:true,environment,orderId:order.id,status:order.status,approveUrl});
   }catch(error){
     return json({error:error?.message||String(error)},400);
   }
