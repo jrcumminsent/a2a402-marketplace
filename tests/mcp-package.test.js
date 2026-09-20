@@ -10,7 +10,8 @@ test('MCP package metadata matches official registry identity',()=>{
   assert.equal(pkg.name,'a2a402-mcp');
   assert.equal(pkg.mcpName,'io.github.jrcumminsent/a2a402');
   assert.equal(server.name,pkg.mcpName);
-  assert.equal(server.packages[0].identifier,pkg.name);
+  assert.match(server.packages[0].identifier,/^ghcr\.io\/jrcumminsent\/a2a402-mcp:/);
+  assert.equal(server.packages[0].registryType,'oci');
   assert.equal(server.packages[0].transport.type,'stdio');
 });
 
