@@ -10,3 +10,48 @@ test('payment negotiation prefers verified A2A on Base Mainnet',()=>{const e=new
 test('payment negotiation discovers shared non-A2A asset but requires adapter',()=>{const e=new Economy();const payer=e.registerAgent({name:'Payer',description:'payer',endpoint:'https://payer.example/a2a',capabilities:['broker'],wallets:[{chain:'solana:mainnet',address:'SoPayer111111111111111111111111111111111111',assets:['SOL','USDC']}]});const payee=e.registerAgent({name:'Payee',description:'payee',endpoint:'https://payee.example/a2a',capabilities:['research'],wallets:[{chain:'solana:mainnet',address:'SoPayee111111111111111111111111111111111111',assets:['USDC']}]});const result=e.negotiatePaymentRoutes(payer.id,payee.id);const usdc=result.candidates.find(r=>r.kind==='direct'&&r.asset==='USDC'&&r.chain==='solana:mainnet');assert.ok(usdc);assert.equal(usdc.available,false);assert.equal(usdc.settlementSupport,'adapter-required');assert.equal(result.selected,null);});
 test('payment negotiation proposes conversion when wallets do not share an asset',()=>{const e=new Economy();const payer=e.registerAgent({name:'BTC Payer',description:'payer',endpoint:'https://payer.example/a2a',capabilities:['broker'],wallets:[{chain:'bip122:bitcoin',address:'bc1qpayer',assets:['BTC']}]});const payee=e.registerAgent({name:'A2A Worker',description:'worker',endpoint:'https://worker.example/a2a',capabilities:['research'],wallets:[{chain:'eip155:8453',address:'0x2222222222222222222222222222222222222222',assets:['A2A']}]});const result=e.negotiatePaymentRoutes(payer.id,payee.id);const route=result.candidates.find(r=>r.kind==='conversion'&&r.source.asset==='BTC'&&r.destination.asset==='A2A');assert.ok(route);assert.equal(route.available,false);assert.deepEqual(route.requires,['quote','swap-or-bridge','source-chain-verification','destination-chain-verification']);});
 test('wallet-only creator creates negotiable job instead of falling back to fake money',()=>{const e=new Economy();const payer=e.registerAgent({name:'SOL Payer',description:'payer',endpoint:'https://payer.example/a2a',capabilities:['broker'],wallets:[{chain:'solana:mainnet',address:'SoPayer111111111111111111111111111111111111',assets:['SOL']}]});const job=e.createJob({creatorId:payer.id,title:'research',description:'x',requiredCapability:'research',reward:1});assert.equal(job.paymentMode,'NEGOTIATE_ON_CLAIM');assert.equal(job.paymentAsset,null);assert.equal(job.paymentNetwork,null);});
+
+
+test('USDC job without paymentNetwork selects creator declared Ethereum wallet',()=>{
+  const e=new Economy();
+  const creator=e.registerAgent({
+    name:'Ethereum USDC Creator',
+    description:'creator',
+    endpoint:'https://creator.example/a2a',
+    capabilities:['broker'],
+    wallets:[{chain:'eip155:1',address:'0x1111111111111111111111111111111111111111',assets:['USDC']}]
+  });
+  const job=e.createJob({creatorId:creator.id,title:'research',description:'x',requiredCapability:'research',reward:1,paymentAsset:'USDC'});
+  assert.equal(job.paymentAsset,'USDC');
+  assert.equal(job.paymentNetwork,'ethereum');
+  assert.equal(job.payerAddress,'0x1111111111111111111111111111111111111111');
+});
+
+test('payment readiness reports supported non-Base USDC wallet as ready',()=>{
+  const e=new Economy();
+  const agent=e.registerAgent({
+    name:'Arbitrum Worker',
+    description:'worker',
+    endpoint:'https://worker.example/a2a',
+    capabilities:['research'],
+    wallets:[{chain:'eip155:42161',address:'0x2222222222222222222222222222222222222222',assets:['USDC']}]
+  });
+  const readiness=e.paymentCapabilities(agent.id).paymentReadiness;
+  assert.equal(readiness.ready,true);
+  assert.equal(readiness.asset,'USDC');
+  assert.equal(readiness.network,'arbitrum');
+  assert.equal(readiness.chain,'eip155:42161');
+});
+
+for (const [network,chain] of [['base','eip155:8453'],['ethereum','eip155:1'],['arbitrum','eip155:42161'],['optimism','eip155:10'],['polygon','eip155:137']]) {
+  test(`USDC route is executable on ${network}`,()=>{
+    const e=new Economy();
+    const payer=e.registerAgent({name:`Payer ${network}`,description:'payer',endpoint:'https://payer.example/a2a',capabilities:['broker'],wallets:[{chain,address:'0x1111111111111111111111111111111111111111',assets:['USDC']}]});
+    const payee=e.registerAgent({name:`Payee ${network}`,description:'payee',endpoint:'https://payee.example/a2a',capabilities:['research'],wallets:[{chain,address:'0x2222222222222222222222222222222222222222',assets:['USDC']}]});
+    const route=e.negotiatePaymentRoutes(payer.id,payee.id).selected;
+    assert.equal(route.asset,'USDC');
+    assert.equal(route.network,network);
+    assert.equal(route.available,true);
+    assert.equal(route.settlementSupport,'verified');
+  });
+}
