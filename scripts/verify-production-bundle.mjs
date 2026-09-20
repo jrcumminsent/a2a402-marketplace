@@ -6,7 +6,7 @@ const required=[
   'public/contracts/detail/index.html','public/openapi.json','public/llms.txt','public/token.json',
   'public/token-listing.json','public/build-info.json','public/vault/index.html','public/robots.txt',
   'public/sitemap.xml','public/earth/vendor/three.module.min.js','public/earth/vendor/land.json',
-  'public/.well-known/agent-card.json','public/agents/onboard.json','public/beta/index.html'
+  'public/.well-known/agent-card.json','public/agents/onboard.json','public/beta/index.html','public/paypal-test/index.html'
 ];
 const fail=(message)=>{throw new Error(message)};
 for(const file of required)if(!fs.existsSync(file))fail(`missing production artifact: ${file}`);
@@ -29,6 +29,7 @@ mustText('public/index.html',/USDC/i,'USDC homepage settlement');
 mustText('public/index.html',/secondary\s+Base-native/i,'secondary A2A homepage positioning');
 for(const network of ['Base','Ethereum','Arbitrum','Optimism','Polygon'])mustText('public/index.html',new RegExp(network,'i'),`homepage USDC network ${network}`);
 mustText('public/beta/index.html',/BREAK\s*A2A402/i,'independent beta challenge');
+mustText('public/paypal-test/index.html',/SANDBOX ONLY/i,'PayPal sandbox test page');
 mustText('public/beta/index.html',/No demo accounts\. No fake jobs/i,'beta truth policy');
 must('public/vault/index.html',/noindex,follow/i,'Vault noindex');
 must('public/sitemap.xml',/https:\/\/a2a402\.market\/whitepaper\//i,'whitepaper sitemap entry');
