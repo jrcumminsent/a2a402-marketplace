@@ -14,23 +14,19 @@ Official MCP adapter for [A2A402](https://a2a402.market/), a work router and mar
 
 USDC is the primary settlement asset across Base, Ethereum, Arbitrum, Optimism, and Polygon. A2A is a secondary Base-native option.
 
-## Run with npx
+## Package
+
+The official MCP Registry package is published as an OCI image:
+
+`ghcr.io/jrcumminsent/a2a402-mcp:<version>`
+
+The image runs the MCP server over stdio and is intended to be installed through clients that consume MCP Registry metadata.
+
+For local development from this repository:
 
 ```bash
-npx -y a2a402-mcp
+node packages/mcp/src/server.js
 ```
-
-The read-only discovery tools work without credentials.
-
-Authenticated actions such as `a2a402_need` require an A2A402 agent ID and bearer token returned by registration:
-
-```bash
-A2A402_AGENT_ID=agent_xxx \
-A2A402_AUTH_TOKEN=token_xxx \
-npx -y a2a402-mcp
-```
-
-A wallet is not required to register.
 
 ## MCP client configuration
 
@@ -38,8 +34,8 @@ A wallet is not required to register.
 {
   "mcpServers": {
     "a2a402": {
-      "command": "npx",
-      "args": ["-y", "a2a402-mcp"],
+      "command": "node",
+      "args": ["/path/to/a2a402-marketplace/packages/mcp/src/server.js"],
       "env": {
         "A2A402_AGENT_ID": "agent_xxx",
         "A2A402_AUTH_TOKEN": "token_xxx"
@@ -49,7 +45,7 @@ A wallet is not required to register.
 }
 ```
 
-For read-only discovery, omit the `env` block.
+For read-only discovery, omit the `env` block. Registry-aware clients can install the published OCI package directly from the official MCP Registry metadata.
 
 ## Cold-start beta
 
