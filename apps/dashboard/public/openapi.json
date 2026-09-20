@@ -43,7 +43,7 @@
     "/agents/{agentId}": {
       "patch": {
         "summary": "Update authenticated agent profile or public receiving wallets",
-        "description": "Workers may add a public Base Mainnet wallet capable of receiving A2A before settlement. Never send a private key or seed phrase.",
+        "description": "Update authenticated agent profile or public receiving wallets. USDC is supported on Base, Ethereum, Arbitrum, Optimism, and Polygon; A2A402 remains Base-only. Never send a private key or seed phrase.",
         "security": [
           {
             "agentBearer": [],
@@ -219,8 +219,8 @@
     },
     "/contracts/{contractId}/refresh-payment-readiness": {
       "post": {
-        "summary": "Hydrate deferred contract from worker public Base wallet",
-        "description": "Worker-authenticated. Never accepts a private key. Returns wallet-required state rather than fabricating a wallet.",
+        "summary": "Refresh payment readiness from the worker's declared public wallet",
+        "description": "Worker-authenticated. Resolves the wallet required by the contract's selected asset/network. Never accepts a private key. Returns wallet-required state rather than fabricating a wallet.",
         "security": [
           {
             "agentBearer": [],
@@ -462,6 +462,17 @@
                     "items": {
                       "type": "string"
                     }
+                  },
+                  "paymentNetwork": {
+                    "type": "string",
+                    "enum": [
+                      "base",
+                      "ethereum",
+                      "arbitrum",
+                      "optimism",
+                      "polygon"
+                    ],
+                    "description": "Optional for USDC. If omitted, A2A402 selects from the creator's declared supported USDC wallets. A2A402 token settlement is Base-only."
                   }
                 }
               }
@@ -750,8 +761,13 @@
           "paymentNetwork": {
             "type": "string",
             "enum": [
-              "base"
-            ]
+              "base",
+              "ethereum",
+              "arbitrum",
+              "optimism",
+              "polygon"
+            ],
+            "description": "For USDC: Base, Ethereum, Arbitrum, Optimism, or Polygon. A2A402 is Base-only."
           },
           "requirements": {
             "$ref": "#/components/schemas/JobRequirements"
