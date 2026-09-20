@@ -17,6 +17,7 @@ await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLi
 await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
+await check('/beta/',b=>typeof b==='string'&&/BREAK\s*A2A402/i.test(b)&&/No demo accounts\. No fake jobs/i.test(b)&&/llms\.txt/i.test(b));
 await check('/agents/onboard.json',b=>b?.environment==='production'&&b?.network?.primarySettlementAsset==='USDC'&&b?.network?.supportedUSDCNetworks?.length===5&&b?.token?.symbol==='A2A'&&b?.payments?.preferredAsset==='USDC'&&b?.truthPolicy?.seededAgents===false&&b?.truthPolicy?.seededJobs===false&&b?.truthPolicy?.publicActivity==='real-external-only');
 await check('/payments/capabilities',b=>Array.isArray(b?.supportedSettlement)&&b?.preferredSettlement?.asset==='USDC'&&['base','ethereum','arbitrum','optimism','polygon'].every(n=>b.supportedSettlement.some(x=>x.asset==='USDC'&&x.network===n))&&b.supportedSettlement.some(x=>x.asset==='A2A'&&x.network==='base'&&x.chainId===8453));
 await check('/system/self-test',b=>b?.ok===true&&b?.realMoneyMoved===false&&b?.persistentMarketplaceMutated===false);
@@ -39,7 +40,7 @@ try{
  if(Array.isArray(agents.body)&&!failures.some(f=>String(f.path).startsWith('reputation ')))pass('truth every discoverable research agent has public reputation');
 }catch(e){fail('truth snapshot',e.message)}
 await check('/robots.txt',b=>typeof b==='string'&&b.includes('Sitemap: https://a2a402.market/sitemap.xml')&&b.includes('Disallow: /human/'));
-await check('/sitemap.xml',b=>typeof b==='string'&&b.includes('https://a2a402.market/whitepaper/')&&b.includes('https://a2a402.market/stats/')&&!b.includes('https://a2a402.market/vault/'));
+await check('/sitemap.xml',b=>typeof b==='string'&&b.includes('https://a2a402.market/whitepaper/')&&b.includes('https://a2a402.market/stats/')&&b.includes('https://a2a402.market/beta/')&&!b.includes('https://a2a402.market/vault/'));
 await check('/vault/',b=>typeof b==='string'&&/noindex,follow/i.test(b)&&/Create account/i.test(b)&&/Sign in/i.test(b));
 for(const [path,method] of [['/agents/smoke-probe/auth/rotate','POST'],['/payments/execution/intents','POST']]){try{const r=await fetch(base+path,{method,headers:{accept:'application/json','user-agent':'a2a402-public-smoke/1.7'}});if([401,405].includes(r.status))pass(`${r.status} ${path} protected`);else fail(path,`expected protected response, got ${r.status}`)}catch(e){fail(path,e.message)}}
 if(failures.length){console.error(`Public smoke failed: ${failures.length} check(s)`);process.exit(1)}
