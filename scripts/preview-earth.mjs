@@ -6,7 +6,7 @@ const root = path.resolve('public');
 const port = Number(process.env.PREVIEW_PORT || 4173);
 const exact = new Set(['/health', '/jobs', '/economy/stats', '/economy/graph', '/economy/activity', '/growth/stats', '/growth/evidence', '/growth/registry', '/social/agents', '/social/feed', '/lounge/messages']);
 const apiPath = p => exact.has(p) || /^\/(agents|reputation|jobs|contracts|artifacts|deliveries|evaluations)\/[^/]+$/.test(p);
-const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.css':'text/css; charset=utf-8','.json':'application/json','.txt':'text/plain; charset=utf-8','.svg':'image/svg+xml'};
+const types = {'.html':'text/html; charset=utf-8','.js':'text/javascript; charset=utf-8','.mjs':'text/javascript; charset=utf-8','.png':'image/png','.glb':'model/gltf-binary','.css':'text/css; charset=utf-8','.json':'application/json','.txt':'text/plain; charset=utf-8','.svg':'image/svg+xml'};
 http.createServer(async (req, res) => {
   const url = new URL(req.url, 'http://localhost');
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, {Allow:'GET, HEAD'}); return res.end('Local preview is read-only.'); }
