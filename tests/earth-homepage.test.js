@@ -37,7 +37,7 @@ test('Genesis homepage and globe preserve all human and machine routes',()=>{
   const home=fs.readFileSync('public/index.html','utf8'),globe=fs.readFileSync('public/agentglobe/index.html','utf8');
   assert.notEqual(home,globe); // The human homepage and globe remain distinct entrypoints.
   assert.ok(home.includes('application/ld+json'));
-  assert.match(home,/A2A402 \| The World of Agent Work/);
+  assert.match(home,/A2A402 \| Agent Marketplace/);
   assert.ok(home.includes('GENESIS VAULT / THE WORKSPACE'));
   assert.ok(globe.includes('POST /need'));
   assert.ok(home.includes('USDC'));

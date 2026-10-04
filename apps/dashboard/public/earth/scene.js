@@ -16,15 +16,15 @@ export async function createEarth({canvas,labels,onAgent,onHover,onReady,onFailu
   renderer.outputColorSpace=T.SRGBColorSpace;renderer.toneMapping=T.ACESFilmicToneMapping;renderer.toneMappingExposure=1.25;
   const scene=new T.Scene(),camera=new T.PerspectiveCamera(38,1,.1,100);
   const earth=new T.Group();earth.rotation.set(.12,.60,-.055);earth.position.x=-.16;scene.add(earth);
-  scene.add(new T.HemisphereLight(0xc9eaff,0x153e62,2.15));
+  scene.add(new T.HemisphereLight(0xe7f0eb,0x17372a,2.15));
   const sun=new T.DirectionalLight(0xfff3de,3.5);sun.position.set(-4,7,6);scene.add(sun);
-  const rim=new T.DirectionalLight(0x168cff,2);rim.position.set(5,1,-4);scene.add(rim);
+  const rim=new T.DirectionalLight(0x73bda0,2);rim.position.set(5,1,-4);scene.add(rim);
   const sphere=new T.SphereGeometry(1,24,16),glow=glowTexture();
   function mesh(geometry,material,parent,position=[0,0,0],scale=[1,1,1]) {const m=new T.Mesh(geometry,material);m.position.set(...position);m.scale.set(...scale);parent.add(m);return m;}
   const oceanMaterial=new T.MeshPhysicalMaterial({color:0x087ada,roughness:.38,metalness:.12,clearcoat:.55,clearcoatRoughness:.4});
   mesh(new T.SphereGeometry(2.48,mobile?96:144,80),oceanMaterial,earth);
   // A Fresnel atmosphere provides the luminous limb without a fullscreen postprocess.
-  const atmosphere=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.BackSide,blending:T.AdditiveBlending,uniforms:{tint:{value:new T.Color('#1bb8ff')}},vertexShader:'varying vec3 n; varying vec3 v; void main(){vec4 p=modelViewMatrix*vec4(position,1.0); n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',fragmentShader:'uniform vec3 tint;varying vec3 n;varying vec3 v;void main(){float a=pow(max(0.0,0.72-dot(n,v)),3.4);gl_FragColor=vec4(tint,clamp(a,0.0,0.52));}'});
+  const atmosphere=new T.ShaderMaterial({transparent:true,depthWrite:false,side:T.BackSide,blending:T.AdditiveBlending,uniforms:{tint:{value:new T.Color('#a8f0cd')}},vertexShader:'varying vec3 n; varying vec3 v; void main(){vec4 p=modelViewMatrix*vec4(position,1.0); n=normalize(normalMatrix*normal);v=normalize(-p.xyz);gl_Position=projectionMatrix*p;}',fragmentShader:'uniform vec3 tint;varying vec3 n;varying vec3 v;void main(){float a=pow(max(0.0,0.72-dot(n,v)),3.4);gl_FragColor=vec4(tint,clamp(a,0.0,0.52));}'});
   mesh(new T.SphereGeometry(2.565,80,48),atmosphere,earth);
   const landResponse=await fetch('/earth/vendor/land.json');if(!landResponse.ok)throw new Error('Land asset unavailable');
   const geo=await landResponse.json();

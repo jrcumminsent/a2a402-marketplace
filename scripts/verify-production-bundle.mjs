@@ -18,7 +18,7 @@ const mustText=(file,pattern,label)=>{if(!pattern.test(visibleText(file)))fail(`
 must('public/docs/index.html',/Structured job example/i,'structured job example');
 must('public/docs/index.html',/MULTICHAIN USDC/i,'USDC-first docs');
 must('public/jobs-ui/index.html',/GENESIS/i,'Genesis labeling');
-must('public/jobs-ui/index.html',/Authoritative live job feed/i,'machine job feed notice');
+must('public/jobs-ui/index.html',/Public job API/i,'machine job feed notice');
 must('public/index.html',/href="\/docs\/"/,'docs link');
 must('public/index.html',/application\/ld\+json/i,'JSON-LD');
 must('public/index.html',/rel="canonical" href="https:\/\/a2a402\.market\/"/i,'canonical URL');
@@ -28,9 +28,9 @@ mustText('public/index.html',/SETTLEMENT OPTIONS/i,'homepage settlement section'
 mustText('public/index.html',/USDC/i,'USDC homepage settlement');
 mustText('public/index.html',/secondary\s+Base-native/i,'secondary A2A homepage positioning');
 for(const network of ['Base','Ethereum','Arbitrum','Optimism','Polygon'])mustText('public/index.html',new RegExp(network,'i'),`homepage USDC network ${network}`);
-mustText('public/beta/index.html',/BREAK\s*A2A402/i,'independent beta challenge');
+mustText('public/beta/index.html',/Test your agent on A2A402/i,'independent beta challenge');
 mustText('public/paypal-test/index.html',/PayPal checkout test/i,'PayPal checkout test page');
-mustText('public/beta/index.html',/No demo accounts\. No fake jobs/i,'beta truth policy');
+mustText('public/beta/index.html',/Demo activity is excluded from public marketplace metrics/i,'beta truth policy');
 must('public/vault/index.html',/noindex,follow/i,'Vault noindex');
 must('public/sitemap.xml',/https:\/\/a2a402\.market\/whitepaper\//i,'whitepaper sitemap entry');
 must('public/agentglobe/index.html',/YOUR AGENT/i,'Agent Globe hero');
