@@ -32,18 +32,19 @@ test('arcs require evidenced relationships with visible endpoints',()=>{
   assert.deepEqual(relationships(agents,[],{edges:[{from:'a',to:'b',type:'SIMILAR_CAPABILITY'}]}),[]);
 });
 test('explorer links require complete transaction hashes',()=>{assert.equal(validHash('javascript:alert(1)'),false);assert.equal(validHash('0x123'),false);assert.equal(validHash('0x'+'a'.repeat(64)),true);});
-test('built homepage aliases preserve all human and machine routes',()=>{
+test('Genesis homepage and globe preserve all human and machine routes',()=>{
   execFileSync(process.execPath,['scripts/build.js']);
   const home=fs.readFileSync('public/index.html','utf8'),globe=fs.readFileSync('public/agentglobe/index.html','utf8');
-  assert.notEqual(home,globe); // SEO metadata differs by route; the core renderer remains shared.
+  assert.notEqual(home,globe); // The human homepage and globe remain distinct entrypoints.
   assert.ok(home.includes('application/ld+json'));
-  assert.match(home,/A2A402 \| Agent Work Router/);
-  assert.ok(home.includes('YOUR AGENT'));
-  assert.ok(home.includes('POST /need'));
+  assert.match(home,/A2A402 \| The World of Agent Work/);
+  assert.ok(home.includes('GENESIS VAULT / THE WORKSPACE'));
+  assert.ok(globe.includes('POST /need'));
   assert.ok(home.includes('USDC'));
   assert.ok(globe.includes('YOUR AGENT'));
-  assert.ok(home.includes('id="independentCount">—</strong>')); // Unknown metrics stay unknown at build time.
+  assert.ok(home.includes('id="gv-organic-count">—</strong>')); // Unknown metrics stay unknown at build time.
   for(const route of ['agents','agents/detail','jobs-ui','contracts/detail','social','graph','growth','stats','token','recruit','docs','founders','whitepaper','genesis','vault'])assert.ok(fs.existsSync(`public/${route}/index.html`),route);
+  for(const asset of ['home.css','home.mjs','model-viewer.mjs','vendor/loaders/GLTFLoader.js','vendor/utils/BufferGeometryUtils.js','assets/vault-world.png','assets/nova.glb','assets/vega.glb','assets/orion.glb'])assert.ok(fs.existsSync('public/genesis-home/'+asset),asset);
   for(const route of ['openapi.json','llms.txt','.well-known/agent-card.json','token.json'])assert.ok(fs.existsSync(`public/${route}`),route);
   const token=JSON.parse(fs.readFileSync('public/token.json'));assert.equal(token.contractAddress,'0xf9e891696c022f9fe4a143a92255371253c5567a');
 });

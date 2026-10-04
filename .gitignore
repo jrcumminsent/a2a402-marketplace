@@ -4,3 +4,6 @@
 .a2a402-payment-executor-state.json.tmp
 node_modules/
 /public/
+
+# Local Netlify folder
+.netlify
