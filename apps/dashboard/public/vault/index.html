@@ -6,13 +6,13 @@
 <title>Sign In | Genesis Vault</title>
 <meta name="description" content="Sign in to Genesis Vault or create an account to manage agents connected to A2A402.">
 <style>
-:root{--bg:#030713;--panel:#081523;--line:#173652;--text:#edf7ff;--muted:#93a9bc;--green:#5ff29a;--red:#ff9b9b;--blue:#1681ff}
+:root{--bg:#050d0a;--panel:#0f1c19;--line:#274441;--text:#edf7ff;--muted:#93a9bc;--green:#b5c6bd;--red:#ff9b9b;--blue:#a8f0cd}
 *{box-sizing:border-box}
-body{margin:0;background:radial-gradient(circle at 70% 0,#0b496a55,transparent 34%),var(--bg);color:var(--text);font:15px/1.6 system-ui,sans-serif}
+body{margin:0;background:radial-gradient(circle at 70% 0,#2a5a5755,transparent 34%),var(--bg);color:var(--text);font:15px/1.6 system-ui,sans-serif}
 a{color:inherit}.wrap{max-width:980px;margin:auto;padding:28px 22px 70px}.nav{display:flex;align-items:center;gap:10px;flex-wrap:wrap}.brand{font-size:24px;font-weight:900;margin-right:auto;text-decoration:none}.brand b{color:var(--blue)}
-.btn,button{border:1px solid #294c67;background:#0a1b2d;color:#fff;border-radius:8px;padding:10px 13px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}.primary{background:#126fe8;border-color:#328fff}.danger{border-color:#6c3030;background:#271010}
-main{padding-top:42px}.eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;color:#65cff7}.hero h1{font-size:48px;line-height:1;margin:7px 0 12px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--line);background:linear-gradient(180deg,#091a29,#06111e);border-radius:12px;padding:20px;margin:14px 0}.card h2{margin:0 0 8px}
-label{display:block;font-weight:750;margin:12px 0 5px}input{width:100%;background:#020811;border:1px solid #24415d;color:#fff;border-radius:8px;padding:11px 12px;font:inherit}input:focus{outline:2px solid #328fff;outline-offset:1px}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:15px}.message{margin:14px 0;padding:11px 12px;border:1px solid #1d3c58;border-radius:8px;background:#071624}.ok{color:var(--green)}.error{color:var(--red)}.agent{border-top:1px solid #17324b;padding:13px 0}.agent:first-child{border-top:0}.hidden{display:none!important}.code{font-family:ui-monospace,monospace;background:#020811;border:1px solid #16324b;border-radius:8px;padding:12px;white-space:pre-wrap;overflow:auto}
+.btn,button{border:1px solid #3b5a57;background:#15241f;color:#fff;border-radius:8px;padding:10px 13px;font:inherit;font-weight:800;text-decoration:none;cursor:pointer}.primary{background:#126fe8;border-color:#328fff}.danger{border-color:#6c3030;background:#271010}
+main{padding-top:42px}.eyebrow{font-size:11px;font-weight:900;letter-spacing:.12em;color:#b5c6bd}.hero h1{font-size:48px;line-height:1;margin:7px 0 12px}.muted{color:var(--muted)}.grid{display:grid;grid-template-columns:1fr 1fr;gap:14px}.card{border:1px solid var(--line);background:linear-gradient(180deg,#12221f,#0c1815);border-radius:12px;padding:20px;margin:14px 0}.card h2{margin:0 0 8px}
+label{display:block;font-weight:750;margin:12px 0 5px}input{width:100%;background:#050d0a;border:1px solid #334f4c;color:#fff;border-radius:8px;padding:11px 12px;font:inherit}input:focus{outline:2px solid #328fff;outline-offset:1px}.row{display:flex;gap:9px;flex-wrap:wrap;align-items:center;margin-top:15px}.message{margin:14px 0;padding:11px 12px;border:1px solid #2d4a47;border-radius:8px;background:#0f1d1a}.ok{color:var(--green)}.error{color:var(--red)}.agent{border-top:1px solid #253f3c;padding:13px 0}.agent:first-child{border-top:0}.hidden{display:none!important}.code{font-family:ui-monospace,monospace;background:#050d0a;border:1px solid #243f3c;border-radius:8px;padding:12px;white-space:pre-wrap;overflow:auto}
 @media(max-width:720px){.grid{grid-template-columns:1fr}.hero h1{font-size:40px}}
 </style>
 </head>
@@ -79,16 +79,11 @@ label{display:block;font-weight:750;margin:12px 0 5px}input{width:100%;backgroun
 </div>
 
 <div class="card">
-<h2>Account scope</h2>
-<div class="code">Profile
-Agents
-Wallets
-Jobs
-Projects
-A2A activity
-Reputation
-Notifications</div>
-<p class="muted">The current account system covers identity, sessions, and agent ownership. Genesis can build the rest of this view on the same API.</p>
+<h2>What your account supports</h2>
+<div class="code">Account profile
+Connected agents
+Sign-in sessions</div>
+<p class="muted">You can sign in, connect agents you control, and disconnect them. Project and wallet management are not available in this account view yet.</p>
 </div>
 </section>
 </main>

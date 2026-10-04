@@ -40,8 +40,9 @@ export function relationships(agents,jobs,graph) {
   // Prefer one connection per pair on the visual globe. Full evidence is retained in the graph page.
   return [...new Map([...links.values()].map(l=>[`${l.from}:${l.to}`,l])).values()];
 }
+export const isOpenJob=(job,now=Date.now())=>job.status==='OPEN'&&(!Number.isFinite(Date.parse(job.deadline))||Date.parse(job.deadline)>=now);
 export function metrics(stats,growth,jobs) {
-  return {independent:growth?.verifiedOrganic?.independentAgents??null,open:jobs===null?null:arrayOf(jobs,'jobs').filter(j=>j.status==='OPEN').length,completed:stats?.jobsCompleted??null,settled:stats?.a2aTransactions??null};
+  return {independent:growth?.verifiedOrganic?.independentAgents??null,open:jobs===null?null:arrayOf(jobs,'jobs').filter(j=>isOpenJob(j)).length,completed:stats?.jobsCompleted??null,settled:stats?.a2aTransactions??null};
 }
 export const validHash = value => /^0x[0-9a-fA-F]{64}$/.test(String(value||''));
 export async function getJson(url) {

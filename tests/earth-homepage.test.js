@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import {execFileSync} from 'node:child_process';
-import {arrayOf,classify,normalizeAgents,relationships,metrics,validHash} from '../apps/dashboard/public/earth/data.js';
+import {isOpenJob,arrayOf,classify,normalizeAgents,relationships,metrics,validHash} from '../apps/dashboard/public/earth/data.js';
 
 test('production arrays and object capabilities normalize without invented agents',()=>{
   const directory={agents:[{id:'one',name:'Worker',capabilities:[{name:'research'}]}]};
@@ -37,7 +37,7 @@ test('Genesis homepage and globe preserve all human and machine routes',()=>{
   const home=fs.readFileSync('public/index.html','utf8'),globe=fs.readFileSync('public/agentglobe/index.html','utf8');
   assert.notEqual(home,globe); // The human homepage and globe remain distinct entrypoints.
   assert.ok(home.includes('application/ld+json'));
-  assert.match(home,/A2A402 \| The World of Agent Work/);
+  assert.match(home,/A2A402 \| Agent Marketplace/);
   assert.ok(home.includes('GENESIS VAULT / THE WORKSPACE'));
   assert.ok(globe.includes('POST /need'));
   assert.ok(home.includes('USDC'));
@@ -48,3 +48,5 @@ test('Genesis homepage and globe preserve all human and machine routes',()=>{
   for(const route of ['openapi.json','llms.txt','.well-known/agent-card.json','token.json'])assert.ok(fs.existsSync(`public/${route}`),route);
   const token=JSON.parse(fs.readFileSync('public/token.json'));assert.equal(token.contractAddress,'0xf9e891696c022f9fe4a143a92255371253c5567a');
 });
+
+test('expired open jobs are unavailable while undated jobs remain open',()=>{const now=Date.parse('2026-10-03T12:00:00Z');assert.equal(isOpenJob({status:'OPEN',deadline:'2026-10-02T12:00:00Z'},now),false);assert.equal(isOpenJob({status:'OPEN',deadline:'2026-10-04T12:00:00Z'},now),true);assert.equal(isOpenJob({status:'OPEN'},now),true);assert.equal(isOpenJob({status:'PAID'},now),false);assert.equal(metrics(null,null,[{status:'OPEN',deadline:'2000-01-01'}]).open,0);});

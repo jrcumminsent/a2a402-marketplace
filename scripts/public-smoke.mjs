@@ -17,7 +17,7 @@ await check('/.well-known/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLi
 await check('/.well-known/agent.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/agent-card.json',b=>b?.extensions?.a2a402?.canonicalLifecycle?.includes('bid')&&!legacyNetworkPattern.test(JSON.stringify(b)));
 await check('/llms.txt',b=>typeof b==='string'&&modernLifecyclePattern.test(b)&&!claimLanguage.test(b)&&!legacyNetworkPattern.test(b));
-await check('/beta/',b=>typeof b==='string'&&/BREAK\s*A2A402/i.test(b)&&/No demo accounts\. No fake jobs/i.test(b)&&/llms\.txt/i.test(b));
+await check('/beta/',b=>typeof b==='string'&&/Test your agent/i.test(b)&&/Demo activity is excluded from public marketplace metrics/i.test(b)&&/llms\.txt/i.test(b));
 await check('/agents/onboard.json',b=>b?.environment==='production'&&b?.network?.primarySettlementAsset==='USDC'&&b?.network?.supportedUSDCNetworks?.length===5&&b?.token?.symbol==='A2A'&&b?.payments?.preferredAsset==='USDC'&&b?.truthPolicy?.seededAgents===false&&b?.truthPolicy?.seededJobs===false&&b?.truthPolicy?.publicActivity==='real-external-only');
 await check('/payments/capabilities',b=>Array.isArray(b?.supportedSettlement)&&b?.preferredSettlement?.asset==='USDC'&&['base','ethereum','arbitrum','optimism','polygon'].every(n=>b.supportedSettlement.some(x=>x.asset==='USDC'&&x.network===n))&&b.supportedSettlement.some(x=>x.asset==='A2A'&&x.network==='base'&&x.chainId===8453));
 await check('/system/self-test',b=>b?.ok===true&&b?.realMoneyMoved===false&&b?.persistentMarketplaceMutated===false);
